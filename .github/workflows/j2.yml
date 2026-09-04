@@ -1,95 +1,50 @@
-name: J2 CI
-
-on:
-  push:
-  pull_request:
-  workflow_dispatch:
-
-permissions:
-  contents: read
-
-jobs:
-  j2-native:
-    # J2 0.1.0 is currently published for macOS Apple Silicon.
-    # Pinning macos-15 keeps the environment explicit rather than tracking
-    # the moving macos-latest label.
-    runs-on: macos-15
-    env:
-      J2_VERSION: 0.1.0
-      J2_SHA256: 6fda8338791730cf7937362acd03e29247719e65785458e62988e1789c842e75
-
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Verify runner architecture
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "arch=$(uname -m)"
-          test "$(uname -m)" = "arm64"
-
       - name: Install J2 0.1.0
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/j2"
-          cd "$RUNNER_TEMP/j2"
+
+          ROOT="$RUNNER_TEMP/j2"
+          mkdir -p "$ROOT"
+          cd "$ROOT"
+
           curl --fail --location --silent --show-error \
             -o j2.tar.gz \
             "https://github.com/JasnamSinghArora/j2/releases/download/v${J2_VERSION}/j2-${J2_VERSION}-aarch64-apple-darwin.tar.gz"
+
           printf '%s  %s\n' "$J2_SHA256" j2.tar.gz | shasum -a 256 -c -
+
           tar -xzf j2.tar.gz
-          J2_DIR="$RUNNER_TEMP/j2/j2-${J2_VERSION}-aarch64-apple-darwin"
-          test -x "$J2_DIR/j2"
-          echo "$J2_DIR" >> "$GITHUB_PATH"
 
-      - name: Verify J2 CLI
-        shell: bash
-        run: |
-          set -euo pipefail
-          j2 --version
-          j --help
+          echo "=== Archive layout ==="
+          find "$ROOT" -maxdepth 3 -print | sort
 
-      - name: J2 smoke test
-        shell: bash
-        run: |
-          set -euo pipefail
-          printf 'print("hello from dupe CI")\n' > "$RUNNER_TEMP/hello.j2"
-          j "$RUNNER_TEMP/hello.j2"
+          INSTALL_SH="$(find "$ROOT" -type f -name install.sh -print -quit)"
+          J2_BIN="$(find "$ROOT" -type f -name j2 -perm -111 -print -quit)"
 
-      - name: Native build smoke test
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p build
-          j2 build "$RUNNER_TEMP/hello.j2" -o build/hello
-          test -x build/hello
-          ./build/hello
-
-      - name: Run project J2 tests when present
-        shell: bash
-        run: |
-          set -euo pipefail
-          shopt -s nullglob
-          tests=(tests/*.j2)
-          if (( ${#tests[@]} == 0 )); then
-            echo "No J2 test programs yet; toolchain validation is the current milestone."
-            exit 0
+          if [[ -z "$INSTALL_SH" ]]; then
+            echo "ERROR: install.sh was not found."
+            exit 1
           fi
-          for test_file in "${tests[@]}"; do
-            echo "=== $test_file ==="
-            j "$test_file"
-          done
 
-      - name: Build project J2 entrypoint when present
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [[ -f src/dupe.j2 ]]; then
-            mkdir -p build
-            j2 build src/dupe.j2 -o build/dupe
-            test -x build/dupe
-          else
-            echo "src/dupe.j2 does not exist yet; skipping project build."
+          if [[ -z "$J2_BIN" ]]; then
+            echo "ERROR: executable j2 was not found."
+            exit 1
+          fi
+
+          J2_DIR="$(dirname "$INSTALL_SH")"
+
+          echo "Detected J2 directory: $J2_DIR"
+          echo "Detected J2 binary: $J2_BIN"
+
+          cd "$J2_DIR"
+          ./install.sh
+
+          echo "$(dirname "$J2_BIN")" >> "$GITHUB_PATH"
+
+          if [[ -d "$HOME/.j2/bin" ]]; then
+            echo "$HOME/.j2/bin" >> "$GITHUB_PATH"
+          fi
+
+          if [[ -d "$HOME/.j2" ]]; then
+            echo "$HOME/.j2" >> "$GITHUB_PATH"
           fi
