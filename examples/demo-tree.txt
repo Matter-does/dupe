@@ -1,0 +1,6 @@
+demo-data/
+├── a.bin
+├── b.bin        # exact duplicate of a.bin
+├── c.bin
+└── nested/
+    └── d.bin
