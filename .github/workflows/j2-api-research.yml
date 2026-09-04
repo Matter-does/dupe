@@ -61,7 +61,7 @@ jobs:
           set -u
           ROOT="$RUNNER_TEMP/j2-api-probes"
           mkdir -p "$ROOT"
-          printf 'j2 api probe file\\n' > "$ROOT/sample.txt"
+          printf 'j2 api probe file\n' > "$ROOT/sample.txt"
 
           candidates=(
             'read_file("__PROBE__")'
@@ -91,13 +91,13 @@ jobs:
           for expr in "${candidates[@]}"; do
             expr="${expr//__PROBE__/$ROOT/sample.txt}"
             probe="$ROOT/probe.j2"
-            printf 'print(%s)\\n' "$expr" > "$probe"
+            printf 'print(%s)\n' "$expr" > "$probe"
             echo "=== $expr ===" | tee -a "$RUNNER_TEMP/api-probe-results.txt"
             set +e
             output="$(j2 build "$probe" -o "$ROOT/probe-bin" 2>&1)"
             status=$?
             set -e
-            printf '%s\\n' "$output" | tee -a "$RUNNER_TEMP/api-probe-results.txt"
+            printf '%s\n' "$output" | tee -a "$RUNNER_TEMP/api-probe-results.txt"
             echo "STATUS=$status" | tee -a "$RUNNER_TEMP/api-probe-results.txt"
             echo | tee -a "$RUNNER_TEMP/api-probe-results.txt"
           done
@@ -109,8 +109,8 @@ jobs:
           ROOT="$RUNNER_TEMP/j2-api-probes"
           probe="$ROOT/runtime.j2"
           {
-            printf 'print(read_file("%s"))\\n' "$ROOT/sample.txt"
-            printf 'print(write_file("%s/out.txt", "runtime probe"))\\n' "$ROOT"
+            printf 'print(read_file("%s"))\n' "$ROOT/sample.txt"
+            printf 'print(write_file("%s/out.txt", "runtime probe"))\n' "$ROOT"
           } > "$probe"
           echo '=== known-function runtime probe ==='
           set +e
