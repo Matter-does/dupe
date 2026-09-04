@@ -1,0 +1,127 @@
+name: J2 API Research
+
+on:
+  push:
+    paths:
+      - '.github/workflows/j2-api-research.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: macos-15
+    env:
+      J2_VERSION: 0.1.0
+      J2_SHA256: 6fda8338791730cf7937362acd03e29247719e65785458e62988e1789c842e75
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install J2 0.1.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/j2"
+          mkdir -p "$ROOT"
+          cd "$ROOT"
+          curl --fail --location --silent --show-error --retry 3 --retry-delay 2 \
+            -o j2.tar.gz \
+            "https://github.com/JasnamSinghArora/j2/releases/download/v${J2_VERSION}/j2-${J2_VERSION}-aarch64-apple-darwin.tar.gz"
+          printf '%s  %s\n' "$J2_SHA256" j2.tar.gz | shasum -a 256 -c -
+          tar -xzf j2.tar.gz
+          INSTALL_SH="$(find "$ROOT" -type f -name install.sh -print -quit)"
+          test -n "$INSTALL_SH"
+          J2_DIR="$(dirname "$INSTALL_SH")"
+          cd "$J2_DIR"
+          chmod +x ./install.sh
+          ./install.sh
+          echo "$HOME/.j2/bin" >> "$GITHUB_PATH"
+
+      - name: Record compiler and CLI surface
+        shell: bash
+        run: |
+          set +e
+          echo '=== j2 --version ==='
+          j2 --version
+          echo '=== j2 --help ==='
+          j2 --help
+          echo '=== j2 build --help ==='
+          j2 build --help
+          echo '=== j2 run --help ==='
+          j2 run --help
+          echo '=== j2 repl --help ==='
+          j2 repl --help
+
+      - name: Probe filesystem function names
+        shell: bash
+        run: |
+          set -u
+          ROOT="$RUNNER_TEMP/j2-api-probes"
+          mkdir -p "$ROOT"
+          printf 'j2 api probe file\\n' > "$ROOT/sample.txt"
+
+          candidates=(
+            'read_file("__PROBE__")'
+            'write_file("__PROBE__", "x")'
+            'list_dir("__PROBE__")'
+            'read_dir("__PROBE__")'
+            'dir_entries("__PROBE__")'
+            'file_exists("__PROBE__")'
+            'exists("__PROBE__")'
+            'is_file("__PROBE__")'
+            'is_dir("__PROBE__")'
+            'is_directory("__PROBE__")'
+            'file_size("__PROBE__")'
+            'get_file_size("__PROBE__")'
+            'stat("__PROBE__")'
+            'file_stat("__PROBE__")'
+            'path_exists("__PROBE__")'
+            'path_join("a", "b")'
+            'join_path("a", "b")'
+            'remove_file("__PROBE__")'
+            'delete_file("__PROBE__")'
+            'rename_file("a", "b")'
+          )
+
+          : > "$RUNNER_TEMP/api-probe-results.txt"
+
+          for expr in "${candidates[@]}"; do
+            expr="${expr//__PROBE__/$ROOT/sample.txt}"
+            probe="$ROOT/probe.j2"
+            printf 'print(%s)\\n' "$expr" > "$probe"
+            echo "=== $expr ===" | tee -a "$RUNNER_TEMP/api-probe-results.txt"
+            set +e
+            output="$(j2 build "$probe" -o "$ROOT/probe-bin" 2>&1)"
+            status=$?
+            set -e
+            printf '%s\\n' "$output" | tee -a "$RUNNER_TEMP/api-probe-results.txt"
+            echo "STATUS=$status" | tee -a "$RUNNER_TEMP/api-probe-results.txt"
+            echo | tee -a "$RUNNER_TEMP/api-probe-results.txt"
+          done
+
+      - name: Probe known filesystem functions at runtime
+        shell: bash
+        run: |
+          set -u
+          ROOT="$RUNNER_TEMP/j2-api-probes"
+          probe="$ROOT/runtime.j2"
+          {
+            printf 'print(read_file("%s"))\\n' "$ROOT/sample.txt"
+            printf 'print(write_file("%s/out.txt", "runtime probe"))\\n' "$ROOT"
+          } > "$probe"
+          echo '=== known-function runtime probe ==='
+          set +e
+          j2 run --allow-fs "$probe"
+          status=$?
+          set -e
+          echo "STATUS=$status"
+
+      - name: Publish probe log
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '=== API probe results ==='
+          cat "$RUNNER_TEMP/api-probe-results.txt"
