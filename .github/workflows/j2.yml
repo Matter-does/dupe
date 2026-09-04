@@ -1,4 +1,33 @@
-      - name: Install J2 0.1.0
+﻿name: J2 CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  j2-native:
+    runs-on: macos-15
+
+    env:
+      J2_VERSION: 0.1.0
+      J2_SHA256: 6fda8338791730cf7937362acd03e29247719e65785458e62988e1789c842e75
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Verify runner architecture
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Architecture: $(uname -m)"
+          test "$(uname -m)" = "arm64"
+
+      - name: Download J2 0.1.0
         shell: bash
         run: |
           set -euo pipefail
@@ -7,7 +36,13 @@
           mkdir -p "$ROOT"
           cd "$ROOT"
 
-          curl --fail --location --silent --show-error \
+          curl \
+            --fail \
+            --location \
+            --silent \
+            --show-error \
+            --retry 3 \
+            --retry-delay 2 \
             -o j2.tar.gz \
             "https://github.com/JasnamSinghArora/j2/releases/download/v${J2_VERSION}/j2-${J2_VERSION}-aarch64-apple-darwin.tar.gz"
 
@@ -15,36 +50,102 @@
 
           tar -xzf j2.tar.gz
 
-          echo "=== Archive layout ==="
+          echo "=== Extracted archive ==="
           find "$ROOT" -maxdepth 3 -print | sort
 
+      - name: Locate J2 installation
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ROOT="$RUNNER_TEMP/j2"
+
           INSTALL_SH="$(find "$ROOT" -type f -name install.sh -print -quit)"
-          J2_BIN="$(find "$ROOT" -type f -name j2 -perm -111 -print -quit)"
 
           if [[ -z "$INSTALL_SH" ]]; then
             echo "ERROR: install.sh was not found."
             exit 1
           fi
 
-          if [[ -z "$J2_BIN" ]]; then
-            echo "ERROR: executable j2 was not found."
-            exit 1
-          fi
-
           J2_DIR="$(dirname "$INSTALL_SH")"
 
-          echo "Detected J2 directory: $J2_DIR"
-          echo "Detected J2 binary: $J2_BIN"
+          echo "J2 directory: $J2_DIR"
+
+          echo "J2_DIR=$J2_DIR" >> "$GITHUB_ENV"
+
+      - name: Install J2
+        shell: bash
+        run: |
+          set -euo pipefail
 
           cd "$J2_DIR"
+          chmod +x ./install.sh
           ./install.sh
 
-          echo "$(dirname "$J2_BIN")" >> "$GITHUB_PATH"
+      - name: Verify J2 installation
+        shell: bash
+        run: |
+          set -euo pipefail
 
-          if [[ -d "$HOME/.j2/bin" ]]; then
+          echo "=== PATH ==="
+          echo "$PATH"
+
+          echo
+          echo "=== ~/.j2 ==="
+          if [[ -d "$HOME/.j2" ]]; then
+            find "$HOME/.j2" -maxdepth 3 -print | sort
+          fi
+
+          echo
+          echo "=== Commands ==="
+          command -v j2 || true
+          command -v j || true
+
+          if [[ -x "$HOME/.j2/bin/j2" ]]; then
             echo "$HOME/.j2/bin" >> "$GITHUB_PATH"
           fi
 
-          if [[ -d "$HOME/.j2" ]]; then
-            echo "$HOME/.j2" >> "$GITHUB_PATH"
+          if [[ -x "$HOME/.j2/bin/j" ]]; then
+            echo "$HOME/.j2/bin" >> "$GITHUB_PATH"
           fi
+
+      - name: J2 version
+        shell: bash
+        run: |
+          set -euo pipefail
+          j2 --version
+
+      - name: J2 interpreter smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          printf 'print("hello from dupe CI")\n' > "$RUNNER_TEMP/hello.j2"
+
+          j "$RUNNER_TEMP/hello.j2"
+
+      - name: J2 native build smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p build
+
+          j2 build \
+            "$RUNNER_TEMP/hello.j2" \
+            -o build/hello
+
+          test -x build/hello
+
+          echo "=== Native binary ==="
+          file build/hello
+
+          echo "=== Native execution ==="
+          ./build/hello
+
+      - name: Finish validation
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "J2 0.1.0 validation completed successfully."
