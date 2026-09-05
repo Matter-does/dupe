@@ -1,0 +1,107 @@
+name: J2 Module Syntax Research
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/j2-modules.yml'
+
+permissions:
+  contents: read
+
+env:
+  J2_VERSION: 0.1.0
+  J2_SHA256: 6fda8338791730cf7937362acd03e29247719e65785458e62988e1789c842e75
+
+jobs:
+  probe:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install exact J2
+        shell: bash
+        run: |
+          set -euo pipefail
+          d="$RUNNER_TEMP/j2"
+          mkdir -p "$d"
+          cd "$d"
+          curl -fsSL --retry 3 --retry-delay 2 -o j2.tgz "https://github.com/JasnamSinghArora/j2/releases/download/v${J2_VERSION}/j2-${J2_VERSION}-aarch64-apple-darwin.tar.gz"
+          printf '%s  j2.tgz\n' "$J2_SHA256" | shasum -a 256 -c -
+          tar -xzf j2.tgz
+          s="$(find "$d" -type f -name install.sh -print -quit)"
+          test -n "$s"
+          cd "$(dirname "$s")"
+          chmod +x install.sh
+          ./install.sh
+          echo "$HOME/.j2/bin" >> "$GITHUB_PATH"
+
+      - name: Record J2 baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          uname -m
+          j2 --version
+          j2 --help
+
+      - name: Probe candidate module import forms
+        shell: bash
+        run: |
+          set +e
+          d="$RUNNER_TEMP/modules"
+          mkdir -p "$d"
+
+          cat > "$d/helper.j2" <<'J2'
+          func answer() = { give 42 }
+          J2
+
+          run_case() {
+            name="$1"
+            program="$2"
+            p="$d/${name}.j2"
+            printf '%b\n' "$program" > "$p"
+            echo "=== CASE: $name ==="
+            echo '--- SOURCE ---'
+            cat "$p"
+            echo '--- j2 run ---'
+            j2 run "$p" 2>&1
+            echo "RUN_STATUS=$?"
+            echo '--- j2 build ---'
+            j2 build "$p" -o "$d/${name}.bin" 2>&1
+            bs=$?
+            echo "BUILD_STATUS=$bs"
+            if [ "$bs" -eq 0 ]; then
+              echo '--- native ---'
+              "$d/${name}.bin" 2>&1
+              echo "NATIVE_STATUS=$?"
+            fi
+          }
+
+          run_case import_file 'import "helper.j2"\nprint(answer())'
+          run_case import_bare 'import helper\nprint(answer())'
+          run_case use_bare 'use helper\nprint(answer())'
+          run_case from_import 'from helper import answer\nprint(answer())'
+          run_case include_file 'include "helper.j2"\nprint(answer())'
+          run_case module_decl 'module helper\nfunc answer() = { give 42 }\nprint(answer())'
+          run_case namespace_decl 'module helper { func answer() = { give 42 } }\nprint(helper.answer())'
+          exit 0
+
+      - name: Probe standard-library module access without imports
+        shell: bash
+        run: |
+          set +e
+          d="$RUNNER_TEMP/std"
+          mkdir -p "$d"
+          cat > "$d/p.j2" <<'J2'
+          print(fs)
+          print(hash)
+          print(json)
+          print(time)
+          print(sys)
+          J2
+          j2 run "$d/p.j2" 2>&1
+          echo "STATUS=$?"
+          exit 0
+
+      - name: Research marker
+        run: echo 'J2 module/import syntax probe completed; freeze only observed forms.'
