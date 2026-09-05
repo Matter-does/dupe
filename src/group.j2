@@ -1,0 +1,55 @@
+# dupe grouping module
+
+func add_hash_record(groups, record) = {
+    digest = record[0]
+    size = record[1]
+    path = record[2]
+    rebuilt := []
+    found := false
+
+    for group in groups {
+        if group[0] == digest {
+            rebuilt = rebuilt + [[group[0], group[1], group[2] + [path]]]
+            found = true
+        } else {
+            rebuilt = rebuilt + [group]
+        }
+    }
+
+    if found {
+        give rebuilt
+    }
+
+    give rebuilt + [[digest, size, [path]]]
+}
+
+func group_duplicates(records) = {
+    groups := []
+
+    for record in records {
+        groups = add_hash_record(groups, record)
+    }
+
+    duplicates := []
+    for group in groups {
+        if len(group[2]) > 1 {
+            duplicates = duplicates + [group]
+        }
+    }
+
+    give duplicates
+}
+
+func group_reclaimable(group) = {
+    count = len(group[2])
+    size = group[1]
+    give (count - 1) * size
+}
+
+func total_reclaimable(groups) = {
+    total := 0
+    for group in groups {
+        total = total + group_reclaimable(group)
+    }
+    give total
+}
