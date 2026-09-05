@@ -64,28 +64,21 @@ jobs:
           echo "DUPE_DEMO=$d" >> "$GITHUB_ENV"
           find "$d" -type f -print | sort
 
-      - name: Interpreter MVP
+      - name: 1. Modular interpreter execution
         shell: bash
         run: |
           set -euo pipefail
-          echo '=== INTERPRETER ==='
           j2 --allow-fs src/main.j2 "$DUPE_DEMO" --json > "$RUNNER_TEMP/interpreter.json"
           cat "$RUNNER_TEMP/interpreter.json"
 
-      - name: Native MVP
+      - name: 2. Modular native execution
         shell: bash
         run: |
           set -euo pipefail
-          echo '=== NATIVE ==='
-          mkdir -p build
-          j2 build src/main.j2 -o build/dupe
-          test -x build/dupe
-          j2 --allow-fs "$DUPE_DEMO" --json
-          j2 --allow-fs "$DUPE_DEMO" --json >/dev/null
-          ./build/dupe "$DUPE_DEMO" --json > "$RUNNER_TEMP/native.json"
+          J_FORCE_NATIVE=1 j2 --allow-fs src/main.j2 "$DUPE_DEMO" --json > "$RUNNER_TEMP/native.json"
           cat "$RUNNER_TEMP/native.json"
 
-      - name: Validate MVP result
+      - name: 3. Interpreter JSON == native JSON
         shell: bash
         run: |
           set -euo pipefail
@@ -95,15 +88,17 @@ jobs:
           from pathlib import Path
 
           root = Path(os.environ["RUNNER_TEMP"])
-          i = json.loads((root / "interpreter.json").read_text())
-          n = json.loads((root / "native.json").read_text())
-          assert i == n, (i, n)
-          assert i["files_scanned"] == 5
-          assert i["hash_candidates"] == 4
-          assert len(i["duplicate_groups"]) == 2
-          assert i["reclaimable_bytes"] == 27
-          assert all(len(g["files"]) == 2 for g in i["duplicate_groups"])
-          assert all(g["reclaimable_bytes"] == g["size"] for g in i["duplicate_groups"])
-          assert i["reclaimable_bytes"] == sum(g["reclaimable_bytes"] for g in i["duplicate_groups"])
-          print("Phase 3 MVP PASS")
+          interpreter_raw = (root / "interpreter.json").read_text()
+          native_raw = (root / "native.json").read_text()
+          assert json.loads(interpreter_raw) == json.loads(native_raw), (interpreter_raw, native_raw)
+
+          result = json.loads(interpreter_raw)
+          assert result["files_scanned"] == 5
+          assert result["hash_candidates"] == 4
+          assert len(result["duplicate_groups"]) == 2
+          assert result["reclaimable_bytes"] == 27
+          assert all(len(g["files"]) == 2 for g in result["duplicate_groups"])
+          assert all(g["reclaimable_bytes"] == g["size"] for g in result["duplicate_groups"])
+          assert result["reclaimable_bytes"] == sum(g["reclaimable_bytes"] for g in result["duplicate_groups"])
+          print("Phase 3 MVP PASS: interpreter JSON == native JSON")
           PY
