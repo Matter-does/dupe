@@ -58,9 +58,9 @@ jobs:
 
           run_case() {
             name="$1"
-            shift
+            program="$2"
             p="$d/${name}.j2"
-            printf '%s\n' "$1" > "$p"
+            printf '%b\n' "$program" > "$p"
             echo "=== CASE: $name ==="
             set +e
             j2 run "$p" 2>&1
@@ -239,14 +239,11 @@ jobs:
             cat "$d/n.txt"
             echo "NATIVE_STATUS=$ns"
             echo '=== DIFF ==='
-            set +e
             diff -u "$d/i.txt" "$d/n.txt"
             echo "DIFF_STATUS=$?"
-            set -e
           fi
 
           echo '=== EMIT NATIVE ==='
-          set +e
           j2 emit-native "$d/p.j2" | sed -n '1,260p'
           echo "EMIT_STATUS=${PIPESTATUS[0]}"
           set -e
