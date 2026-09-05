@@ -1,0 +1,54 @@
+# dupe scan module
+
+func join_path(base, name) = {
+    if base == "/" {
+        give fmt("/{}", name)
+    }
+    give fmt("{}/{}", base, name)
+}
+
+func discover(path) = {
+    names = sort(fs.list_dir(path))
+    files := []
+
+    for name in names {
+        child = join_path(path, name)
+        if fs.is_dir(child) {
+            files = files + discover(child)
+        } else {
+            if fs.is_file(child) {
+                meta = fs.metadata(child)
+                files = files + [[child, meta["size"]]]
+            }
+        }
+    }
+
+    give files
+}
+
+func has_same_size(record, files) = {
+    path = record[0]
+    size = record[1]
+
+    for other in files {
+        if other[0] != path {
+            if other[1] == size {
+                give true
+            }
+        }
+    }
+
+    give false
+}
+
+func size_candidates(files) = {
+    candidates := []
+
+    for record in files {
+        if has_same_size(record, files) {
+            candidates = candidates + [record]
+        }
+    }
+
+    give candidates
+}
