@@ -75,6 +75,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # J_FORCE_NATIVE selects J2's native engine while --allow-fs is handled by the launcher.
           J_FORCE_NATIVE=1 j2 --allow-fs src/main.j2 "$DUPE_DEMO" --json > "$RUNNER_TEMP/native.json"
           cat "$RUNNER_TEMP/native.json"
 
