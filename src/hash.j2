@@ -1,0 +1,19 @@
+# dupe hashing module
+
+func hash_file(record) = {
+    path = record[0]
+    size = record[1]
+    bytes = fs.read_bytes(path)
+    digest = hash.sha256(bytes)
+    give [digest, size, path]
+}
+
+func hash_candidates(records) = {
+    hashed := []
+
+    for record in records {
+        hashed = hashed + [hash_file(record)]
+    }
+
+    give hashed
+}
