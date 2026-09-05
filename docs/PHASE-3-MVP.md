@@ -1,6 +1,6 @@
 # Phase 3 — MVP Engine
 
-**Status:** IMPLEMENTED; corrected CI validation in progress  
+**Status:** COMPLETE / FROZEN  
 **Target:** J2 0.1.0 / macOS Apple Silicon
 
 ## Completed work
@@ -16,6 +16,9 @@
 - [x] 3.9 Deterministic result construction
 - [x] 3.10 Human-readable output
 - [x] 3.11 JSON output
+- [x] 3.12 Modular interpreter execution
+- [x] 3.13 Modular native execution
+- [x] 3.14 Interpreter/native JSON equivalence
 
 ## Engine flow
 
@@ -51,15 +54,13 @@ human output       deterministic JSON
 
 ## Module boundary
 
-J2 0.1.0 user-module syntax is now experimentally verified:
+J2 0.1.0 user-module syntax was experimentally verified as:
 
 ```j2
 import "helper.j2"
 ```
 
-The form was shown to run under `j2 run`, compile with `j2 build`, and execute as native code. Imported functions are available directly in the importing program. Other tested forms such as bare `import helper`, `use helper`, `from helper import answer`, `include "helper.j2"`, and `module ...` declarations did not provide a valid user-module mechanism in the probe.
-
-Phase 3 therefore uses these functional source boundaries:
+The form was shown to run under `j2 run`, compile with `j2 build`, and execute as native code. Phase 3 uses these source boundaries:
 
 ```text
 src/
@@ -70,7 +71,7 @@ src/
     output.j2
 ```
 
-No module is allowed to perform user-file mutation in the MVP.
+No module performs user-file mutation in the MVP.
 
 ## MVP correctness rules
 
@@ -85,9 +86,9 @@ No module is allowed to perform user-file mutation in the MVP.
 
 ## CI acceptance test
 
-`.github/workflows/phase3-mvp.yml` creates a five-file test tree containing two duplicate pairs and one unique file.
+`.github/workflows/phase3-mvp.yml` creates a deterministic five-file tree containing two duplicate pairs and one unique file.
 
-The actual test data contains files of 14 and 13 bytes, so the correct expected result is:
+The expected result is:
 
 ```text
 files_scanned       == 5
@@ -96,10 +97,16 @@ duplicate_groups    == 2
 reclaimable_bytes   == 27
 ```
 
-It also requires interpreter and native outputs to parse as JSON and compare equal.
+The final Phase 3 GitHub Actions run `33961153461` completed successfully, and its `mvp` job reported all three acceptance steps as successful:
 
-The first integration attempt exposed two real issues: J2 mutable bindings require `:=`, and the native binary retains the deny-by-default filesystem sandbox. Both are now reflected in the implementation/CI design.
+```text
+1. Modular interpreter execution       PASS
+2. Modular native execution            PASS
+3. Interpreter JSON == native JSON     PASS
+```
 
-## Known follow-up
+The run's warning is an unrelated `actions/checkout@v4` Node.js 20 deprecation annotation; it did not affect the Phase 3 result.
 
-The current implementation deliberately uses a linear same-size scan and linear hash grouping. Phase 4 correctness testing comes before optimization. Phase 5 will measure whether the hashing workload actually benefits from J2 automatic parallelism and will only replace these structures when a runtime-verified J2 API provides a measurable advantage.
+## Handoff to Phase 4
+
+Phase 3 is frozen. The implementation deliberately uses a linear same-size scan and linear hash grouping. Phase 4 adds an independent oracle, seeded edge cases, differential testing, failure preservation, and regression coverage before optimization or automatic-parallelism benchmarking.
