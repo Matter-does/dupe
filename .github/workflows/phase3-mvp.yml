@@ -1,0 +1,103 @@
+name: Phase 3 MVP
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'src/**'
+      - '.github/workflows/phase3-mvp.yml'
+  pull_request:
+    paths:
+      - 'src/**'
+      - '.github/workflows/phase3-mvp.yml'
+
+permissions:
+  contents: read
+
+env:
+  J2_VERSION: 0.1.0
+  J2_SHA256: 6fda8338791730cf7937362acd03e29247719e65785458e62988e1789c842e75
+
+jobs:
+  mvp:
+    runs-on: macos-15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Verify runner architecture
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = "arm64"
+
+      - name: Install exact J2
+        shell: bash
+        run: |
+          set -euo pipefail
+          d="$RUNNER_TEMP/j2"
+          mkdir -p "$d"
+          cd "$d"
+          curl -fsSL --retry 3 --retry-delay 2 -o j2.tgz \
+            "https://github.com/JasnamSinghArora/j2/releases/download/v${J2_VERSION}/j2-${J2_VERSION}-aarch64-apple-darwin.tar.gz"
+          printf '%s  j2.tgz\n' "$J2_SHA256" | shasum -a 256 -c -
+          tar -xzf j2.tgz
+          s="$(find "$d" -type f -name install.sh -print -quit)"
+          test -n "$s"
+          cd "$(dirname "$s")"
+          chmod +x install.sh
+          ./install.sh
+          echo "$HOME/.j2/bin" >> "$GITHUB_PATH"
+
+      - name: Create deterministic demo tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          d="$RUNNER_TEMP/demo"
+          mkdir -p "$d/nested/deeper"
+          printf 'alpha-content\n' > "$d/a.txt"
+          cp "$d/a.txt" "$d/a-copy.txt"
+          printf 'beta-content\n' > "$d/nested/b.txt"
+          cp "$d/nested/b.txt" "$d/nested/deeper/b-copy.txt"
+          printf 'unique\n' > "$d/unique.txt"
+          echo "DUPE_DEMO=$d" >> "$GITHUB_ENV"
+          find "$d" -type f -print | sort
+
+      - name: Interpreter MVP
+        shell: bash
+        run: |
+          set -euo pipefail
+          j2 --allow-fs src/main.j2 "$DUPE_DEMO" --json > "$RUNNER_TEMP/interpreter.json"
+          cat "$RUNNER_TEMP/interpreter.json"
+
+      - name: Native MVP
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          j2 build src/main.j2 -o build/dupe
+          test -x build/dupe
+          ./build/dupe "$DUPE_DEMO" --json > "$RUNNER_TEMP/native.json"
+          cat "$RUNNER_TEMP/native.json"
+
+      - name: Validate MVP result
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          i = json.loads(Path("$RUNNER_TEMP/interpreter.json").read_text())
+          n = json.loads(Path("$RUNNER_TEMP/native.json").read_text())
+          assert i == n, (i, n)
+          assert i["files_scanned"] == 5
+          assert i["hash_candidates"] == 4
+          assert i["duplicate_groups"]
+          assert len(i["duplicate_groups"]) == 2
+          assert i["reclaimable_bytes"] == 28
+          assert all(len(g["files"]) == 2 for g in i["duplicate_groups"])
+          assert all(g["reclaimable_bytes"] == g["size"] for g in i["duplicate_groups"])
+          print("Phase 3 MVP PASS")
+          PY
