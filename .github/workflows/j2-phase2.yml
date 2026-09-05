@@ -73,14 +73,45 @@ jobs:
           run_case integer 'n := 41\nprint(n)'
           run_case boolean 'ok = true\nprint(ok)'
           run_case array 'xs = [3, 1, 2]\nprint(xs)\nprint(len(xs))'
-          run_case map 'm = {"b": 2, "a": 1}\nprint(m)'
           run_case function 'func add(x: int, y: int) -> int = { give x + y }\nprint(add(1, 2))'
           run_case iteration 'xs = [3, 1, 2]\nfor x in xs { print(x) }'
           run_case mutation 'xs = [3, 1, 2]\nxs[0] = 9\nprint(xs)'
           run_case sorting 'xs = [3, 1, 2]\nprint(sort(xs))'
           exit 0
 
-      - name: Probe filesystem and candidate module names at runtime
+      - name: Probe namespace layout and map syntax
+        shell: bash
+        run: |
+          set -u
+          d="$RUNNER_TEMP/shape"
+          mkdir -p "$d"
+
+          run_case() {
+            name="$1"
+            program="$2"
+            p="$d/${name}.j2"
+            printf '%b\n' "$program" > "$p"
+            echo "=== CASE: $name ==="
+            set +e
+            j2 run "$p" 2>&1
+            s=$?
+            echo "STATUS=$s"
+            set -e
+          }
+
+          run_case fs_namespace 'print(fs)'
+          run_case hash_namespace 'print(hash)'
+          run_case json_namespace 'print(json)'
+          run_case time_namespace 'print(time)'
+          run_case sys_namespace 'print(sys)'
+          run_case map_eq 'm = {"b" = 2, "a" = 1}\nprint(m)'
+          run_case map_arrow 'm = {"b" => 2, "a" => 1}\nprint(m)'
+          run_case map_to 'm = {"b" to 2, "a" to 1}\nprint(m)'
+          run_case map_pairs 'm = [("b", 2), ("a", 1)]\nprint(m)'
+          run_case empty_braces 'm = {}\nprint(m)'
+          exit 0
+
+      - name: Probe filesystem candidates at runtime
         shell: bash
         run: |
           set -u
@@ -90,29 +121,25 @@ jobs:
           printf 'xyz' > "$d/sub/b.txt"
 
           candidates=(
-            'read_file("__F__")'
-            'write_file("__O__","x")'
-            'list_dir("__D__")'
-            'read_dir("__D__")'
-            'dir_entries("__D__")'
-            'file_exists("__F__")'
-            'exists("__F__")'
-            'is_file("__F__")'
-            'is_dir("__D__")'
-            'file_size("__F__")'
-            'get_file_size("__F__")'
-            'stat("__F__")'
-            'file_stat("__F__")'
-            'path_exists("__F__")'
-            'path_join("a","b")'
-            'join_path("a","b")'
             'fs.read_file("__F__")'
+            'fs.write_file("__O__","x")'
             'fs.list_dir("__D__")'
+            'fs.read_dir("__D__")'
+            'fs.dir_entries("__D__")'
+            'fs.file_exists("__F__")'
+            'fs.exists("__F__")'
+            'fs.is_file("__F__")'
+            'fs.is_dir("__D__")'
+            'fs.file_size("__F__")'
+            'fs.get_file_size("__F__")'
             'fs.stat("__F__")'
-            'path.join("a","b")'
-            'path.exists("__F__")'
-            'path.basename("__F__")'
-            'io.read_file("__F__")'
+            'fs.metadata("__F__")'
+            'fs.file_info("__F__")'
+            'fs.size("__F__")'
+            'fs.path_exists("__F__")'
+            'fs.path_join("a","b")'
+            'fs.join_path("a","b")'
+            'fs.basename("__F__")'
           )
 
           out="$d/results"
@@ -135,28 +162,84 @@ jobs:
           cat "$out"
           exit 0
 
-      - name: Probe bytes hashing JSON argv timing candidates
+      - name: Probe hash candidates at runtime
+        shell: bash
+        run: |
+          set -u
+          d="$RUNNER_TEMP/hash"
+          mkdir -p "$d"
+          printf 'abc123' > "$d/a.txt"
+
+          candidates=(
+            'hash.sha256("abc")'
+            'hash.sha256_file("__F__")'
+            'hash.digest("abc")'
+            'hash.digest("sha256","abc")'
+            'hash.hex("abc")'
+            'hash.xxhash("abc")'
+            'hash.xxhash64("abc")'
+            'hash.sha512("abc")'
+            'hash.md5("abc")'
+          )
+
+          for e in "${candidates[@]}"; do
+            e="${e//__F__/$d/a.txt}"
+            printf 'print(%s)\n' "$e" > "$d/q.j2"
+            echo "=== $e ==="
+            set +e
+            j2 run --allow-fs "$d/q.j2" 2>&1
+            echo "STATUS=$?"
+            set -e
+          done
+          exit 0
+
+      - name: Probe JSON candidates without map literal assumptions
+        shell: bash
+        run: |
+          set -u
+          d="$RUNNER_TEMP/json"
+          mkdir -p "$d"
+
+          candidates=(
+            'json.encode("abc")'
+            'json.stringify("abc")'
+            'json.to_json("abc")'
+            'json.serialize("abc")'
+            'json.parse("123")'
+            'json.decode("123")'
+            'json.from_json("123")'
+          )
+
+          for e in "${candidates[@]}"; do
+            printf 'print(%s)\n' "$e" > "$d/q.j2"
+            echo "=== $e ==="
+            set +e
+            j2 run "$d/q.j2" 2>&1
+            echo "STATUS=$?"
+            set -e
+          done
+          exit 0
+
+      - name: Probe argv and timing namespace candidates
         shell: bash
         run: |
           set -u
           d="$RUNNER_TEMP/sem"
           mkdir -p "$d"
+
           candidates=(
-            'bytes("abc")'
-            'byte("a")'
-            'hash("abc")'
-            'sha256("abc")'
-            'sha256_hash("abc")'
-            'hash_sha256("abc")'
-            'digest("abc")'
-            'json_encode({"b":2,"a":1})'
-            'to_json({"b":2,"a":1})'
-            'json({"b":2,"a":1})'
-            'now()'
-            'time_now()'
-            'clock()'
-            'argv'
-            'args'
+            'time.now()'
+            'time.now_ms()'
+            'time.now_ns()'
+            'time.monotonic()'
+            'time.millis()'
+            'time.micros()'
+            'time.unix()'
+            'sys.argv'
+            'sys.args'
+            'sys.program_args'
+            'proc.argv'
+            'proc.args'
           )
 
           for e in "${candidates[@]}"; do
@@ -208,7 +291,7 @@ jobs:
       - name: Probe native output and emit-native
         shell: bash
         run: |
-          set -u
+          set +e
           d="$RUNNER_TEMP/native"
           mkdir -p "$d"
 
@@ -220,7 +303,6 @@ jobs:
           J2
 
           echo '=== INTERPRETER ==='
-          set +e
           j2 run "$d/p.j2" > "$d/i.txt" 2>&1
           is=$?
           cat "$d/i.txt"
@@ -244,9 +326,10 @@ jobs:
           fi
 
           echo '=== EMIT NATIVE ==='
-          j2 emit-native "$d/p.j2" | sed -n '1,260p'
-          echo "EMIT_STATUS=${PIPESTATUS[0]}"
-          set -e
+          j2 emit-native "$d/p.j2" > "$d/emit.txt" 2>&1
+          es=$?
+          sed -n '1,260p' "$d/emit.txt"
+          echo "EMIT_STATUS=$es"
           exit 0
 
       - name: Research marker
