@@ -39,7 +39,7 @@ jobs:
       - name: Record machine and CLI
         shell: bash
         run: |
-          set +e
+          set -e
           echo '=== TARGET ==='
           uname -m
           sw_vers
@@ -47,12 +47,11 @@ jobs:
           j2 --version
           echo '=== HELP ==='
           j2 --help
-          exit 0
 
       - name: Probe language and collections
         shell: bash
         run: |
-          set -u
+          set +e
           d="$RUNNER_TEMP/lang"
           mkdir -p "$d"
 
@@ -62,11 +61,8 @@ jobs:
             p="$d/${name}.j2"
             printf '%b\n' "$program" > "$p"
             echo "=== CASE: $name ==="
-            set +e
             j2 run "$p" 2>&1
-            s=$?
-            echo "STATUS=$s"
-            set -e
+            echo "STATUS=$?"
           }
 
           run_case string 'a = "hello"\nprint(a)'
@@ -82,7 +78,7 @@ jobs:
       - name: Probe namespace layout and map syntax
         shell: bash
         run: |
-          set -u
+          set +e
           d="$RUNNER_TEMP/shape"
           mkdir -p "$d"
 
@@ -92,11 +88,8 @@ jobs:
             p="$d/${name}.j2"
             printf '%b\n' "$program" > "$p"
             echo "=== CASE: $name ==="
-            set +e
             j2 run "$p" 2>&1
-            s=$?
-            echo "STATUS=$s"
-            set -e
+            echo "STATUS=$?"
           }
 
           run_case fs_namespace 'print(fs)'
@@ -104,188 +97,178 @@ jobs:
           run_case json_namespace 'print(json)'
           run_case time_namespace 'print(time)'
           run_case sys_namespace 'print(sys)'
-          run_case map_eq 'm = {"b" = 2, "a" = 1}\nprint(m)'
-          run_case map_arrow 'm = {"b" => 2, "a" => 1}\nprint(m)'
-          run_case map_to 'm = {"b" to 2, "a" to 1}\nprint(m)'
           run_case map_pairs 'm = [("b", 2), ("a", 1)]\nprint(m)'
           run_case empty_braces 'm = {}\nprint(m)'
           exit 0
 
-      - name: Probe filesystem candidates at runtime
+      - name: Probe filesystem semantics
         shell: bash
         run: |
-          set -u
+          set +e
           d="$RUNNER_TEMP/fs"
           mkdir -p "$d/sub"
           printf 'abc123' > "$d/a.txt"
           printf 'xyz' > "$d/sub/b.txt"
 
-          candidates=(
-            'fs.read_file("__F__")'
-            'fs.write_file("__O__","x")'
-            'fs.list_dir("__D__")'
-            'fs.read_dir("__D__")'
-            'fs.dir_entries("__D__")'
-            'fs.file_exists("__F__")'
-            'fs.exists("__F__")'
-            'fs.is_file("__F__")'
-            'fs.is_dir("__D__")'
-            'fs.file_size("__F__")'
-            'fs.get_file_size("__F__")'
-            'fs.stat("__F__")'
-            'fs.metadata("__F__")'
-            'fs.file_info("__F__")'
-            'fs.size("__F__")'
-            'fs.path_exists("__F__")'
-            'fs.path_join("a","b")'
-            'fs.join_path("a","b")'
-            'fs.basename("__F__")'
-          )
+          run_case() {
+            name="$1"
+            expr="$2"
+            p="$d/${name}.j2"
+            printf 'print(%s)\n' "$expr" > "$p"
+            echo "=== $expr ==="
+            j2 run --allow-fs "$p" 2>&1
+            echo "STATUS=$?"
+          }
 
-          out="$d/results"
-          : > "$out"
-
-          for e in "${candidates[@]}"; do
-            e="${e//__F__/$d/a.txt}"
-            e="${e//__O__/$d/out.txt}"
-            e="${e//__D__/$d}"
-            p="$d/q.j2"
-            printf 'print(%s)\n' "$e" > "$p"
-            echo "=== $e ===" | tee -a "$out"
-            set +e
-            r="$(j2 run --allow-fs "$p" 2>&1)"
-            s=$?
-            set -e
-            printf '%s\nSTATUS=%s\n\n' "$r" "$s" | tee -a "$out"
-          done
-
-          cat "$out"
+          run_case read_file 'fs.read_file("__F__")'
+          run_case read_bytes 'fs.read_bytes("__F__")'
+          run_case write_file 'fs.write_file("__O__","x")'
+          run_case append_file 'fs.append_file("__O__","y")'
+          run_case list_dir 'fs.list_dir("__D__")'
+          run_case exists 'fs.exists("__F__")'
+          run_case is_file 'fs.is_file("__F__")'
+          run_case is_dir 'fs.is_dir("__D__")'
+          run_case metadata 'fs.metadata("__F__")'
+          run_case rename 'fs.rename("__F__","__R__")'
+          run_case copy 'fs.copy("__F__","__C__")'
+          run_case mkdir 'fs.mkdir("__M__")'
           exit 0
+        env:
+          DUMMY: unused
 
-      - name: Probe hash candidates at runtime
+      - name: Probe filesystem nested values and path behavior
         shell: bash
         run: |
-          set -u
+          set +e
+          d="$RUNNER_TEMP/fs2"
+          mkdir -p "$d/sub"
+          printf 'abc123' > "$d/a.txt"
+          printf 'xyz' > "$d/sub/b.txt"
+
+          cat > "$d/p.j2" <<J2
+          meta = fs.metadata("$d/a.txt")
+          print(meta)
+          print(meta["size"])
+          print(meta["is_file"])
+          print(meta["is_dir"])
+          print(meta["modified_epoch"])
+          J2
+
+          echo '=== metadata field access ==='
+          j2 run --allow-fs "$d/p.j2" 2>&1
+          echo "STATUS=$?"
+
+          cat > "$d/bytes.j2" <<J2
+          b = fs.read_bytes("$d/a.txt")
+          print(b)
+          print(len(b))
+          J2
+          echo '=== read_bytes ==='
+          j2 run --allow-fs "$d/bytes.j2" 2>&1
+          echo "STATUS=$?"
+          exit 0
+
+      - name: Probe hashing semantics
+        shell: bash
+        run: |
+          set +e
           d="$RUNNER_TEMP/hash"
           mkdir -p "$d"
           printf 'abc123' > "$d/a.txt"
 
-          candidates=(
-            'hash.sha256("abc")'
-            'hash.sha256_file("__F__")'
-            'hash.digest("abc")'
-            'hash.digest("sha256","abc")'
-            'hash.hex("abc")'
-            'hash.xxhash("abc")'
-            'hash.xxhash64("abc")'
-            'hash.sha512("abc")'
-            'hash.md5("abc")'
-          )
-
-          for e in "${candidates[@]}"; do
-            e="${e//__F__/$d/a.txt}"
-            printf 'print(%s)\n' "$e" > "$d/q.j2"
-            echo "=== $e ==="
-            set +e
-            j2 run --allow-fs "$d/q.j2" 2>&1
+          run_case() {
+            name="$1"
+            expr="$2"
+            p="$d/${name}.j2"
+            printf 'print(%s)\n' "$expr" > "$p"
+            echo "=== $expr ==="
+            j2 run --allow-fs "$p" 2>&1
             echo "STATUS=$?"
-            set -e
-          done
+          }
+
+          run_case sha256_text 'hash.sha256("abc123")'
+          run_case sha512_text 'hash.sha512("abc123")'
+          run_case md5_text 'hash.md5("abc123")'
+          run_case xxhash_text 'hash.xxhash("abc123")'
+
+          cat > "$d/filehash.j2" <<J2
+          b = fs.read_bytes("$d/a.txt")
+          print(hash.sha256(b))
+          print(hash.sha512(b))
+          print(hash.md5(b))
+          print(hash.xxhash(b))
+          J2
+          echo '=== hash bytes from file ==='
+          j2 run --allow-fs "$d/filehash.j2" 2>&1
+          echo "STATUS=$?"
           exit 0
 
-      - name: Probe JSON candidates without map literal assumptions
+      - name: Probe JSON semantics
         shell: bash
         run: |
-          set -u
+          set +e
           d="$RUNNER_TEMP/json"
           mkdir -p "$d"
 
-          candidates=(
-            'json.encode("abc")'
-            'json.stringify("abc")'
-            'json.to_json("abc")'
-            'json.serialize("abc")'
-            'json.parse("123")'
-            'json.decode("123")'
-            'json.from_json("123")'
-          )
-
-          for e in "${candidates[@]}"; do
-            printf 'print(%s)\n' "$e" > "$d/q.j2"
-            echo "=== $e ==="
-            set +e
-            j2 run "$d/q.j2" 2>&1
-            echo "STATUS=$?"
-            set -e
-          done
+          cat > "$d/p.j2" <<'J2'
+          print(json.stringify("abc"))
+          print(json.stringify(123))
+          print(json.stringify(true))
+          print(json.stringify([1, 2, 3]))
+          print(json.parse("{\"b\":2,\"a\":1}"))
+          x = json.parse("{\"b\":2,\"a\":1}")
+          print(x)
+          print(json.stringify(x))
+          print(json.stringify_pretty(x))
+          J2
+          j2 run "$d/p.j2" 2>&1
+          echo "STATUS=$?"
           exit 0
 
-      - name: Probe argv and timing namespace candidates
+      - name: Probe argv and timing semantics
         shell: bash
         run: |
-          set -u
+          set +e
           d="$RUNNER_TEMP/sem"
           mkdir -p "$d"
 
-          candidates=(
-            'time.now()'
-            'time.now_ms()'
-            'time.now_ns()'
-            'time.monotonic()'
-            'time.millis()'
-            'time.micros()'
-            'time.unix()'
-            'sys.argv'
-            'sys.args'
-            'sys.program_args'
-            'proc.argv'
-            'proc.args'
-          )
+          cat > "$d/argv.j2" <<'J2'
+          print(proc.argv)
+          print(proc.argv())
+          J2
+          echo '=== proc.argv ==='
+          j2 run "$d/argv.j2" one two 2>&1
+          echo "STATUS=$?"
 
-          for e in "${candidates[@]}"; do
-            printf 'print(%s)\n' "$e" > "$d/q.j2"
-            echo "=== $e ==="
-            set +e
-            j2 run "$d/q.j2" one two 2>&1
-            echo "STATUS=$?"
-            set -e
-          done
+          cat > "$d/time.j2" <<'J2'
+          a = time.now()
+          b = time.now()
+          print(a)
+          print(b)
+          print(time.elapsed_ms())
+          J2
+          echo '=== time ==='
+          j2 run "$d/time.j2" 2>&1
+          echo "STATUS=$?"
           exit 0
 
       - name: Probe capability enforcement and error behavior
         shell: bash
         run: |
-          set -u
+          set +e
           d="$RUNNER_TEMP/errors"
           mkdir -p "$d"
-
           cat > "$d/ok.j2" <<'J2'
           print("ok")
           J2
-          echo '=== baseline ==='
-          set +e
           j2 run "$d/ok.j2" 2>&1
           echo "BASELINE_STATUS=$?"
-          set -e
 
           cat > "$d/overflow.j2" <<'J2'
           print(9223372036854775807 + 1)
           J2
-          echo '=== overflow candidate ==='
-          set +e
           j2 run "$d/overflow.j2" 2>&1
           echo "OVERFLOW_STATUS=$?"
-          set -e
-
-          echo '=== capability flags smoke ==='
-          set +e
-          j2 run --allow-fs "$d/ok.j2" 2>&1
-          echo "ALLOW_FS_STATUS=$?"
-          j2 run --allow-proc "$d/ok.j2" 2>&1
-          echo "ALLOW_PROC_STATUS=$?"
-          j2 run --allow-net "$d/ok.j2" 2>&1
-          echo "ALLOW_NET_STATUS=$?"
-          set -e
           exit 0
 
       - name: Probe native output and emit-native
@@ -294,37 +277,20 @@ jobs:
           set +e
           d="$RUNNER_TEMP/native"
           mkdir -p "$d"
-
           cat > "$d/p.j2" <<'J2'
           xs = [5, 4, 3, 2, 1]
           total := 0
           for x in xs { total = total + x }
           print(total)
           J2
-
-          echo '=== INTERPRETER ==='
           j2 run "$d/p.j2" > "$d/i.txt" 2>&1
           is=$?
-          cat "$d/i.txt"
-          echo "INTERPRETER_STATUS=$is"
-
-          echo '=== NATIVE BUILD ==='
           j2 build "$d/p.j2" -o "$d/p" > "$d/b.txt" 2>&1
           bs=$?
-          cat "$d/b.txt"
-          echo "BUILD_STATUS=$bs"
-
-          if [ "$bs" -eq 0 ]; then
-            echo '=== NATIVE ==='
-            "$d/p" > "$d/n.txt" 2>&1
-            ns=$?
-            cat "$d/n.txt"
-            echo "NATIVE_STATUS=$ns"
-            echo '=== DIFF ==='
-            diff -u "$d/i.txt" "$d/n.txt"
-            echo "DIFF_STATUS=$?"
-          fi
-
+          if [ "$bs" -eq 0 ]; then "$d/p" > "$d/n.txt" 2>&1; ns=$?; else ns=NA; fi
+          echo '=== INTERPRETER ==='; cat "$d/i.txt"; echo "INTERPRETER_STATUS=$is"
+          echo '=== BUILD ==='; cat "$d/b.txt"; echo "BUILD_STATUS=$bs"
+          if [ "$bs" -eq 0 ]; then echo '=== NATIVE ==='; cat "$d/n.txt"; echo "NATIVE_STATUS=$ns"; diff -u "$d/i.txt" "$d/n.txt"; echo "DIFF_STATUS=$?"; fi
           echo '=== EMIT NATIVE ==='
           j2 emit-native "$d/p.j2" > "$d/emit.txt" 2>&1
           es=$?
