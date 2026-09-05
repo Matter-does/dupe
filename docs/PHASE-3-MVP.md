@@ -1,6 +1,6 @@
 # Phase 3 — MVP Engine
 
-**Status:** IMPLEMENTED; CI validation in progress  
+**Status:** IMPLEMENTED; corrected CI validation in progress  
 **Target:** J2 0.1.0 / macOS Apple Silicon
 
 ## Completed work
@@ -49,11 +49,28 @@ reclaimable bytes
 human output       deterministic JSON
 ```
 
-## Implementation boundary
+## Module boundary
 
-The Phase 3 engine is intentionally contained in `src/main.j2`. J2 module/import syntax is not part of the frozen API contract, so no import syntax is invented for the MVP. The file is divided into functional boundaries that can be split after module semantics are verified.
+J2 0.1.0 user-module syntax is now experimentally verified:
 
-The grouping implementation currently reconstructs arrays rather than relying on unverified associative-map mutation. This favors correctness and API certainty over premature optimization.
+```j2
+import "helper.j2"
+```
+
+The form was shown to run under `j2 run`, compile with `j2 build`, and execute as native code. Imported functions are available directly in the importing program. Other tested forms such as bare `import helper`, `use helper`, `from helper import answer`, `include "helper.j2"`, and `module ...` declarations did not provide a valid user-module mechanism in the probe.
+
+Phase 3 therefore uses these functional source boundaries:
+
+```text
+src/
+    main.j2
+    scan.j2
+    hash.j2
+    group.j2
+    output.j2
+```
+
+No module is allowed to perform user-file mutation in the MVP.
 
 ## MVP correctness rules
 
@@ -68,16 +85,20 @@ The grouping implementation currently reconstructs arrays rather than relying on
 
 ## CI acceptance test
 
-`.github/workflows/phase3-mvp.yml` creates a five-file test tree containing two duplicate pairs and one unique file, then verifies:
+`.github/workflows/phase3-mvp.yml` creates a five-file test tree containing two duplicate pairs and one unique file.
+
+The actual test data contains files of 14 and 13 bytes, so the correct expected result is:
 
 ```text
 files_scanned       == 5
 hash_candidates     == 4
 duplicate_groups    == 2
-reclaimable_bytes   == 28
+reclaimable_bytes   == 27
 ```
 
 It also requires interpreter and native outputs to parse as JSON and compare equal.
+
+The first integration attempt exposed two real issues: J2 mutable bindings require `:=`, and the native binary retains the deny-by-default filesystem sandbox. Both are now reflected in the implementation/CI design.
 
 ## Known follow-up
 
