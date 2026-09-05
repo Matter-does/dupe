@@ -36,8 +36,6 @@ jobs:
           echo '=== TARGET ==='; uname -m; sw_vers
           echo '=== VERSION ==='; j2 --version
           echo '=== HELP ==='; j2 --help
-          echo '=== BUILD HELP ==='; j2 build --help
-          echo '=== RUN HELP ==='; j2 run --help
 
       - name: Probe language and collections
         run: |
