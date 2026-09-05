@@ -1,0 +1,83 @@
+name: J2 Native Capability Research
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/j2-native-capabilities.yml'
+
+permissions:
+  contents: read
+
+env:
+  J2_VERSION: 0.1.0
+  J2_SHA256: 6fda8338791730cf7937362acd03e29247719e65785458e62988e1789c842e75
+
+jobs:
+  probe:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify arm64
+        shell: bash
+        run: test "$(uname -m)" = "arm64"
+
+      - name: Install exact J2
+        shell: bash
+        run: |
+          set -euo pipefail
+          d="$RUNNER_TEMP/j2"
+          mkdir -p "$d"
+          cd "$d"
+          curl -fsSL --retry 3 --retry-delay 2 -o j2.tgz \
+            "https://github.com/JasnamSinghArora/j2/releases/download/v${J2_VERSION}/j2-${J2_VERSION}-aarch64-apple-darwin.tar.gz"
+          printf '%s  j2.tgz\n' "$J2_SHA256" | shasum -a 256 -c -
+          tar -xzf j2.tgz
+          s="$(find "$d" -type f -name install.sh -print -quit)"
+          test -n "$s"
+          cd "$(dirname "$s")"
+          chmod +x install.sh
+          ./install.sh
+          echo "$HOME/.j2/bin" >> "$GITHUB_PATH"
+
+      - name: Prepare capability probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          d="$RUNNER_TEMP/cap"
+          mkdir -p "$d"
+          printf 'print(fs.exists("%s"))\n' "$d" > "$d/probe.j2"
+          echo "CAP_DIR=$d" >> "$GITHUB_ENV"
+
+      - name: Probe capability positions
+        shell: bash
+        run: |
+          set +e
+          d="$CAP_DIR"
+          j2 build --allow-fs "$d/probe.j2" -o "$d/build_before_subcommand" > "$d/a.out" 2>&1
+          echo "BUILD_ALLOW_FS_AFTER_BUILD_STATUS=$?"
+          cat "$d/a.out"
+          j2 --allow-fs build "$d/probe.j2" -o "$d/build_before_build" > "$d/b.out" 2>&1
+          echo "BUILD_ALLOW_FS_BEFORE_BUILD_STATUS=$?"
+          cat "$d/b.out"
+          j2 build "$d/probe.j2" -o "$d/build_plain" > "$d/c.out" 2>&1
+          echo "BUILD_PLAIN_STATUS=$?"
+          cat "$d/c.out"
+
+          for b in "$d/build_before_subcommand" "$d/build_before_build" "$d/build_plain"; do
+            if [ -x "$b" ]; then
+              echo "=== BINARY: $b ==="
+              "$b" > "$b.plain.out" 2>&1
+              echo "PLAIN_NATIVE_STATUS=$?"
+              cat "$b.plain.out"
+              "$b" --allow-fs > "$b.arg.out" 2>&1
+              echo "NATIVE_ARG_ALLOW_FS_STATUS=$?"
+              cat "$b.arg.out"
+            fi
+          done
+          exit 0
+
+      - name: Research marker
+        shell: bash
+        run: echo 'J2 native capability placement probe completed; freeze only observed behavior.'
