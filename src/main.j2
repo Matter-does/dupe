@@ -1,13 +1,12 @@
 # dupe — J2-native exact duplicate finder MVP
-#
-# Phase 3 intentionally keeps the engine in one file because J2 module/import
-# syntax is not part of the frozen 0.1.0 contract yet. Functions below are the
-# logical boundaries that can later be split into modules without changing the
-# data flow.
 
-# -----------------------------------------------------------------------------
-# CLI
-# -----------------------------------------------------------------------------
+# User modules are supported by verified J2 0.1.0 syntax:
+#   import "module.j2"
+
+import "scan.j2"
+import "hash.j2"
+import "group.j2"
+import "output.j2"
 
 func usage() = {
     print("dupe PATH [--json]")
@@ -15,8 +14,6 @@ func usage() = {
 }
 
 func find_root(args) = {
-    # `proc.argv()` includes the program path in the observed J2 0.1.0
-    # environment. The native executable follows the same argv convention.
     if len(args) < 2 {
         give ""
     }
@@ -31,206 +28,6 @@ func json_mode(args) = {
     }
     give false
 }
-
-# -----------------------------------------------------------------------------
-# Filesystem / discovery
-# -----------------------------------------------------------------------------
-
-func join_path(base, name) = {
-    if base == "/" {
-        give fmt("/{}", name)
-    }
-    give fmt("{}/{}", base, name)
-}
-
-func discover(path) = {
-    names = sort(fs.list_dir(path))
-    files := []
-
-    for name in names {
-        child = join_path(path, name)
-        if fs.is_dir(child) {
-            files = files + discover(child)
-        } else {
-            if fs.is_file(child) {
-                meta = fs.metadata(child)
-                files = files + [[child, meta["size"]]]
-            }
-        }
-    }
-
-    give files
-}
-
-# -----------------------------------------------------------------------------
-# Size filtering
-# -----------------------------------------------------------------------------
-
-func has_same_size(record, files) = {
-    path = record[0]
-    size = record[1]
-
-    for other in files {
-        if other[0] != path {
-            if other[1] == size {
-                give true
-            }
-        }
-    }
-
-    give false
-}
-
-func size_candidates(files) = {
-    candidates := []
-
-    for record in files {
-        if has_same_size(record, files) {
-            candidates = candidates + [record]
-        }
-    }
-
-    give candidates
-}
-
-# -----------------------------------------------------------------------------
-# Hashing
-# -----------------------------------------------------------------------------
-
-func hash_file(record) = {
-    path = record[0]
-    size = record[1]
-    bytes = fs.read_bytes(path)
-    digest = hash.sha256(bytes)
-    give [digest, size, path]
-}
-
-func hash_candidates(records) = {
-    hashed := []
-
-    for record in records {
-        hashed = hashed + [hash_file(record)]
-    }
-
-    give hashed
-}
-
-# -----------------------------------------------------------------------------
-# Duplicate grouping
-# -----------------------------------------------------------------------------
-# Group records have the shape:
-#   [sha256, size, [path, ...]]
-#
-# We intentionally use immutable reconstruction instead of an unverified map
-# mutation API. This is an MVP correctness-first implementation; Phase 5 can
-# replace the O(n^2) grouping with a verified associative structure if useful.
-
-func add_hash_record(groups, record) = {
-    digest = record[0]
-    size = record[1]
-    path = record[2]
-    rebuilt := []
-    found := false
-
-    for group in groups {
-        if group[0] == digest {
-            rebuilt = rebuilt + [[group[0], group[1], group[2] + [path]]]
-            found = true
-        } else {
-            rebuilt = rebuilt + [group]
-        }
-    }
-
-    if found {
-        give rebuilt
-    }
-
-    give rebuilt + [[digest, size, [path]]]
-}
-
-func group_duplicates(records) = {
-    groups := []
-
-    for record in records {
-        groups = add_hash_record(groups, record)
-    }
-
-    duplicates := []
-    for group in groups {
-        if len(group[2]) > 1 {
-            duplicates = duplicates + [group]
-        }
-    }
-
-    give duplicates
-}
-
-# -----------------------------------------------------------------------------
-# Result model / arithmetic
-# -----------------------------------------------------------------------------
-
-func group_reclaimable(group) = {
-    count = len(group[2])
-    size = group[1]
-    give (count - 1) * size
-}
-
-func total_reclaimable(groups) = {
-    total := 0
-    for group in groups {
-        total = total + group_reclaimable(group)
-    }
-    give total
-}
-
-func json_group(group) = {
-    digest = json.stringify(group[0])
-    size = json.stringify(group[1])
-    paths = json.stringify(group[2])
-    reclaim = json.stringify(group_reclaimable(group))
-    give fmt("{\"hash\":{},\"size\":{},\"files\":{},\"reclaimable_bytes\":{}}", digest, size, paths, reclaim)
-}
-
-func json_groups(groups) = {
-    body := ""
-    first := true
-
-    for group in groups {
-        piece = json_group(group)
-        if first {
-            body = piece
-            first = false
-        } else {
-            body = fmt("{},{}", body, piece)
-        }
-    }
-
-    give body
-}
-
-func emit_json(files, candidates, groups) = {
-    root_object = fmt("{\"files_scanned\":{},\"hash_candidates\":{},\"duplicate_groups\":[{}],\"reclaimable_bytes\":{}}", json.stringify(len(files)), json.stringify(len(candidates)), json_groups(groups), json.stringify(total_reclaimable(groups)))
-    print(root_object)
-}
-
-func emit_human(files, candidates, groups) = {
-    print("dupe — exact duplicate scan")
-    print(fmt("Files scanned: {}", len(files)))
-    print(fmt("Hash candidates: {}", len(candidates)))
-    print(fmt("Duplicate groups: {}", len(groups)))
-    print(fmt("Reclaimable bytes: {}", total_reclaimable(groups)))
-
-    for group in groups {
-        print(fmt("\n{} bytes — {} duplicate copies — {}", group[1], len(group[2]), group[0]))
-        for path in group[2] {
-            print(fmt("  {}", path))
-        }
-    }
-}
-
-# -----------------------------------------------------------------------------
-# Main pipeline
-# -----------------------------------------------------------------------------
 
 args = proc.argv()
 root = find_root(args)
