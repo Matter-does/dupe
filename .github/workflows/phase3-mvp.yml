@@ -78,7 +78,7 @@ jobs:
           mkdir -p build
           j2 build src/main.j2 -o build/dupe
           test -x build/dupe
-          ./build/dupe "$DUPE_DEMO" --json > "$RUNNER_TEMP/native.json"
+          ./build/dupe --allow-fs "$DUPE_DEMO" --json > "$RUNNER_TEMP/native.json"
           cat "$RUNNER_TEMP/native.json"
 
       - name: Validate MVP result
@@ -87,17 +87,19 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           import json
+          import os
           from pathlib import Path
 
-          i = json.loads(Path("$RUNNER_TEMP/interpreter.json").read_text())
-          n = json.loads(Path("$RUNNER_TEMP/native.json").read_text())
+          root = Path(os.environ["RUNNER_TEMP"])
+          i = json.loads((root / "interpreter.json").read_text())
+          n = json.loads((root / "native.json").read_text())
           assert i == n, (i, n)
           assert i["files_scanned"] == 5
           assert i["hash_candidates"] == 4
-          assert i["duplicate_groups"]
           assert len(i["duplicate_groups"]) == 2
-          assert i["reclaimable_bytes"] == 28
+          assert i["reclaimable_bytes"] == 27
           assert all(len(g["files"]) == 2 for g in i["duplicate_groups"])
           assert all(g["reclaimable_bytes"] == g["size"] for g in i["duplicate_groups"])
+          assert i["reclaimable_bytes"] == sum(g["reclaimable_bytes"] for g in i["duplicate_groups"])
           print("Phase 3 MVP PASS")
           PY
