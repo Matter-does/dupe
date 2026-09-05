@@ -4,7 +4,6 @@ import hashlib
 import json
 import os
 from pathlib import Path
-import shutil
 import subprocess
 import tempfile
 
@@ -13,15 +12,18 @@ J2 = os.environ.get("J2_BIN", "j2")
 
 
 def oracle(root: Path) -> dict:
-    files = sorted(
-        p for p in root.rglob("*") if p.is_file()
-    )
+    files = sorted(p for p in root.rglob("*") if p.is_file())
 
     by_size: dict[int, list[Path]] = {}
     for path in files:
         by_size.setdefault(path.stat().st_size, []).append(path)
 
-    candidates = [path for size in sorted(by_size) if len(by_size[size]) >= 2 for path in by_size[size]]
+    candidates = [
+        path
+        for size in sorted(by_size)
+        if len(by_size[size]) >= 2
+        for path in by_size[size]
+    ]
     by_hash: dict[str, list[Path]] = {}
     sizes: dict[str, int] = {}
     for path in candidates:
@@ -80,9 +82,51 @@ def run_dupe(root: Path, native: bool) -> dict:
         raise AssertionError(f"dupe {mode} returned invalid JSON: {proc.stdout!r}") from exc
 
 
+def run_dupe_expect_failure(root: Path, *, native: bool = False) -> subprocess.CompletedProcess[str]:
+    env = dict(os.environ)
+    if native:
+        env["J_FORCE_NATIVE"] = "1"
+    else:
+        env.pop("J_FORCE_NATIVE", None)
+
+    return subprocess.run(
+        [J2, "--allow-fs", str(REPO_ROOT / "src" / "main.j2"), str(root), "--json"],
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
 def write(path: Path, data: bytes) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(data)
+
+
+def manifest(root: Path) -> dict[str, bytes]:
+    return {
+        str(path.relative_to(root)): path.read_bytes()
+        for path in sorted(root.rglob("*"))
+        if path.is_file()
+    }
+
+
+def assert_schema(result: dict) -> None:
+    assert set(result) == {
+        "files_scanned",
+        "hash_candidates",
+        "duplicate_groups",
+        "reclaimable_bytes",
+    }
+    assert isinstance(result["files_scanned"], int)
+    assert isinstance(result["hash_candidates"], int)
+    assert isinstance(result["duplicate_groups"], list)
+    assert isinstance(result["reclaimable_bytes"], int)
+    for group in result["duplicate_groups"]:
+        assert set(group) == {"hash", "size", "files", "reclaimable_bytes"}
+        assert len(group["files"]) >= 2
+        assert group["reclaimable_bytes"] == (len(group["files"]) - 1) * group["size"]
 
 
 def build_cases(base: Path) -> list[tuple[str, Path]]:
@@ -159,31 +203,36 @@ def main() -> None:
         print(f"Phase 4 cases: {len(cases)}")
 
         for name, root in cases:
+            before = manifest(root)
             expected = oracle(root)
             interpreter = run_dupe(root, native=False)
             native = run_dupe(root, native=True)
 
-            assert interpreter == expected, (
-                name,
-                "interpreter != oracle",
-                expected,
-                interpreter,
-            )
-            assert native == expected, (
-                name,
-                "native != oracle",
-                expected,
-                native,
-            )
-            assert interpreter == native, (
-                name,
-                "interpreter != native",
-                interpreter,
-                native,
-            )
+            assert_schema(interpreter)
+            assert_schema(native)
+            assert interpreter == expected, (name, "interpreter != oracle", expected, interpreter)
+            assert native == expected, (name, "native != oracle", expected, native)
+            assert interpreter == native, (name, "interpreter != native", interpreter, native)
+            assert manifest(root) == before, (name, "dupe modified input tree")
             print(f"PASS: {name}")
 
+        missing = base / "does-not-exist"
+        for native in (False, True):
+            proc = run_dupe_expect_failure(missing, native=native)
+            mode = "native" if native else "interpreter"
+            assert proc.returncode != 0, (mode, "missing root unexpectedly succeeded")
+            print(f"PASS: {mode} missing-root failure")
+
+        file_root = base / "root-file"
+        write(file_root, b"not-a-directory")
+        for native in (False, True):
+            proc = run_dupe_expect_failure(file_root, native=native)
+            mode = "native" if native else "interpreter"
+            assert proc.returncode != 0, (mode, "file root unexpectedly succeeded")
+            print(f"PASS: {mode} file-root failure")
+
         print("Phase 4 differential correctness PASS")
+        print("Phase 4 safety/error validation PASS")
 
 
 if __name__ == "__main__":
