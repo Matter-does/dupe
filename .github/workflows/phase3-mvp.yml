@@ -68,6 +68,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          echo '=== INTERPRETER ==='
           j2 --allow-fs src/main.j2 "$DUPE_DEMO" --json > "$RUNNER_TEMP/interpreter.json"
           cat "$RUNNER_TEMP/interpreter.json"
 
@@ -75,10 +76,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          echo '=== NATIVE ==='
           mkdir -p build
           j2 build src/main.j2 -o build/dupe
           test -x build/dupe
-          ./build/dupe --allow-fs "$DUPE_DEMO" --json > "$RUNNER_TEMP/native.json"
+          j2 --allow-fs "$DUPE_DEMO" --json
+          j2 --allow-fs "$DUPE_DEMO" --json >/dev/null
+          ./build/dupe "$DUPE_DEMO" --json > "$RUNNER_TEMP/native.json"
           cat "$RUNNER_TEMP/native.json"
 
       - name: Validate MVP result
