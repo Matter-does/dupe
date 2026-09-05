@@ -113,7 +113,6 @@ func hash_candidates(records) = {
     }
 
     give hashed
-}
 
 # -----------------------------------------------------------------------------
 # Duplicate grouping
@@ -130,7 +129,7 @@ func add_hash_record(groups, record) = {
     size = record[1]
     path = record[2]
     rebuilt := []
-    found = false
+    found := false
 
     for group in groups {
         if group[0] == digest {
