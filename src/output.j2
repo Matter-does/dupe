@@ -1,0 +1,46 @@
+# dupe output module
+
+func json_group(group) = {
+    digest = json.stringify(group[0])
+    size = json.stringify(group[1])
+    paths = json.stringify(group[2])
+    reclaim = json.stringify(group_reclaimable(group))
+    give fmt("{\"hash\":{},\"size\":{},\"files\":{},\"reclaimable_bytes\":{}}", digest, size, paths, reclaim)
+}
+
+func json_groups(groups) = {
+    body := ""
+    first := true
+
+    for group in groups {
+        piece = json_group(group)
+        if first {
+            body = piece
+            first = false
+        } else {
+            body = fmt("{},{}", body, piece)
+        }
+    }
+
+    give body
+}
+
+func emit_json(files, candidates, groups) = {
+    root_object = fmt("{\"files_scanned\":{},\"hash_candidates\":{},\"duplicate_groups\":[{}],\"reclaimable_bytes\":{}}", json.stringify(len(files)), json.stringify(len(candidates)), json_groups(groups), json.stringify(total_reclaimable(groups)))
+    print(root_object)
+}
+
+func emit_human(files, candidates, groups) = {
+    print("dupe — exact duplicate scan")
+    print(fmt("Files scanned: {}", len(files)))
+    print(fmt("Hash candidates: {}", len(candidates)))
+    print(fmt("Duplicate groups: {}", len(groups)))
+    print(fmt("Reclaimable bytes: {}", total_reclaimable(groups)))
+
+    for group in groups {
+        print(fmt("\n{} bytes — {} duplicate copies — {}", group[1], len(group[2]), group[0]))
+        for path in group[2] {
+            print(fmt("  {}", path))
+        }
+    }
+}
