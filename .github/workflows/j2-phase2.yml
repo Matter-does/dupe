@@ -52,47 +52,32 @@ jobs:
       - name: Probe language and collections
         shell: bash
         run: |
-          set +u
+          set -u
           d="$RUNNER_TEMP/lang"
           mkdir -p "$d"
 
-          cat > "$d/p.j2" <<'J2'
-          a = "hello"
-          n := 41
-          ok = true
-          xs = [3, 1, 2]
-          m = {"b": 2, "a": 1}
-          func add(x: int, y: int) -> int = { give x + y }
-          print(a)
-          print(n)
-          print(ok)
-          print(len(xs))
-          print(add(1,2))
-          print(xs)
-          print(m)
-          for x in xs { print(x) }
-          xs[0] = 9
-          print(xs)
-          print(sort(xs))
-          J2
+          run_case() {
+            name="$1"
+            shift
+            p="$d/${name}.j2"
+            printf '%s\n' "$1" > "$p"
+            echo "=== CASE: $name ==="
+            set +e
+            j2 run "$p" 2>&1
+            s=$?
+            echo "STATUS=$s"
+            set -e
+          }
 
-          echo '=== interpreter ==='
-          set +e
-          j2 run "$d/p.j2" 2>&1
-          s=$?
-          echo "STATUS=$s"
-          set -e
-
-          echo '=== native build ==='
-          set +e
-          j2 build "$d/p.j2" -o "$d/p" 2>&1
-          bs=$?
-          echo "BUILD_STATUS=$bs"
-          if [ "$bs" -eq 0 ]; then
-            "$d/p" 2>&1
-            echo "NATIVE_STATUS=$?"
-          fi
-          set -e
+          run_case string 'a = "hello"\nprint(a)'
+          run_case integer 'n := 41\nprint(n)'
+          run_case boolean 'ok = true\nprint(ok)'
+          run_case array 'xs = [3, 1, 2]\nprint(xs)\nprint(len(xs))'
+          run_case map 'm = {"b": 2, "a": 1}\nprint(m)'
+          run_case function 'func add(x: int, y: int) -> int = { give x + y }\nprint(add(1, 2))'
+          run_case iteration 'xs = [3, 1, 2]\nfor x in xs { print(x) }'
+          run_case mutation 'xs = [3, 1, 2]\nxs[0] = 9\nprint(xs)'
+          run_case sorting 'xs = [3, 1, 2]\nprint(sort(xs))'
           exit 0
 
       - name: Probe filesystem and candidate module names at runtime
@@ -223,12 +208,12 @@ jobs:
       - name: Probe native output and emit-native
         shell: bash
         run: |
-          set +u
+          set -u
           d="$RUNNER_TEMP/native"
           mkdir -p "$d"
 
           cat > "$d/p.j2" <<'J2'
-          xs = [5,4,3,2,1]
+          xs = [5, 4, 3, 2, 1]
           total := 0
           for x in xs { total = total + x }
           print(total)
@@ -254,11 +239,14 @@ jobs:
             cat "$d/n.txt"
             echo "NATIVE_STATUS=$ns"
             echo '=== DIFF ==='
+            set +e
             diff -u "$d/i.txt" "$d/n.txt"
             echo "DIFF_STATUS=$?"
+            set -e
           fi
 
           echo '=== EMIT NATIVE ==='
+          set +e
           j2 emit-native "$d/p.j2" | sed -n '1,260p'
           echo "EMIT_STATUS=${PIPESTATUS[0]}"
           set -e
