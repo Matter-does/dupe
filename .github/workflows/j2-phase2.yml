@@ -1,0 +1,127 @@
+name: J2 Phase 2 Research
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/j2-phase2.yml'
+
+permissions:
+  contents: read
+
+env:
+  J2_VERSION: 0.1.0
+  J2_SHA256: 6fda8338791730cf7937362acd03e29247719e65785458e62988e1789c842e75
+
+jobs:
+  probe:
+    runs-on: macos-15-arm64
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install exact J2
+        run: |
+          set -euo pipefail
+          d="$RUNNER_TEMP/j2"; mkdir -p "$d"; cd "$d"
+          curl -fsSL -o j2.tgz "https://github.com/JasnamSinghArora/j2/releases/download/v${J2_VERSION}/j2-${J2_VERSION}-aarch64-apple-darwin.tar.gz"
+          printf '%s  j2.tgz\n' "$J2_SHA256" | shasum -a 256 -c -
+          tar -xzf j2.tgz
+          s="$(find "$d" -type f -name install.sh -print -quit)"; test -n "$s"
+          cd "$(dirname "$s")"; chmod +x install.sh; ./install.sh
+          echo "$HOME/.j2/bin" >> "$GITHUB_PATH"
+
+      - name: Record machine and CLI
+        run: |
+          set +e
+          echo '=== TARGET ==='; uname -m; sw_vers
+          echo '=== VERSION ==='; j2 --version
+          echo '=== HELP ==='; j2 --help
+          echo '=== BUILD HELP ==='; j2 build --help
+          echo '=== RUN HELP ==='; j2 run --help
+
+      - name: Probe language and collections
+        run: |
+          set -u
+          d="$RUNNER_TEMP/lang"; mkdir -p "$d"
+          cat > "$d/p.j2" <<'J2'
+          a = "hello"
+          n := 41
+          ok = true
+          xs = [3, 1, 2]
+          m = {"b": 2, "a": 1}
+          func add(x: int, y: int) -> int = { give x + y }
+          print(a); print(n); print(ok); print(len(xs)); print(add(1,2)); print(xs); print(m)
+          for x in xs { print(x) }
+          xs[0] = 9
+          print(xs)
+          print(sort(xs))
+          J2
+          echo '=== interpreter ==='
+          j2 run "$d/p.j2" 2>&1; echo STATUS=$?
+          echo '=== native ==='
+          set +e
+          j2 build "$d/p.j2" -o "$d/p" 2>&1; s=$?; echo BUILD_STATUS=$s
+          test "$s" -eq 0 && "$d/p" 2>&1; echo NATIVE_STATUS=$?
+          set -e
+
+      - name: Probe filesystem and candidate module names at runtime
+        run: |
+          set -u
+          d="$RUNNER_TEMP/fs"; mkdir -p "$d/sub"; printf 'abc123' > "$d/a.txt"; printf 'xyz' > "$d/sub/b.txt"
+          candidates=(
+            'read_file("__F__")' 'write_file("__O__","x")' 'list_dir("__D__")' 'read_dir("__D__")' 'dir_entries("__D__")'
+            'file_exists("__F__")' 'exists("__F__")' 'is_file("__F__")' 'is_dir("__D__")' 'file_size("__F__")' 'get_file_size("__F__")'
+            'stat("__F__")' 'file_stat("__F__")' 'path_exists("__F__")' 'path_join("a","b")' 'join_path("a","b")'
+            'fs.read_file("__F__")' 'fs.list_dir("__D__")' 'fs.stat("__F__")' 'path.join("a","b")' 'path.exists("__F__")' 'path.basename("__F__")'
+            'io.read_file("__F__")'
+          )
+          out="$d/results"; : > "$out"
+          for e in "${candidates[@]}"; do
+            e="${e//__F__/$d/a.txt}"; e="${e//__O__/$d/out.txt}"; e="${e//__D__/$d}"
+            p="$d/q.j2"; printf 'print(%s)\n' "$e" > "$p"
+            echo "=== $e ===" | tee -a "$out"
+            set +e; r="$(j2 run --allow-fs "$p" 2>&1)"; s=$?; set -e
+            printf '%s\nSTATUS=%s\n\n' "$r" "$s" | tee -a "$out"
+          done
+          cat "$out"
+
+      - name: Probe bytes hashing JSON argv timing candidates
+        run: |
+          set -u
+          d="$RUNNER_TEMP/sem"; mkdir -p "$d"
+          candidates=('bytes("abc")' 'byte("a")' 'hash("abc")' 'sha256("abc")' 'sha256_hash("abc")' 'hash_sha256("abc")' 'digest("abc")' 'json_encode({"b":2,"a":1})' 'to_json({"b":2,"a":1})' 'json({"b":2,"a":1})' 'now()' 'time_now()' 'clock()' 'argv' 'args')
+          for e in "${candidates[@]}"; do
+            printf 'print(%s)\n' "$e" > "$d/q.j2"
+            echo "=== $e ==="
+            set +e; j2 run "$d/q.j2" one two 2>&1; echo STATUS=$?; set -e
+          done
+
+      - name: Probe capabilities errors and exit behavior
+        run: |
+          set -u
+          d="$RUNNER_TEMP/errors"; mkdir -p "$d"; printf 'capability test\n' > "$d/a.txt"
+          printf 'print(read_file("%s"))\n' "$d/a.txt" > "$d/fs.j2"
+          echo '=== denied ==='; set +e; j2 run "$d/fs.j2" 2>&1; echo STATUS=$?; echo '=== allowed ==='; j2 run --allow-fs "$d/fs.j2" 2>&1; echo STATUS=$?; set -e
+          printf 'print(9223372036854775807 + 1)\n' > "$d/overflow.j2"
+          echo '=== overflow ==='; set +e; j2 run "$d/overflow.j2" 2>&1; echo STATUS=$?; set -e
+
+      - name: Probe native output and emit-native
+        run: |
+          set -u
+          d="$RUNNER_TEMP/native"; mkdir -p "$d"
+          cat > "$d/p.j2" <<'J2'
+          xs = [5,4,3,2,1]
+          total := 0
+          for x in xs { total = total + x }
+          print(total)
+          J2
+          j2 run "$d/p.j2" > "$d/i.txt" 2>&1
+          j2 build "$d/p.j2" -o "$d/p" > "$d/b.txt" 2>&1
+          "$d/p" > "$d/n.txt" 2>&1
+          echo '=== INTERPRETER ==='; cat "$d/i.txt"
+          echo '=== NATIVE ==='; cat "$d/n.txt"
+          echo '=== DIFF ==='; diff -u "$d/i.txt" "$d/n.txt" || true
+          echo '=== EMIT NATIVE ==='; j2 emit-native "$d/p.j2" | sed -n '1,260p'
+
+      - name: Research marker
+        run: echo 'Phase 2 probe completed; freeze only runtime-verified APIs.'
