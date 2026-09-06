@@ -1,33 +1,39 @@
 # Agent Handoff
 
 ## Current state
-The repository has been moved toward a repository-first, multi-agent workflow.
+T001 is complete. The repository now contains durable project context and a resumable multi-agent workflow.
 
-## Important product change
-The project is no longer treated as a generic duplicate-manager clone. The stable exact-duplicate implementation is the first filesystem-intelligence workload used to investigate J2 automatic parallelism.
+## Product position
+The project is a J2-native filesystem intelligence engine. Exact duplicate detection is the first workload/reference implementation, not the full product ambition.
 
-## Recent changes
-- Added `AGENTS.md` with operating and verification rules.
-- Added durable project, architecture, research, decision, and hackathon documents.
-- Added explicit checkpoint/current-task state.
+## Durable context
+Read `AGENTS.md`, `docs/PROJECT.md`, `docs/ARCHITECTURE.md`, `docs/J2-API-0.1.0.md`, `agent/CURRENT_TASK.md`, `agent/CHECKPOINT.md`, and this file before coding.
+
+## Agent roles
+- Antigravity: primary builder.
+- OpenCode: persistent continuation/fallback.
+- Claude Code via OmniRouter: adversarial review.
+- GLM-5: independent second opinion.
+- ChatGPT: research/architecture/specification/task decomposition.
+- GitHub Actions: reproducible verification.
 
 ## Existing validated baseline
-- Phase 3 modular J2 implementation exists and is frozen.
-- Differential correctness infrastructure exists in `tests/phase4_differential.py`.
-- Exact J2 0.1.0 is pinned in CI.
-- Interpreter/native equivalence has previously been verified in CI.
+- Phase 3 modular J2 implementation is frozen.
+- Phase 4 differential correctness infrastructure exists.
+- J2 0.1.0 is pinned in CI.
+- Interpreter/native equivalence has previously passed CI.
 
-## Do not redo
-- Do not replace the Phase 3 scanner unless a concrete defect is found.
-- Do not add duplicate-manager feature parity.
-- Do not claim automatic parallelism benefits without benchmark evidence.
+## Important strategic decision
+Do not turn the project into a feature-for-feature duplicate-manager clone. Do not make automatic-parallelism claims without controlled evidence.
 
-## Next work
-1. Finish repository workflow files and task queue.
-2. Confirm latest Phase 4 CI result.
-3. Complete remaining Phase 4 correctness work.
-4. Design and implement reproducible benchmark methodology.
-5. Measure interpreter vs native vs automatic-parallelism behavior.
+## Next task
+T002 — complete Phase 4 correctness and regression gates.
 
-## Review concerns
-The next reviewer should check that the README, architecture, and task queue consistently describe the revised product thesis and that no source implementation was altered by workflow changes.
+## After T002
+T003 research consolidation → T004 benchmark corpus → T005 interpreter/native baseline → T006 automatic-parallelism experiment.
+
+## Failure/recovery rule
+When an agent stops unexpectedly, the next agent reads checkpoint + handoff + Git state and resumes the first unfinished atomic action. It must not reconstruct the project from the ChatGPT transcript.
+
+## Review concern
+Before starting T002, inspect the latest Phase 4 GitHub Actions run and determine whether the newest safety/error validation passed. Do not mark Phase 4 complete without actual evidence.
