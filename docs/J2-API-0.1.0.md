@@ -529,8 +529,19 @@ The implementation test harness should enforce:
 4. **Cross-mode determinism:** interpreter/native outputs match byte-for-byte for the same tree.
 5. **Arithmetic self-check:** reclaimable bytes equals `Σ(count - 1) × size` across duplicate groups.
 
-Do not freeze unverified J2 environment variables such as `J2_PARALLEL` or `J2_FORCE_NATIVE` as part of the test matrix. Those names require direct J2 evidence before use.
+Do not freeze unverified J2 environment variables such as `J2_PARALLEL` as part of the test matrix. Those names require direct J2 evidence before use. Note: `J_FORCE_NATIVE` and `J2_FORCE_NATIVE` were probed against J2 0.1.0 binary strings and found not to exist; native execution is achieved directly by compiling with `j2 build src/main.j2 -o build/dupe` and running with runtime capability `J2_ALLOW_FS=1`.
+
+## Verified Native Capabilities and Execution Contract — **VERIFIED**
+
+Probed in CI workflow `j2-native-capabilities.yml`:
+1. **Compilation**: `j2 build src/main.j2 -o build/dupe` produces an arm64 Mach-O native executable.
+2. **Capability Grant**: Standalone compiled binaries do not parse interpreter flags like `--allow-fs`. Instead, the J2 runtime sandbox grants filesystem access to compiled binaries when the environment variable `J2_ALLOW_FS=1` is set.
+3. **Negative Control**: Running the compiled native binary without `J2_ALLOW_FS=1` fails with a runtime sandbox/capability violation.
+4. **Symlink Semantics**: `fs.is_dir` and `fs.is_file` follow symbolic links (e.g., a symlink to a directory returns `fs.is_dir(...) == true`). Because J2 0.1.0 does not include a builtin cycle guard, recursive traversals must be protected against cycles; the test harness enforces a strict 60s subprocess timeout.
+5. **Sort Contract**: `sort(array)` sorts 1D arrays of primitives (strings, numbers). It does not support nested array comparison (e.g. `[["b", 1], ["a", 2]]`).
+6. **Builtin `fmt()`**: Positionally formats strings using `{}` placeholders (e.g. `fmt("{} ({} files, {} bytes each):", digest, count, size)`).
+7. **Directory & Grouping Determinism**: `fs.list_dir(path)` returns bare child names. Traversals sort children via `sort(fs.list_dir(path))`. Duplicate groups are formed in first-discovery order, and paths within each group preserve first-discovery order.
 
 ## Next implementation gate
 
-The Phase 2 research run is successful enough to begin the `dupe` filesystem/hash engine. The only API item still worth probing before relying on it in application code is the argument contract of `time.elapsed_ms`; it is not an MVP blocker because benchmark timing is external.
+The Phase 2 and Phase 4 research runs have verified the full compiler and native runtime matrix. Phase 4 differential correctness enforces soundness, completeness, byte-identity verification, failure preservation, and cross-mode (interpreter vs native binary) equivalence.

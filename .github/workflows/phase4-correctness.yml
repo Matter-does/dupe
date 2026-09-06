@@ -13,6 +13,10 @@ on:
       - 'tests/**'
       - '.github/workflows/phase4-correctness.yml'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -21,18 +25,43 @@ env:
   J2_SHA256: 6fda8338791730cf7937362acd03e29247719e65785458e62988e1789c842e75
 
 jobs:
+  offline:
+    name: Offline self-tests (cross-platform, no J2)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run offline self-tests
+        run: |
+          python3 tests/phase4_differential.py --offline
+
   differential:
-    name: Differential correctness
+    name: Differential correctness (J2 interpreter + native)
     runs-on: macos-15
+    timeout-minutes: 15
+    needs: [offline]
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
       - name: Verify runner architecture
         shell: bash
         run: |
           set -euo pipefail
+          echo "Architecture: $(uname -m)"
           test "$(uname -m)" = "arm64"
 
       - name: Install exact J2
@@ -53,13 +82,39 @@ jobs:
           ./install.sh
           echo "$HOME/.j2/bin" >> "$GITHUB_PATH"
 
+      - name: Verify exact J2 version
+        shell: bash
+        run: |
+          set -euo pipefail
+          v="$(j2 --version)"
+          echo "Detected J2 version: $v"
+          test "$v" = "j2 0.1.0"
+
+      - name: Verify source formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          j2 fmt -w src/*.j2
+          git diff --stat
+          git diff --exit-code src/
+
+      - name: Build genuine native dupe binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          j2 build src/main.j2 -o build/dupe
+          test -x build/dupe
+          echo "Built native binary:"
+          ls -la build/dupe
+
       - name: Run independent oracle/interpreter/native matrix
         shell: bash
         env:
           J2_BIN: j2
         run: |
           set -euo pipefail
-          python3 tests/phase4_differential.py
+          python3 tests/phase4_differential.py --native-bin build/dupe
 
       - name: Preserve failure artifacts
         if: failure()
@@ -67,3 +122,4 @@ jobs:
         with:
           name: phase4-failure-reports
           path: tests/regressions/failures/
+          if-no-files-found: ignore

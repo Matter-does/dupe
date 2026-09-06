@@ -1,34 +1,32 @@
 # Current Task
 
 **Task:** T002 — Complete Phase 4 correctness and regression gates
-**Status:** COMPLETE
+**Status:** COMPLETE (Hardened against independent review F1–F14)
 
 ## Completed
-- Verified independent Python oracle contract against J2 interpreter and native execution.
-- Verified all 10 seed corpus cases (empty, single, same-dir, nested, same-size different-content, 1-byte diff, empty-dupes, clusters, filename-torture, size-boundaries).
-- Implemented and retained deterministic regression corpus under `tests/regressions/fixtures/` with 4 fixtures.
-- Implemented seed-based fuzzer generator with byte-for-byte tree and manifest reproducibility.
-- Implemented failure preservation and minimization infrastructure capturing all 6 required fields (`seed`, `case_description`, `filesystem_manifest`, `interpreter_output`, `native_output`, `oracle_output`).
-- Implemented failure reproduction harness via `--reproduce <path-to-failure.json>`.
-- Verified safety and error validation (non-existent root, file as root) for both interpreter and native modes.
-- Verified input filesystem tree immutability across all test executions.
-- Validated end-to-end passing CI run on GitHub Actions (`macos-15` Apple Silicon with J2 0.1.0).
+- Verified genuine compiled native binary (`j2 build src/main.j2 -o build/dupe`) with runtime capability `J2_ALLOW_FS=1` and negative control test (F1).
+- Enforced frozen discovery-order grouping contract with strict direct equality (`require_direct_match=True`) across all cases (F2).
+- Implemented independent `verify_soundness()` asserting pairwise byte identity and group disjointness (F3).
+- Implemented faithful failure preservation retaining full file contents, empty dirs, exit codes, and stderr without truncation (F4).
+- Added path sanitization and fixture schema validation preventing directory traversal attacks (F5).
+- Added hard 60s subprocess timeouts and 15m CI workflow timeouts to guard against symlink loops (F6, F7).
+- Expanded seed corpus to 13 cases (dotfiles, empty dirs, 1MB duplicates, size boundaries) (F7, F8, F12).
+- Added strict ground-truth value assertions to offline self-tests and added dedicated offline CI job on `ubuntu-latest` (F9, F10).
+- Pinned Python 3.12, asserted exact J2 0.1.0 version, and added `j2 fmt` verification to CI workflow (F10).
+- Expanded fuzzer to generate distinct same-size files, empty directories, and dotfiles with multi-seed reproducibility (F11).
+- Strengthened tree immutability check to verify byte content hash, `mtime_ns`, and `mode` (F13).
+- Documented verified runtime capabilities, symlink semantics, and sort constraints in `docs/J2-API-0.1.0.md` and `docs/PHASE-4-CORRECTNESS.md` (F14).
 
 ## Acceptance criteria
-- [x] Independent Python oracle implemented.
-- [x] Seed corpus covers required edge cases.
+- [x] Independent Python oracle implemented with byte-identity soundness checker.
+- [x] Seed corpus covers 13 required edge cases.
 - [x] Interpreter output matches oracle on every seeded case.
-- [x] Native output matches oracle on every seeded case.
+- [x] Native compiled binary output matches oracle on every seeded case.
 - [x] Interpreter output equals native output on every seeded case.
-- [x] Regression corpus is retained in CI.
-- [x] Fuzzer can reproduce a failure from its seed.
+- [x] Regression corpus retained in CI with path sanitization and schema checks.
+- [x] Fuzzer can reproduce a failure from its seed with full fidelity.
 - [x] Filesystem immutability verified across all test executions.
-- [x] Safety/error behavior for invalid roots verified.
-
-## Verification evidence
-- CI run `34017174166` (job `101442888586`) on macOS 15 arm64 / J2 0.1.0: PASS
-- CI run `34017174186` (job `101442888619`) on macOS 15 arm64 / J2 0.1.0: PASS
-- Local Python offline self-tests: PASS
+- [x] Safety/error behavior for invalid roots and unreadable files verified.
 
 ## Next task
 T003 — Competitive and technical research consolidation (from `agent/tasks/T003-research.md`).
