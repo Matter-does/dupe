@@ -922,7 +922,7 @@ class T006ExperimentHarness:
                     interp_out = res.stdout
 
                 interp_timing = calculate_timing_statistics(interp_times, warmup_runs)
-                interp_norm = normalize_dupe_output_paths(interp_out, str(c_dir))
+                interp_norm = normalize_dupe_output_paths(interp_out, Path(c_dir))
                 interp_digest = compute_result_digest(interp_norm)
                 meas_interp = BaselineMeasurement(
                     baseline_id="Baseline_A_Interpreter",
@@ -949,7 +949,7 @@ class T006ExperimentHarness:
                     last_cpu_cand = cpu
 
                 native_timing = calculate_timing_statistics(native_times, warmup_runs)
-                native_norm = normalize_dupe_output_paths(native_out, str(c_dir))
+                native_norm = normalize_dupe_output_paths(native_out, Path(c_dir))
                 native_digest = compute_result_digest(native_norm)
                 meas_native = BaselineMeasurement(
                     baseline_id="Baseline_B_Native_Candidate",
