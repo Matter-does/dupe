@@ -444,7 +444,7 @@ class T006ExperimentHarness:
             ground_truth = str(n * (n + 1) // 2)
 
             # 1. Interpreter candidate
-            interp_cmd = [self.j2_bin, "run", str(cand_src), str(n)]
+            interp_cmd = [self.j2_bin, "--allow-all", str(cand_src), str(n)]
             interp_times: list[float] = []
             interp_out = ""
             for _ in range(warmup_runs):
@@ -453,11 +453,13 @@ class T006ExperimentHarness:
                 res, _ = execute_with_cpu_monitoring(interp_cmd, timeout_s=self.timeout_s)
                 interp_times.append(res.wall_time_ms)
                 interp_out = res.stdout.strip()
+                if res.returncode != 0:
+                    print(f"Warning: {interp_cmd} failed (code {res.returncode}): {res.stderr}")
 
             interp_timing = calculate_timing_statistics(interp_times, warmup_runs)
             meas_interp = BaselineMeasurement(
                 baseline_id="Baseline_A_Interpreter",
-                baseline_name="J2 Interpreter (j2 run)",
+                baseline_name="J2 Interpreter (j2 --allow-all)",
                 command_line=interp_cmd,
                 environment_vars={},
                 timing=interp_timing,
@@ -596,6 +598,8 @@ class T006ExperimentHarness:
                 native_times.append(res.wall_time_ms)
                 native_out = res.stdout.strip()
                 last_cpu_cand = cpu
+                if res.returncode != 0:
+                    print(f"Warning: {native_cmd} failed (code {res.returncode}): {res.stderr}")
 
             native_timing = calculate_timing_statistics(native_times, warmup_runs)
             meas_native = BaselineMeasurement(
@@ -618,6 +622,8 @@ class T006ExperimentHarness:
                 res, _ = execute_with_cpu_monitoring(serial_cmd, timeout_s=self.timeout_s)
                 serial_times.append(res.wall_time_ms)
                 serial_out = res.stdout.strip()
+                if res.returncode != 0:
+                    print(f"Warning: {serial_cmd} failed (code {res.returncode}): {res.stderr}")
 
             serial_timing = calculate_timing_statistics(serial_times, warmup_runs)
             meas_serial = BaselineMeasurement(

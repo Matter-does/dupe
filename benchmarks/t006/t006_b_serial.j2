@@ -12,23 +12,33 @@ if len(args) > 2 {
     buffer_size = json.parse(args[2])
 }
 
-# 1. Pre-allocate buffers in memory
-template = collect(0..(buffer_size - 1))
+# 1. Build a deterministic template string of approximately buffer_size bytes
+block = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789=="
+template := ""
+repeat_count := buffer_size / 64
+if repeat_count < 1 {
+    repeat_count = 1
+}
+
+for _ in collect(1..repeat_count) {
+    template = fmt("{}{}", template, block)
+}
+
+# Pre-allocate K distinct in-memory buffers in RAM
 buffers := []
 for i in collect(1..num_buffers) {
-    buf = template + []
-    buf[0] = i % 256
+    buf = fmt("{}_{}", i, template)
     buffers = buffers + [buf]
 }
 
 # 2. Sequential hashing loop with loop-carried dependency
 digests := []
-prev_len := 0
+prev_hash := "initial_seed"
 for buf in buffers {
-    # Loop-carried dependency: buf[0] is modified by output of previous iteration
-    buf[0] = (buf[0] + prev_len) % 256
-    d = hash.sha256(buf)
-    prev_len = len(d)
+    # Loop-carried dependency: input is chained with previous hash digest
+    chained = fmt("{}:{}", prev_hash, buf)
+    d = hash.sha256(chained)
+    prev_hash = d
     digests = digests + [d]
 }
 
