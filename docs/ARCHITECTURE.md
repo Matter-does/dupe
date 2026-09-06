@@ -78,3 +78,10 @@ The initial engine is read-only. Destructive file operations are outside the cur
 
 ## Extensibility rule
 New analysis passes should consume the common discovered-file representation without creating a second filesystem traversal unless a measurement demonstrates a concrete reason to do so. All secondary passes must be additive and must not destabilize frozen baseline workloads.
+
+## Verified Execution & Parallelism Characteristics (T006 Findings)
+Empirical evidence from T006 on macOS 15 Apple Silicon (`macos-15`, arm64, 3 vCPUs) establishes:
+1. **Compilation Speedup:** Standalone native compilation (`j2 build`) provides moderate execution acceleration (up to 1.45x) via machine code emission and reduced bytecode dispatch overhead.
+2. **Execution Concurrency:** J2 0.1.0 does not produce multi-core parallel execution under tested workloads (CPU utilization bounded <105%; backend source uses thread-local globals without multi-threading runtime primitives).
+3. **Pipeline Bottlenecks:** Pipeline performance is dominated by the $O(N^2)$ candidate size filter in metadata-heavy corpora (e.g. C1) and SHA-256 hashing in candidate-dense corpora (e.g. C2). Warm-state repeated runs are dominated by OS page caching.
+

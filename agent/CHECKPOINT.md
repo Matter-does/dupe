@@ -1,47 +1,56 @@
 # Checkpoint
 
-task: T005
-status: T005 baseline benchmark complete, gates verified, results captured
+task: T006
+status: T006 automatic parallelism experiment complete, gates verified, verified CI results captured
 
 completed:
-  - Implemented Baseline C pure J2 control reduction over 2,000,000 integers (`benchmarks/controls/pure_control.j2`)
-  - Verified Baseline C ground truth mathematically: 2000001000000
-  - Implemented Benchmark Harness (`benchmarks/harness.py`) with machine provenance logging, external wall-clock timing (`time.perf_counter_ns()`), pre-flight corpus verification, output JSON normalization, bit-for-bit direct match verification, and manifest digest validation
-  - Implemented CLI runner (`benchmarks/run_baselines.py`) producing machine-readable `baseline_results.json` and GitHub step summary `baseline_report.md`
-  - Remediated OpenCode review blockers B1–B4:
-    - B1: Verified Baseline A invocation `j2 --allow-fs src/main.j2 <corpus> --json`, reconciled specifications, added durable CI argv probe (`benchmarks/probes/verify_argv_probe.py`)
-    - B2: Corrected `bytes_hashed` metric definition to calculate total bytes across all size candidates, added B2 regression test, recomputed MB/s throughput
-    - B3: Made `emit-native` compiler inspection auditable (pattern matching for concurrency primitives with line/context excerpts), purged speculative parallelism prose
-    - B4: Added `--seed` CLI parameter to `run_baselines.py`, verified propagation to corpus generation, recorded effective seed in results
-  - Disclosed C7 generative equivalence to C2 for warm-state cache variance
-  - Created offline unit tests (`tests/test_benchmark_harness.py`, 11/11 PASS)
-  - Configured and executed dedicated GitHub Actions workflow (`.github/workflows/t005-baseline-benchmark.yml`) on `macos-15` (Apple Silicon arm64, 3 vCPUs, 7.0 GB RAM)
-  - Verified J2 0.1.0 and native compilation (`j2 build src/main.j2 -o build/dupe`) with `J2_ALLOW_FS=1` runtime capability
-  - Verified 100% direct JSON match and 100% manifest digest match across all tested standard corpora (C1, C2, C4, C5, C6, C7)
-  - Conducted compiler inspection via `j2 emit-native` on both pure control and `dupe` main
-  - Established scientific baseline: native binary speedup is modest (0.98x - 1.23x) and reflects compiler dispatch elimination, not automatic parallelism
-  - Archived benchmark artifacts in `benchmarks/results/`
+  - Implemented T006 4-stage experimental ladder in `benchmarks/t006/` without modifying production `src/*.j2`:
+    - Level T006-A: Pure J2 computational reduction candidate (`t006_a_candidate.j2`) vs serial-equivalent accumulator control (`t006_a_serial.j2`) across scaling sizes (100K, 2M, 5M)
+    - Level T006-B: Pure in-memory hashing candidate (`t006_b_candidate.j2`) vs chained serial control (`t006_b_serial.j2`) across buffer counts and sizes (10x1KB to 200x64KB)
+    - Level T006-C: Filesystem read + hash candidate (`t006_c_candidate.j2`) vs chained control (`t006_c_serial.j2`) across standard corpora
+    - Level T006-D: Full dupe pipeline across standard corpora (C1, C2, C4, C5, C6, C7)
+    - Standalone stage probes (`stage_discovery.j2`, `stage_filter.j2`, `stage_read_hash.j2`, `stage_group.j2`) for measured sub-stage decomposition
+  - Implemented comprehensive T006 harness and data models (`benchmarks/t006_harness.py`) supporting:
+    - Level 1: Compiler backend IR inspection (`j2 emit-native`) with regex pattern extraction and context excerpt retention
+    - Level 2: Empirical wall-clock timing statistics (min, max, median, mean, stddev, variance)
+    - Level 3: External OS profiling methodology and warm-run repeatability
+    - Level 4: Concurrent background process CPU core load sampler (`ps -o %cpu`) detecting multi-core threshold (>110%)
+    - Level 5: Bit-for-bit result determinism and manifest digest verification
+    - Scientific classification into Categories A–E with Evidence Grades A–E
+  - Implemented top-level CLI runner (`benchmarks/run_t006.py`) generating publication-quality Markdown report (`benchmarks/results/t006_report.md`) and machine-readable schema (`benchmarks/results/t006_results.json`)
+  - Added dedicated unit test suite (`tests/test_t006_experiments.py`, 11/11 PASS)
+  - Implemented and executed dedicated GitHub Actions workflow (`.github/workflows/t006-automatic-parallelism.yml`) on `macos-15` (arm64 Apple Silicon, 3 vCPUs, 7.0 GB RAM, Run ID `34051835154`)
+  - Verified 100% test and correctness pass across all 4 levels and all 6 standard corpora
+  - Answered all 7 authoritative research questions with explicit Evidence Grades (A–E)
+  - Established scientific conclusion: Overall **CATEGORY C** (Native compilation effect only; no automatic multi-core parallelism observed in J2 0.1.0)
+  - Synchronized verified CI results into repository artifacts
 
 not_done:
-  - T006 automatic-parallelism experiment execution (halted per task discipline)
-  - T007 second workload implementation
+  - T007 second workload implementation (Checksum Inventory) — halted per task discipline
   - T008 CLI polish
+  - T009 GUI shell
+  - T010 Demo presentation
+  - T011 Final package
 
 verification:
-  ci_workflow_run: pass (run 34038191455 on macos-15 arm64, 2m14s)
-  baseline_c_control: pass (ground truth 2000001000000 matched in both interpreter and native, 1.36x speedup)
-  corpus_direct_json_match: pass (bit-for-bit identical output across C1, C2, C4, C5, C6, C7)
-  corpus_digest_match: pass (100% agreement with manifest expected_result_digest across C1, C2, C4, C5, C6, C7)
+  ci_workflow_run: pass (run 34051835154 on macos-15 arm64 Apple Silicon, 10m 56s)
+  overall_classification: CATEGORY C
+  t006_a_correctness: pass (100% VALID mathematical reduction match across 100K, 2M, 5M)
+  t006_b_correctness: pass (100% VALID deterministic in-memory SHA-256 digests across all configs)
+  t006_c_correctness: pass (100% VALID across C1, C2, C4, C5, C6, C7)
+  t006_d_correctness: pass (100% VALID direct JSON match and manifest expected_result_digest agreement across C1, C2, C4, C5, C6, C7)
+  cpu_monitoring: pass (verified single-core execution <105% CPU across all levels)
+  compiler_inspection: pass (single-threaded thread-local globals; zero concurrency primitives found)
+  t006_unit_tests: pass (11/11 tests in tests/test_t006_experiments.py)
   harness_offline_tests: pass (11/11 tests in tests/test_benchmark_harness.py)
   corpus_generator_tests: pass (14/14 tests in tests/test_benchmark_corpus.py)
   phase4_offline_tests: pass (tests/phase4_differential.py --offline)
-  phase3_source_integrity: pass (git diff origin/main -- src/ is completely empty)
-  git_boundary: clean, prepared for bounded T005 remediation commit
+  production_source_integrity: pass (git diff origin/main -- src/ is strictly empty)
+  git_boundary: clean, all T006 artifacts committed and synchronized
 
 next_action:
-  - Commit bounded T005 remediation changes to main
-  - Push to origin/main and verify local HEAD == origin/main
-  - Present comprehensive T005 remediation summary for independent OpenCode review
-  - DO NOT start T006 automatically
+  - Complete handoff documentation in agent/HANDOFF.md
+  - Update agent/TODO.md and docs/RESEARCH.md
+  - Stop at T006 boundary. Do NOT begin T007 automatically.
 
 last_agent: Antigravity

@@ -7,7 +7,7 @@
 - [x] T003 — Competitive/technical research consolidation
 - [x] T004 — Benchmark corpus specification and generator
 - [x] T005 — J2 interpreter/native baseline benchmark
-- [ ] T006 — Automatic-parallelism experiment and evidence collection
+- [x] T006 — Automatic-parallelism experiment and evidence collection
 - [ ] T007 — Reusable filesystem analysis pass for a second read-only workload
 - [ ] T008 — CLI/product surface polish
 - [ ] T009 — Lightweight GUI shell over the engine

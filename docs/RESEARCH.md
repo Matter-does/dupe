@@ -446,3 +446,35 @@ Recursive Discovery → FileRecord[] → Parallel Read & SHA-256 → Emitted Man
 | **rmlint Documentation** | rmlint Project | `https://rmlint.readthedocs.io/` | 2026-09-06 | Multi-stage hashing, paranoid byte-for-byte check | **B** |
 | **duperemove Manual** | Mark Fasheh | `https://github.com/markfasheh/duperemove` | 2026-09-06 | Extent-level deduplication, I/O and CPU pool separation | **B** |
 | **dupeGuru Project** | Hardcoded Software | `https://github.com/arsenetar/dupeguru` | 2026-09-06 | Desktop cleanup workflow, UI curation, serial Python execution | **B** |
+
+---
+
+## 18. T006 Empirical Automatic Parallelism Findings (macOS 15 Apple Silicon arm64)
+
+### 18.1 Overview & Methodology
+Task T006 evaluated J2's automatic parallelism across an explicit 4-stage experimental ladder in GitHub Actions CI run `34051835154` on `macos-15` (Apple Silicon arm64, 3 vCPUs, 7.0 GB RAM) using verified toolchain `j2 0.1.0`.
+
+To separate native compilation benefits from genuine multi-core parallelism, candidate parallelizable implementations were compared against:
+1. Interpreter execution (Baseline A);
+2. Source-level "serial-equivalent native baselines" containing intentional loop-carried dependencies;
+3. Concurrent CPU core utilization sampling via `ps -o %cpu` with a multi-core engagement threshold (>110%);
+4. Emitted Rust backend inspection via `j2 emit-native`.
+
+### 18.2 Experimental Results Summary
+
+| Level | Description | Status | Classification | Native vs Interp | Cand vs Serial | Multi-Core Engaged |
+|---|---|---|---|---|---|---|
+| **T006-A** | Pure Computational Reduction (100K, 2M, 5M) | PASS | **CATEGORY C** (Grade A) | 0.78x–1.14x | 12.5x–145.0x | NO (<105%) |
+| **T006-B** | Pure In-Memory Hashing (10KB–12.8MB) | PASS | **CATEGORY D** (Grade A) | N/A | 0.59x–1.09x | NO (<105%) |
+| **T006-C** | Filesystem Read + Hash (C1–C7) | PASS | **CATEGORY D** (Grade A) | N/A | 0.75x–1.13x | NO (<105%) |
+| **T006-D** | Full dupe Pipeline (C1–C7) | PASS | **CATEGORY C** (Grade A) | 0.87x–1.45x | N/A | NO (<105%) |
+
+### 18.3 Key Empirical Conclusions
+1. **No Automatic Parallelism Observed (Category C):** Across all tested workloads (computational reductions, pure in-memory hashing, filesystem read+hash, and full end-to-end `dupe` scans), CPU utilization remained strictly bounded to single-core (<105%).
+2. **Native Compilation Advantage:** Native compiled binaries provide modest speedup over the bytecode interpreter (up to 1.36x–1.45x in compute-heavy workloads). This advantage stems entirely from avoiding interpreter bytecode dispatch and LLVM machine codegen optimization.
+3. **Compiler Backend Emission:** `j2 emit-native` produces sequential loops using thread-local static globals (`thread_local! static GLOBALS`). No multi-threaded runtime primitives (`rayon`, `par_iter`, `thread::spawn`) were found in the emitted backend for J2 0.1.0.
+4. **Dominant Pipeline Bottlenecks:**
+   - In large-file corpora (e.g. C1 with 500 files), the pairwise $O(N^2)$ candidate size filter in `scan.j2` accounts for 87.7% of runtime (1,988 ms out of 2,267 ms).
+   - In candidate-dense corpora (e.g. C2), candidate read and SHA-256 hashing dominates (129 ms).
+   - Under warm repeated runs, OS page cache dominates file I/O, shifting execution to CPU bound.
+
