@@ -75,6 +75,7 @@ class CorpusProfile:
     collision_density: CollisionDensity
     cache_state: CacheState = CacheState.INITIAL_RUN
     developer_hardware_only: bool = False
+    size_tolerance_ratio: float = 0.05
 
     def validate(self) -> None:
         """Assert internal consistency and constraints."""
@@ -84,11 +85,14 @@ class CorpusProfile:
             raise ValueError(f"target_bytes must be positive, got {self.target_bytes}")
         if not (0.0 <= self.duplicate_ratio <= 1.0):
             raise ValueError(f"duplicate_ratio must be between 0.0 and 1.0, got {self.duplicate_ratio}")
+        if self.size_tolerance_ratio < 0.0 or self.size_tolerance_ratio > 1.0:
+            raise ValueError(f"size_tolerance_ratio must be in [0.0, 1.0], got {self.size_tolerance_ratio}")
 
-        # Check CI storage ceiling
-        if not self.developer_hardware_only and self.target_bytes > CI_STORAGE_CEILING_BYTES:
+        # Check CI storage ceiling against upper bound under tolerance
+        max_projected = int(self.target_bytes * (1.0 + self.size_tolerance_ratio))
+        if not self.developer_hardware_only and max_projected > CI_STORAGE_CEILING_BYTES:
             raise ValueError(
-                f"Corpus {self.corpus_id} has target_bytes={self.target_bytes} exceeding "
+                f"Corpus {self.corpus_id} has max projected bytes={max_projected} exceeding "
                 f"CI storage ceiling ({CI_STORAGE_CEILING_BYTES} bytes) but is not marked developer_hardware_only"
             )
 
@@ -115,6 +119,7 @@ C1_PROFILE = CorpusProfile(
     collision_density=CollisionDensity.MEDIUM,
     cache_state=CacheState.INITIAL_RUN,
     developer_hardware_only=False,
+    size_tolerance_ratio=0.05,
 )
 
 C2_PROFILE = CorpusProfile(
@@ -130,6 +135,7 @@ C2_PROFILE = CorpusProfile(
     collision_density=CollisionDensity.MEDIUM,
     cache_state=CacheState.INITIAL_RUN,
     developer_hardware_only=False,
+    size_tolerance_ratio=0.05,
 )
 
 C3_PROFILE = CorpusProfile(
@@ -145,6 +151,7 @@ C3_PROFILE = CorpusProfile(
     collision_density=CollisionDensity.LOW,
     cache_state=CacheState.INITIAL_RUN,
     developer_hardware_only=True,
+    size_tolerance_ratio=0.15,
 )
 
 C4_PROFILE = CorpusProfile(
@@ -160,6 +167,7 @@ C4_PROFILE = CorpusProfile(
     collision_density=CollisionDensity.HIGH,
     cache_state=CacheState.INITIAL_RUN,
     developer_hardware_only=False,
+    size_tolerance_ratio=0.05,
 )
 
 C5_PROFILE = CorpusProfile(
@@ -167,7 +175,7 @@ C5_PROFILE = CorpusProfile(
     name="Same-Size Adversarial",
     description="100% same-size candidate collision, distinct byte content. Forces all candidates into full SHA-256 hashing.",
     file_count=20000,
-    target_bytes=1048560000,  # 20,000 * 52,428 bytes ~ 1 GB
+    target_bytes=1048560000,  # 20,000 * 52,428 bytes ~ 1 GB (<= 1,073,741,824 bytes)
     size_profile=SizeProfile.SAME_SIZE_ADVERSARIAL,
     directory_shape=DirectoryShape.SHALLOW_WIDE,
     similarity_profile=SimilarityProfile.DISTINCT,
@@ -175,6 +183,7 @@ C5_PROFILE = CorpusProfile(
     collision_density=CollisionDensity.HIGH,
     cache_state=CacheState.INITIAL_RUN,
     developer_hardware_only=False,
+    size_tolerance_ratio=0.01,
 )
 
 C6_PROFILE = CorpusProfile(
@@ -190,6 +199,7 @@ C6_PROFILE = CorpusProfile(
     collision_density=CollisionDensity.MEDIUM,
     cache_state=CacheState.INITIAL_RUN,
     developer_hardware_only=False,
+    size_tolerance_ratio=0.05,
 )
 
 C7_PROFILE = CorpusProfile(
@@ -205,6 +215,7 @@ C7_PROFILE = CorpusProfile(
     collision_density=CollisionDensity.MEDIUM,
     cache_state=CacheState.WARM_REPEATED,
     developer_hardware_only=False,
+    size_tolerance_ratio=0.05,
 )
 
 NAMED_PROFILES: dict[str, CorpusProfile] = {

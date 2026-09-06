@@ -78,7 +78,7 @@ print(sum(data))
 - Corpus ID and manifest SHA-256
 
 ## Acceptance Criteria
-1. Baseline A (interpreter) measured across standard corpora (C1, C2, C4, C5, C6) using explicit `j2 run --allow-fs`.
+1. Baseline A (interpreter) measured across standard corpora (C1, C2, C4, C5, C6, C7) using explicit `j2 run --allow-fs`.
 2. Baseline B (compiled native) measured across identical corpora using `build/dupe` with `J2_ALLOW_FS=1`.
 3. Baseline C (concrete pure J2 parallel control) executed to validate multi-core reduction lowering.
 4. Identical corpus trees and manifests used across comparison runs.

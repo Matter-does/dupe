@@ -1,33 +1,36 @@
 # Current Task
 
 **Task:** T004 — Benchmark Corpus Specification and Generator  
-**Status:** COMPLETE (Ready for T005)
+**Status:** T004 remediation complete, awaiting targeted OpenCode re-check
 
-## Summary of Accomplishments
-- **Deterministic Corpus Generator:** Implemented seed-based generator in `benchmarks/generator/generate.py` with reproducible PRNG trees and file payloads.
-- **Manifest Schema Version 1:** Implemented strict manifest schema and validation in `benchmarks/generator/manifest.py` adhering to T004 specification.
-- **C1–C7 Standard Corpora:** Implemented all 7 named profiles in `benchmarks/generator/profiles.py` across controlled workload dimensions.
-- **C1 Arithmetic Consistency:** Verified $50\text{K} \times 4\text{ KB} \approx 200\text{ MB}$, 5% duplicates (2,500 duplicate files in pairs), tiny-heavy (<4 KB), CI storage compliant.
-- **C3 Developer-Hardware-Only Gating:** Verified C3 (~1.5 GB, >1 GB CI limit) is explicitly labeled `Developer-Hardware-Only` and guarded behind mandatory `--allow-developer-hardware` flag.
-- **C7 Terminology:** Framed C7 as warm-state transition and repeated-run variance (`initial_run`, `warm_repeated`), completely eliminating "cold cache" terminology.
-- **CI Storage Limits:** Enforced <= 1 GB ceiling across all CI corpora (C1, C2, C4, C5, C6, C7).
-- **Pre-flight Disk Space Safety:** Enforced `check_disk_space()` before file generation to prevent runner disk exhaustion.
-- **Deterministic Expected Result Digest:** Computed via independent reference oracle evaluated against the corpus root with normalized relative paths.
-- **Comprehensive Validation Suite:** Created `tests/test_benchmark_corpus.py` (10 passing test cases covering reproducibility, schema checking, arithmetic consistency, C3 protection, and full C1–C7 matrix).
-- **Immutability:** Zero modifications to `src/*.j2`.
-- **Differential Gates:** Verified passing offline self-tests (`python tests/phase4_differential.py --offline`).
+## Summary of Completed Remediation
+- **P1-A (Safe Output Directory Handling):**
+  - Refuses destructive wipe of non-empty arbitrary directories with `FileExistsError`, preserving all user data untouched.
+  - Allows generation if target directory does not exist (creates it) or is empty.
+  - Allows controlled replacement only if target directory contains a valid prior `manifest.json` from this generator for the same corpus.
+  - Verified with 4 dedicated safety tests in `tests/test_benchmark_corpus.py`.
+- **P1-B (Projected Actual Size Planning & Preflight):**
+  - Generator determines exact file count, duplicate clusters, unique files, and individual payload byte sizes in memory via `plan_corpus_workload()` *before* touching filesystem.
+  - Pre-flight disk space safety check strictly uses `projected_bytes`.
+  - CI storage ceiling (<= 1 GB) enforced against projected bytes before any file write.
+  - Profile-specific target size tolerance enforced (`size_tolerance_ratio`).
+- **P2-C (Manifest Scale & Tamper Detection):**
+  - Added `scale`, `target_bytes`, and `size_tolerance_ratio` to `Manifest` and `manifest.json`.
+  - Strict validation cross-checks scale, target bytes, tolerance, and re-derives expected file counts and bytes to detect tampering.
+- **P2-D (CI Coverage):**
+  - Added `python3 tests/test_benchmark_corpus.py -v` to the `offline` job in `.github/workflows/phase4-correctness.yml` (`ubuntu-latest`).
+  - Added `benchmarks/**` to workflow path triggers.
+- **P2-E (Target vs Actual Size Testing):**
+  - Added explicit test verifying realized corpus size conforms to each profile's explicit tolerance (C1–C7) without false assumptions of exact byte identity where variance is permitted.
+- **C7 Text Fix:**
+  - Enumerated C7 alongside C1, C2, C4, C5, C6 across T005 and T006 acceptance/specification text.
+  - Zero "cold cache" terminology throughout.
 
-## Acceptance Criteria
-- [x] Generator exists and is deterministic (`benchmarks/generator/`).
-- [x] C1–C7 definitions implemented consistently with specification.
-- [x] Manifest schema version 1 and validation operational.
-- [x] Expected-result semantics are deterministic.
-- [x] Corpus size/storage constraints respected (CI <= 1 GB, C3 labeled Dev-Only).
-- [x] All 10 benchmark corpus tests pass (`python tests/test_benchmark_corpus.py`).
-- [x] All Phase 4 offline self-tests pass (`python tests/phase4_differential.py --offline`).
-- [x] `src/*.j2` remains completely untouched.
-- [x] Working tree clean, committed, and pushed to `origin/main`.
-- [x] Checkpoint and handoff identify next task as T005.
+## Verification Evidence
+- `tests/test_benchmark_corpus.py`: 14/14 PASS (5.3s)
+- `tests/phase4_differential.py --offline`: PASS
+- Phase 3 source code (`src/*.j2`): 100% untouched (`git diff origin/main -- src/` empty)
+- Zero T005 code added
 
-## Next Task
-T005 — J2 interpreter/native baseline benchmark. (Do NOT start automatically).
+## Next Action
+Submit T004 remediation for targeted OpenCode re-check. Do NOT begin T005 automatically.

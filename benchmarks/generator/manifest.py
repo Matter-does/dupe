@@ -5,9 +5,12 @@ Schema Version 1 Specification (per T004 / docs/RESEARCH.md §12.3):
   "schema_version": 1,
   "corpus_id": "C5",
   "seed": 12345,
+  "scale": 1.0,
   "generator_version": "git-sha",
   "file_count": 20000,
-  "total_bytes": 1073741824,
+  "total_bytes": 1048560000,
+  "target_bytes": 1048560000,
+  "size_tolerance_ratio": 0.01,
   "duplicate_ratio": 0.3,
   "duplicate_groups": 1500,
   "duplicate_files": 6000,
@@ -39,6 +42,7 @@ if __package__ is None or __package__ == "":
     from benchmarks.generator.profiles import (
         CI_STORAGE_CEILING_BYTES,
         DirectoryShape,
+        NAMED_PROFILES,
         SimilarityProfile,
         SizeProfile,
     )
@@ -46,6 +50,7 @@ else:
     from .profiles import (
         CI_STORAGE_CEILING_BYTES,
         DirectoryShape,
+        NAMED_PROFILES,
         SimilarityProfile,
         SizeProfile,
     )
@@ -59,9 +64,12 @@ class Manifest:
     schema_version: int
     corpus_id: str
     seed: int
+    scale: float
     generator_version: str
     file_count: int
     total_bytes: int
+    target_bytes: int
+    size_tolerance_ratio: float
     duplicate_ratio: float
     duplicate_groups: int
     duplicate_files: int
@@ -78,9 +86,12 @@ class Manifest:
             "schema_version": self.schema_version,
             "corpus_id": self.corpus_id,
             "seed": self.seed,
+            "scale": round(float(self.scale), 6),
             "generator_version": self.generator_version,
             "file_count": self.file_count,
             "total_bytes": self.total_bytes,
+            "target_bytes": self.target_bytes,
+            "size_tolerance_ratio": round(float(self.size_tolerance_ratio), 4),
             "duplicate_ratio": round(float(self.duplicate_ratio), 6),
             "duplicate_groups": self.duplicate_groups,
             "duplicate_files": self.duplicate_files,
@@ -103,9 +114,12 @@ class Manifest:
             schema_version=int(data["schema_version"]),
             corpus_id=str(data["corpus_id"]),
             seed=int(data["seed"]),
+            scale=float(data.get("scale", 1.0)),
             generator_version=str(data["generator_version"]),
             file_count=int(data["file_count"]),
             total_bytes=int(data["total_bytes"]),
+            target_bytes=int(data.get("target_bytes", data["total_bytes"])),
+            size_tolerance_ratio=float(data.get("size_tolerance_ratio", 0.05)),
             duplicate_ratio=float(data["duplicate_ratio"]),
             duplicate_groups=int(data["duplicate_groups"]),
             duplicate_files=int(data["duplicate_files"]),
@@ -125,6 +139,28 @@ class Manifest:
             p = p / MANIFEST_FILENAME
         data = json.loads(p.read_text(encoding="utf-8"))
         return cls.from_dict(data)
+
+
+def is_valid_prior_corpus_dir(target_dir: Path, expected_corpus_id: Optional[str] = None) -> bool:
+    """Check if target_dir contains a valid prior manifest from this generator.
+    Used for safe output directory handling (P1-A)."""
+    manifest_file = target_dir / MANIFEST_FILENAME
+    if not manifest_file.is_file():
+        return False
+    try:
+        data = json.loads(manifest_file.read_text(encoding="utf-8"))
+        if data.get("schema_version") != SCHEMA_VERSION:
+            return False
+        cid = data.get("corpus_id")
+        if not cid or not isinstance(cid, str):
+            return False
+        if expected_corpus_id is not None and cid != expected_corpus_id:
+            return False
+        if "generator_version" not in data or "expected_result_digest" not in data:
+            return False
+        return True
+    except Exception:
+        return False
 
 
 def discover_corpus_files(root: Path) -> list[Path]:
@@ -239,14 +275,17 @@ def validate_manifest(
             raise ValueError(errors[-1]) from exc
         return False, errors
 
-    # Required fields per T004 specification
+    # Required fields per T004 specification (including scale, target_bytes, size_tolerance_ratio)
     required_fields = {
         "schema_version": int,
         "corpus_id": str,
         "seed": int,
+        "scale": (float, int),
         "generator_version": str,
         "file_count": int,
         "total_bytes": int,
+        "target_bytes": int,
+        "size_tolerance_ratio": (float, int),
         "duplicate_ratio": (float, int),
         "duplicate_groups": int,
         "duplicate_files": int,
@@ -275,6 +314,18 @@ def validate_manifest(
         errors.append(
             f"Unsupported schema_version: expected {SCHEMA_VERSION}, got {data['schema_version']}"
         )
+
+    scale_val = float(data["scale"])
+    if scale_val <= 0.0 or scale_val > 1.0:
+        errors.append(f"Invalid scale {scale_val}, must be in (0.0, 1.0]")
+
+    target_bytes_val = int(data["target_bytes"])
+    if target_bytes_val <= 0:
+        errors.append(f"Invalid target_bytes {target_bytes_val}, must be positive")
+
+    tolerance_ratio = float(data["size_tolerance_ratio"])
+    if tolerance_ratio < 0.0 or tolerance_ratio > 1.0:
+        errors.append(f"Invalid size_tolerance_ratio {tolerance_ratio}, must be in [0.0, 1.0]")
 
     # Validate closed enums
     valid_size_profiles = {e.value for e in SizeProfile}
@@ -332,6 +383,52 @@ def validate_manifest(
 
     if data["corpus_id"] == "C3" and not dev_only:
         errors.append("Corpus C3 must have developer_hardware_only: true")
+
+    # Verify target-size tolerance conformance (P2-E)
+    total_bytes = data["total_bytes"]
+    max_allowed_delta = max(8192, int(target_bytes_val * tolerance_ratio))
+    if abs(total_bytes - target_bytes_val) > max_allowed_delta:
+        errors.append(
+            f"Corpus size ({total_bytes} bytes) violates target size ({target_bytes_val} bytes) "
+            f"beyond allowed tolerance ({tolerance_ratio * 100:.1f}%, max delta {max_allowed_delta})"
+        )
+
+    # Tamper detection against named profiles (P2-C)
+    cid = data["corpus_id"]
+    if cid in NAMED_PROFILES:
+        prof = NAMED_PROFILES[cid]
+        if data["size_profile"] != prof.size_profile.value:
+            errors.append(
+                f"Tampered metadata: size_profile '{data['size_profile']}' does not match "
+                f"profile '{prof.size_profile.value}' for {cid}"
+            )
+        if data["directory_shape"] != prof.directory_shape.value:
+            errors.append(
+                f"Tampered metadata: directory_shape '{data['directory_shape']}' does not match "
+                f"profile '{prof.directory_shape.value}' for {cid}"
+            )
+        if data["similarity_profile"] != prof.similarity_profile.value:
+            errors.append(
+                f"Tampered metadata: similarity_profile '{data['similarity_profile']}' does not match "
+                f"profile '{prof.similarity_profile.value}' for {cid}"
+            )
+        if dev_only != prof.developer_hardware_only:
+            errors.append(
+                f"Tampered metadata: developer_hardware_only '{dev_only}' does not match "
+                f"profile '{prof.developer_hardware_only}' for {cid}"
+            )
+        expected_scaled_count = max(10, int(round(prof.file_count * scale_val)))
+        if file_count != expected_scaled_count:
+            errors.append(
+                f"Tampered metadata: file_count {file_count} does not match expected scaled count "
+                f"{expected_scaled_count} for scale {scale_val}"
+            )
+        expected_scaled_target = max(10000, int(round(prof.target_bytes * scale_val)))
+        if abs(target_bytes_val - expected_scaled_target) > 100:
+            errors.append(
+                f"Tampered metadata: target_bytes {target_bytes_val} does not match expected scaled target "
+                f"{expected_scaled_target} for scale {scale_val}"
+            )
 
     # Validate filesystem tree against manifest
     actual_files = discover_corpus_files(corpus_root)

@@ -48,7 +48,7 @@ To decouple pure computation parallelism from filesystem I/O constraints, T006 e
 - **Success Criterion:** Identification of whether storage read latency or memory copying attenuates compute parallelism.
 
 ### Experiment T006-D — Full `dupe` End-to-End Pipeline
-- **Input:** Standard corpora (C1, C2, C4, C5, C6).
+- **Input:** Standard corpora (C1, C2, C4, C5, C6, C7).
 - **Operation:** Full duplicate analysis execution (`discovery -> size filter -> hash candidates -> group -> output`).
 - **Purpose:** Measure application-level wall-clock speedup and stage breakdown under realistic filesystem conditions.
 - **Success Criterion:** Detailed bottleneck analysis across file count, size distribution, and duplicate ratio.

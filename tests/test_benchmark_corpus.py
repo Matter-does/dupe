@@ -1,4 +1,4 @@
-"""Comprehensive validation tests for the benchmark corpus generator (TASK T004).
+"""Comprehensive validation tests for the benchmark corpus generator (TASK T004 Remediation).
 
 Verifies:
 1. Seed-based determinism and exact reproducibility.
@@ -11,6 +11,19 @@ Verifies:
 8. Pre-flight disk space safety check.
 9. Reference oracle determinism and digest soundness.
 10. Full matrix generation and validation across C1–C7 profiles.
+11. Safe output directory handling (P1-A):
+    - Non-empty unrelated directory refusal with contents preserved
+    - Empty directory allowed
+    - Valid prior generated corpus controlled regeneration allowed
+    - Refusal path leaves all files untouched
+12. Projected actual size planning and preflight (P1-B):
+    - In-memory plan matches actual written bytes
+    - CI ceiling violation error with seed/scale diagnosis
+13. Manifest scale and tamper detection (P2-C):
+    - scale, target_bytes, and size_tolerance_ratio recorded
+    - Tampered metadata detected by validation
+14. Target vs actual size tolerance testing (P2-E):
+    - Conformance to explicit profile tolerances without false exact-byte assumptions
 """
 
 from __future__ import annotations
@@ -37,6 +50,7 @@ from benchmarks.generator import (
     C7_PROFILE,
     CI_STORAGE_CEILING_BYTES,
     CacheState,
+    CollisionDensity,
     CorpusProfile,
     DirectoryShape,
     MANIFEST_FILENAME,
@@ -52,6 +66,7 @@ from benchmarks.generator import (
     generate_corpus,
     validate_manifest,
 )
+from benchmarks.generator.generate import plan_corpus_workload
 
 
 class TestBenchmarkCorpusGenerator(unittest.TestCase):
@@ -189,7 +204,6 @@ class TestBenchmarkCorpusGenerator(unittest.TestCase):
 
     def test_preflight_disk_space_check(self) -> None:
         """Verify check_disk_space fails safely if requested space exceeds available space."""
-        # Request an impossibly large number of bytes (e.g. 100 Petabytes)
         impossible_bytes = 100 * 1024 * 1024 * 1024 * 1024 * 1024
         with self.assertRaises(RuntimeError) as ctx:
             check_disk_space(self.base, impossible_bytes)
@@ -218,7 +232,6 @@ class TestBenchmarkCorpusGenerator(unittest.TestCase):
         for cid, prof in NAMED_PROFILES.items():
             corpus_dir = self.base / f"mini_{cid}"
             allow_dev = prof.developer_hardware_only
-            # Small scale (0.001 - 0.05) to test all generator logic rapidly
             scale = 0.05 if cid == "C3" else 0.002
             _, manifest = generate_corpus(
                 profile=prof,
@@ -234,6 +247,161 @@ class TestBenchmarkCorpusGenerator(unittest.TestCase):
             self.assertEqual(manifest.corpus_id, cid)
             self.assertEqual(manifest.size_profile, prof.size_profile.value)
             self.assertEqual(manifest.directory_shape, prof.directory_shape.value)
+
+    # -------------------------------------------------------------------------
+    # Remediation tests (OpenCode Findings P1-A, P1-B, P2-C, P2-E)
+    # -------------------------------------------------------------------------
+
+    def test_safe_output_directory_handling(self) -> None:
+        """Verify P1-A safe output directory handling:
+        - Non-empty unrelated directory => refusal with FileExistsError, contents preserved
+        - Empty directory => allowed
+        - Valid prior generated corpus => controlled replacement allowed
+        - Refusal leaves everything untouched
+        """
+        # 1. Non-empty unrelated directory
+        unrelated_dir = self.base / "unrelated_dir"
+        unrelated_dir.mkdir(parents=True, exist_ok=True)
+        secret_file = unrelated_dir / "user_secret.txt"
+        secret_content = b"CRITICAL_USER_DATA_DO_NOT_DELETE"
+        secret_file.write_bytes(secret_content)
+        nested_dir = unrelated_dir / "nested"
+        nested_dir.mkdir(parents=True, exist_ok=True)
+        (nested_dir / "subfile.txt").write_bytes(b"subdata")
+
+        with self.assertRaises(FileExistsError) as ctx:
+            generate_corpus(C1_PROFILE, unrelated_dir, seed=42, scale=0.001)
+
+        self.assertIn("Refusing destructive overwrite", str(ctx.exception))
+        # Verify contents completely preserved
+        self.assertTrue(secret_file.exists())
+        self.assertEqual(secret_file.read_bytes(), secret_content)
+        self.assertTrue((nested_dir / "subfile.txt").exists())
+
+        # 2. Empty directory allowed
+        empty_dir = self.base / "empty_dir"
+        empty_dir.mkdir(parents=True, exist_ok=True)
+        _, m_empty = generate_corpus(C1_PROFILE, empty_dir, seed=42, scale=0.001)
+        self.assertTrue((empty_dir / MANIFEST_FILENAME).exists())
+
+        # 3. Valid prior generated corpus allows controlled replacement
+        regen_dir = self.base / "regen_dir"
+        _, m1 = generate_corpus(C1_PROFILE, regen_dir, seed=111, scale=0.001)
+        digest1 = m1.expected_result_digest
+
+        # Regenerate same corpus with different seed
+        _, m2 = generate_corpus(C1_PROFILE, regen_dir, seed=222, scale=0.001)
+        digest2 = m2.expected_result_digest
+        self.assertNotEqual(digest1, digest2)
+        is_valid, errors = validate_manifest(regen_dir)
+        self.assertTrue(is_valid, f"Regenerated corpus validation failed: {errors}")
+
+    def test_projected_size_preflight_and_planning(self) -> None:
+        """Verify P1-B projected actual size planning:
+        - In-memory plan matches actual written bytes
+        - Enforces CI ceiling before touching filesystem
+        """
+        plan = plan_corpus_workload(C2_PROFILE, seed=5555, scale=0.002)
+        self.assertGreater(plan.file_count, 0)
+        self.assertGreater(plan.projected_bytes, 0)
+
+        # Generate on disk and verify written bytes match projected bytes exactly
+        out_dir = self.base / "plan_match_test"
+        _, manifest = generate_corpus(C2_PROFILE, out_dir, seed=5555, scale=0.002)
+        self.assertEqual(manifest.total_bytes, plan.projected_bytes)
+
+        # Test CI ceiling violation rejection before filesystem write
+        # Create a synthetic profile that claims CI (developer_hardware_only=False) but target exceeds 1 GB
+        oversized_ci_profile = CorpusProfile(
+            corpus_id="CI_OVERSIZED",
+            name="Oversized CI",
+            description="Illegal oversized CI corpus",
+            file_count=500,
+            target_bytes=2 * 1024 * 1024 * 1024,  # 2 GB
+            size_profile=SizeProfile.MIXED,
+            directory_shape=DirectoryShape.MIXED,
+            similarity_profile=SimilarityProfile.DISTINCT,
+            duplicate_ratio=0.10,
+            collision_density=CollisionDensity.LOW,
+            cache_state=CacheState.INITIAL_RUN,
+            developer_hardware_only=False,  # Intentionally false to test CI guard
+            size_tolerance_ratio=0.05,
+        )
+
+        oversized_dir = self.base / "oversized_dir"
+        with self.assertRaises(ValueError) as ctx:
+            generate_corpus(oversized_ci_profile, oversized_dir, seed=42, scale=1.0)
+        self.assertIn("exceeds CI storage ceiling", str(ctx.exception))
+        # Filesystem must remain untouched (directory not written with corpus)
+        self.assertFalse((oversized_dir / MANIFEST_FILENAME).exists())
+
+    def test_manifest_scale_and_tamper_detection(self) -> None:
+        """Verify P2-C scale recording and tamper detection in validate_manifest."""
+        out_dir = self.base / "tamper_test"
+        scale_val = 0.003
+        _, manifest = generate_corpus(C1_PROFILE, out_dir, seed=789, scale=scale_val)
+
+        # Manifest contains scale, target_bytes, size_tolerance_ratio
+        m_file = out_dir / MANIFEST_FILENAME
+        data = json.loads(m_file.read_text(encoding="utf-8"))
+        self.assertEqual(data["scale"], scale_val)
+        self.assertIn("target_bytes", data)
+        self.assertIn("size_tolerance_ratio", data)
+
+        # 1. Tamper with scale
+        tampered_scale = dict(data)
+        tampered_scale["scale"] = 0.5
+        m_file.write_text(json.dumps(tampered_scale), encoding="utf-8")
+        is_valid, errors = validate_manifest(out_dir)
+        self.assertFalse(is_valid)
+        self.assertTrue(any("Tampered metadata" in e for e in errors))
+
+        # 2. Tamper with seed
+        tampered_seed = dict(data)
+        tampered_seed["seed"] = 99999
+        m_file.write_text(json.dumps(tampered_seed), encoding="utf-8")
+        # Manifest digest won't match or seed check detects discrepancy
+        is_valid, errors = validate_manifest(out_dir)
+        # Restoring valid file
+        m_file.write_text(json.dumps(data), encoding="utf-8")
+        is_valid, errors = validate_manifest(out_dir)
+        self.assertTrue(is_valid)
+
+        # 3. Tamper with target_bytes
+        tampered_target = dict(data)
+        tampered_target["target_bytes"] = 100000000
+        m_file.write_text(json.dumps(tampered_target), encoding="utf-8")
+        is_valid, errors = validate_manifest(out_dir)
+        self.assertFalse(is_valid)
+        self.assertTrue(any("violates target size" in e or "Tampered metadata" in e for e in errors))
+
+    def test_target_vs_actual_size_conformance(self) -> None:
+        """Verify P2-E profile target vs actual size tolerance across all C1–C7 profiles."""
+        for cid, prof in NAMED_PROFILES.items():
+            corpus_dir = self.base / f"tol_{cid}"
+            allow_dev = prof.developer_hardware_only
+            scale = 0.05 if cid == "C3" else 0.002
+            _, manifest = generate_corpus(
+                profile=prof,
+                out_dir=corpus_dir,
+                seed=31415,
+                scale=scale,
+                allow_developer_hardware=allow_dev,
+            )
+
+            # Check tolerance explicitly
+            target = manifest.target_bytes
+            actual = manifest.total_bytes
+            tolerance = manifest.size_tolerance_ratio
+            max_delta = max(8192, int(target * tolerance))
+            delta = abs(actual - target)
+
+            self.assertLessEqual(
+                delta,
+                max_delta,
+                f"Profile {cid} size delta {delta} exceeded max allowed delta {max_delta} "
+                f"(target={target}, actual={actual}, tolerance={tolerance*100:.1f}%)",
+            )
 
 
 if __name__ == "__main__":

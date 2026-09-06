@@ -7,7 +7,7 @@ named standard corpus profiles (C1–C7).
 from __future__ import annotations
 
 import argparse
-from dataclasses import replace
+from dataclasses import dataclass
 import hashlib
 import json
 import math
@@ -28,6 +28,7 @@ if __package__ is None or __package__ == "":
         Manifest,
         compute_oracle_result,
         compute_result_digest,
+        is_valid_prior_corpus_dir,
         validate_manifest,
     )
     from benchmarks.generator.profiles import (
@@ -52,6 +53,7 @@ else:
         Manifest,
         compute_oracle_result,
         compute_result_digest,
+        is_valid_prior_corpus_dir,
         validate_manifest,
     )
     from .profiles import (
@@ -70,6 +72,19 @@ else:
         SimilarityProfile,
         SizeProfile,
     )
+
+
+@dataclass(frozen=True)
+class CorpusWorkloadPlan:
+    """Pre-calculated exact workload plan before filesystem interaction."""
+    file_count: int
+    target_bytes: int
+    projected_bytes: int
+    cluster_specs: list[int]
+    cluster_sizes: list[int]
+    unique_sizes: list[int]
+    actual_dup_files: int
+    num_unique_files: int
 
 
 def get_generator_version() -> str:
@@ -104,6 +119,158 @@ def check_disk_space(target_dir: Path, bytes_needed: int, safety_margin_mb: int 
         )
 
 
+def prepare_output_directory(out_path: Path, expected_corpus_id: str) -> None:
+    """Safely prepare output directory (P1-A).
+    - Never destructively wipe an arbitrary existing directory.
+    - If out_path does not exist: create it.
+    - If out_path exists and is empty: allow generation.
+    - If out_path contains a valid prior manifest.json for this corpus: allow controlled replacement.
+    - Otherwise refuse with a clear FileExistsError without modifying anything."""
+    if not out_path.exists():
+        out_path.mkdir(parents=True, exist_ok=True)
+        return
+
+    entries = list(out_path.iterdir())
+    if not entries:
+        return
+
+    # Check if directory contains a valid prior manifest from this generator
+    if is_valid_prior_corpus_dir(out_path, expected_corpus_id=expected_corpus_id):
+        # Controlled replacement of prior corpus
+        for item in out_path.iterdir():
+            if item.is_dir():
+                shutil.rmtree(item)
+            else:
+                item.unlink()
+        return
+
+    raise FileExistsError(
+        f"Target directory '{out_path}' exists, is not empty, and does not contain a compatible "
+        f"prior manifest.json for corpus '{expected_corpus_id}'. Refusing destructive overwrite."
+    )
+
+
+def plan_corpus_workload(
+    profile: CorpusProfile, seed: int, scale: float
+) -> CorpusWorkloadPlan:
+    """Calculate the exact workload plan and projected actual bytes BEFORE touching disk (P1-B).
+
+    Determines exact duplicate clusters, unique files, and individual file sizes.
+    Validates projected size against CI storage ceiling and profile tolerance.
+    """
+    if scale <= 0.0 or scale > 1.0:
+        raise ValueError(f"scale must be in (0.0, 1.0], got {scale}")
+
+    file_count = max(10, int(round(profile.file_count * scale)))
+    target_bytes = max(10000, int(round(profile.target_bytes * scale)))
+
+    rng = random.Random(seed)
+
+    # Determine duplicate files count
+    target_dup_files = int(round(file_count * profile.duplicate_ratio))
+    if target_dup_files < 2 and profile.duplicate_ratio > 0.0:
+        target_dup_files = 2
+    if target_dup_files > file_count:
+        target_dup_files = file_count
+
+    # Determine cluster copy counts
+    cluster_specs: list[int] = []
+    dup_remaining = target_dup_files
+
+    if profile.duplicate_ratio >= 0.70:
+        # Large clusters (C4)
+        while dup_remaining >= 2:
+            max_c = min(dup_remaining, max(2, file_count // 20))
+            min_c = min(dup_remaining, 4)
+            c_size = rng.randint(min_c, max(min_c, max_c))
+            cluster_specs.append(c_size)
+            dup_remaining -= c_size
+    else:
+        # Small clusters (pairs, 3-packs, 4-packs)
+        while dup_remaining >= 2:
+            if dup_remaining == 3:
+                c_size = 3
+            elif dup_remaining == 2:
+                c_size = 2
+            else:
+                c_size = rng.choice([2, 2, 2, 3, 4])
+                if c_size > dup_remaining:
+                    c_size = dup_remaining
+                if dup_remaining - c_size == 1:
+                    c_size = dup_remaining
+            cluster_specs.append(c_size)
+            dup_remaining -= c_size
+
+    actual_dup_files = sum(cluster_specs)
+    num_unique_files = file_count - actual_dup_files
+    num_clusters = len(cluster_specs)
+
+    # Calculate exact sizes for each cluster and unique file
+    # We must account for the duplication factor (cluster contributes c_i * size)
+    # Total bytes = sum(c_i * size_c_i) + sum(size_u_j)
+    if profile.size_profile == SizeProfile.SAME_SIZE_ADVERSARIAL:
+        # C5: Uniform size across all files
+        common_size = max(64, target_bytes // file_count)
+        cluster_sizes = [common_size] * num_clusters
+        unique_sizes = [common_size] * num_unique_files
+    elif profile.size_profile == SizeProfile.TINY_HEAVY:
+        # C1: Tiny files (<4 KB, avg 4 KB)
+        avg_target = max(64, target_bytes // file_count)
+        cluster_weights = [rng.uniform(0.75, 1.25) for _ in range(num_clusters)]
+        unique_weights = [rng.uniform(0.75, 1.25) for _ in range(num_unique_files)]
+        total_weight = sum(c * w for c, w in zip(cluster_specs, cluster_weights)) + sum(unique_weights)
+        norm = target_bytes / max(1.0, total_weight)
+        cluster_sizes = [max(64, min(8192, int(round(w * norm)))) for w in cluster_weights]
+        unique_sizes = [max(64, min(8192, int(round(w * norm)))) for w in unique_weights]
+    elif profile.size_profile == SizeProfile.LARGE_HEAVY:
+        # C3: Large files (1-10 MB)
+        avg_target = max(1024 * 1024, target_bytes // file_count)
+        cluster_weights = [rng.uniform(0.7, 1.3) for _ in range(num_clusters)]
+        unique_weights = [rng.uniform(0.7, 1.3) for _ in range(num_unique_files)]
+        total_weight = sum(c * w for c, w in zip(cluster_specs, cluster_weights)) + sum(unique_weights)
+        norm = target_bytes / max(1.0, total_weight)
+        cluster_sizes = [max(1024 * 1024, int(round(w * norm))) for w in cluster_weights]
+        unique_sizes = [max(1024 * 1024, int(round(w * norm))) for w in unique_weights]
+    else:
+        # Mixed (C2, C4, C6, C7): Pareto/log-normal distribution
+        cluster_weights = [rng.paretovariate(alpha=1.5) for _ in range(num_clusters)]
+        unique_weights = [rng.paretovariate(alpha=1.5) for _ in range(num_unique_files)]
+        total_weight = sum(c * w for c, w in zip(cluster_specs, cluster_weights)) + sum(unique_weights)
+        norm = target_bytes / max(1.0, total_weight)
+        cluster_sizes = [max(64, int(round(w * norm))) for w in cluster_weights]
+        unique_sizes = [max(64, int(round(w * norm))) for w in unique_weights]
+
+    projected_bytes = sum(c * s for c, s in zip(cluster_specs, cluster_sizes)) + sum(unique_sizes)
+
+    # Check CI storage ceiling against projected bytes
+    if not profile.developer_hardware_only and projected_bytes > CI_STORAGE_CEILING_BYTES:
+        raise ValueError(
+            f"Projected corpus size ({projected_bytes} bytes) exceeds CI storage ceiling "
+            f"({CI_STORAGE_CEILING_BYTES} bytes) for CI profile '{profile.corpus_id}' with seed {seed}, scale {scale}. "
+            f"Select another seed or adjust parameters."
+        )
+
+    # Check target size tolerance
+    max_allowed_delta = max(8192, int(target_bytes * profile.size_tolerance_ratio))
+    if abs(projected_bytes - target_bytes) > max_allowed_delta:
+        raise ValueError(
+            f"Projected corpus size ({projected_bytes} bytes) violates target size ({target_bytes} bytes) "
+            f"beyond allowed tolerance ({profile.size_tolerance_ratio * 100:.1f}%) for profile '{profile.corpus_id}'. "
+            f"Max allowed delta was {max_allowed_delta} bytes."
+        )
+
+    return CorpusWorkloadPlan(
+        file_count=file_count,
+        target_bytes=target_bytes,
+        projected_bytes=projected_bytes,
+        cluster_specs=cluster_specs,
+        cluster_sizes=cluster_sizes,
+        unique_sizes=unique_sizes,
+        actual_dup_files=actual_dup_files,
+        num_unique_files=num_unique_files,
+    )
+
+
 def build_directory_paths(
     shape: DirectoryShape, file_count: int, rng: random.Random
 ) -> list[str]:
@@ -112,25 +279,21 @@ def build_directory_paths(
         return [""]
 
     if shape == DirectoryShape.SHALLOW_WIDE:
-        # 1-2 levels, 10 to 50 directories
         num_dirs = max(2, min(50, file_count // 100))
         return [f"dir_{i:02d}" for i in range(num_dirs)]
 
     if shape == DirectoryShape.DEEP:
-        # 8-15 nested levels
         depth = rng.randint(8, 12)
         prefixes = []
         chain = []
         for d in range(depth):
             chain.append(f"level_{d:02d}")
             prefixes.append("/".join(chain))
-        # Add some branching at deeper levels
         for b in range(4):
             prefixes.append(f"{prefixes[-1]}/branch_{b}")
         return prefixes
 
     # DirectoryShape.MIXED
-    # Balanced tree structure (branching 3-5, depth 2-4)
     prefixes = [""]
     for i in range(4):
         p1 = f"sub_{i:02d}"
@@ -172,59 +335,6 @@ def generate_content(
     return rng.randbytes(length)
 
 
-def sample_sizes(
-    profile: CorpusProfile, file_count: int, target_bytes: int, rng: random.Random
-) -> list[int]:
-    """Sample deterministic file sizes matching SizeProfile and total byte target."""
-    if file_count <= 0:
-        return []
-
-    avg_size = max(1, target_bytes // file_count)
-
-    if profile.size_profile == SizeProfile.SAME_SIZE_ADVERSARIAL:
-        # Uniform size across all files
-        sizes = [avg_size] * file_count
-        # Adjust remainder on last file if needed, but for C5 exact uniform is preferred
-        return sizes
-
-    if profile.size_profile == SizeProfile.TINY_HEAVY:
-        # Tiny files (<4 KB, avg 4 KB)
-        # For C1: avg 4096, distributed in [1024, 7168] with avg ~4096
-        sizes = []
-        for _ in range(file_count):
-            s = int(rng.gauss(avg_size, avg_size * 0.25))
-            sizes.append(max(64, min(8192, s)))
-        # Normalize sum to target_bytes
-        current_sum = sum(sizes)
-        if current_sum > 0:
-            scale = target_bytes / current_sum
-            sizes = [max(64, int(s * scale)) for s in sizes]
-        return sizes
-
-    if profile.size_profile == SizeProfile.LARGE_HEAVY:
-        # Large files (1-10 MB)
-        sizes = []
-        for _ in range(file_count):
-            s = rng.randint(max(1024 * 1024, avg_size // 2), min(10 * 1024 * 1024, avg_size * 2))
-            sizes.append(s)
-        current_sum = sum(sizes)
-        if current_sum > 0:
-            scale = target_bytes / current_sum
-            sizes = [max(1024 * 1024, int(s * scale)) for s in sizes]
-        return sizes
-
-    # Mixed / Pareto power-law distribution
-    sizes = []
-    for _ in range(file_count):
-        # Pareto distribution: many small files, some medium, few large
-        val = rng.paretovariate(alpha=1.3)
-        sizes.append(val)
-    current_sum = sum(sizes)
-    scale = target_bytes / current_sum
-    res_sizes = [max(64, int(s * scale)) for s in sizes]
-    return res_sizes
-
-
 def generate_corpus(
     profile: CorpusProfile,
     out_dir: Path | str,
@@ -255,151 +365,60 @@ def generate_corpus(
             f"You must pass allow_developer_hardware=True (or --allow-developer-hardware) to generate it."
         )
 
-    # Scale adjustments
-    if scale <= 0.0 or scale > 1.0:
-        raise ValueError(f"scale must be in (0.0, 1.0], got {scale}")
+    # 1. Plan exact workload in memory (P1-B)
+    plan = plan_corpus_workload(profile, seed=seed, scale=scale)
 
-    file_count = max(10, int(round(profile.file_count * scale)))
-    target_bytes = max(10000, int(round(profile.target_bytes * scale)))
+    # 2. Pre-flight disk space safety check using projected actual bytes (P1-B)
+    check_disk_space(out_path, plan.projected_bytes, safety_margin_mb=safety_margin_mb)
 
-    # Pre-flight disk space safety check
-    check_disk_space(out_path, target_bytes, safety_margin_mb=safety_margin_mb)
-
-    # Clean target directory if exists, ensure fresh state
-    if out_path.exists():
-        # Remove any existing files in target
-        for item in out_path.iterdir():
-            if item.is_dir():
-                shutil.rmtree(item)
-            else:
-                item.unlink()
-    else:
-        out_path.mkdir(parents=True, exist_ok=True)
+    # 3. Safe output directory handling (P1-A)
+    prepare_output_directory(out_path, expected_corpus_id=profile.corpus_id)
 
     rng = random.Random(seed)
 
-    # Calculate duplicate files and clusters
-    # Formal definition: duplicate_ratio = duplicate_files / total_files
-    target_dup_files = int(round(file_count * profile.duplicate_ratio))
-    # Duplicate groups must have at least 2 files
-    if target_dup_files < 2 and profile.duplicate_ratio > 0.0:
-        target_dup_files = 2
-    if target_dup_files > file_count:
-        target_dup_files = file_count
-
-    # Determine cluster sizes
-    cluster_specs: list[int] = []  # list of cluster copy counts
-    dup_remaining = target_dup_files
-
-    if profile.duplicate_ratio >= 0.70:
-        # Large clusters (e.g. C4 high density: 10 to 50 copies)
-        while dup_remaining >= 2:
-            max_c = min(dup_remaining, max(2, file_count // 20))
-            min_c = min(dup_remaining, 4)
-            c_size = rng.randint(min_c, max(min_c, max_c))
-            cluster_specs.append(c_size)
-            dup_remaining -= c_size
-    else:
-        # Small clusters (pairs, 3-packs, 4-packs)
-        while dup_remaining >= 2:
-            if dup_remaining == 3:
-                c_size = 3
-            elif dup_remaining == 2:
-                c_size = 2
-            else:
-                c_size = rng.choice([2, 2, 2, 3, 4])
-                if c_size > dup_remaining:
-                    c_size = dup_remaining
-                if dup_remaining - c_size == 1:
-                    c_size = dup_remaining  # absorb odd single
-            cluster_specs.append(c_size)
-            dup_remaining -= c_size
-
-    actual_dup_files = sum(cluster_specs)
-    num_unique_files = file_count - actual_dup_files
-    num_clusters = len(cluster_specs)
-
     # Directories
-    dir_prefixes = build_directory_paths(profile.directory_shape, file_count, rng)
+    dir_prefixes = build_directory_paths(profile.directory_shape, plan.file_count, rng)
 
-    # Sample base sizes for all files
-    raw_sizes = sample_sizes(profile, file_count, target_bytes, rng)
-
-    # Assign sizes and contents
-    # 1. Duplicate clusters
-    cluster_payloads: list[bytes] = []
-    cluster_sizes: list[int] = []
-
+    # Generate payloads
     shared_prefix = rng.randbytes(128)
     shared_suffix = rng.randbytes(128)
 
-    size_idx = 0
-    for c_idx, c_size in enumerate(cluster_specs):
-        s = raw_sizes[size_idx]
-        size_idx += 1
+    # Duplicate clusters
+    cluster_payloads: list[bytes] = []
+    for s in plan.cluster_sizes:
         payload = generate_content(
             s, profile.similarity_profile, rng, shared_prefix, shared_suffix
         )
-        cluster_sizes.append(len(payload))
         cluster_payloads.append(payload)
 
-    # 2. Non-duplicate unique files
-    unique_sizes: list[int] = []
+    # Unique files
     unique_payloads: list[bytes] = []
+    used_cluster_hashes = {hashlib.sha256(p).hexdigest() for p in cluster_payloads}
 
-    if profile.size_profile == SizeProfile.SAME_SIZE_ADVERSARIAL:
-        # C5: ALL unique files share the EXACT SAME size as cluster files!
-        common_size = cluster_sizes[0] if cluster_sizes else raw_sizes[0]
-        for u_idx in range(num_unique_files):
-            # Generate distinct content with identical size
-            # Distinctness guaranteed by embedding unique file index
-            data = bytearray(generate_content(common_size, profile.similarity_profile, rng))
-            header = f"uniq_{u_idx:08d}_".encode("ascii")
-            if len(data) >= len(header):
-                data[:len(header)] = header
-            unique_payloads.append(bytes(data))
-            unique_sizes.append(common_size)
-    else:
-        # Regular size allocation
-        used_cluster_hashes = {hashlib.sha256(p).hexdigest() for p in cluster_payloads}
-        for u_idx in range(num_unique_files):
-            s = raw_sizes[size_idx % len(raw_sizes)]
-            size_idx += 1
+    for u_idx, s in enumerate(plan.unique_sizes):
+        data = bytearray(generate_content(s, profile.similarity_profile, rng, shared_prefix, shared_suffix))
+        header = f"uniq_{u_idx:08d}_".encode("ascii")
+        if len(data) >= len(header):
+            data[:len(header)] = header
+        data_bytes = bytes(data)
 
-            # Adjust size for collision density
-            if profile.collision_density == CollisionDensity.LOW:
-                # Ensure size doesn't collide with cluster sizes if possible
-                if s in cluster_sizes:
-                    s += (u_idx + 1)
-            elif profile.collision_density == CollisionDensity.HIGH:
-                # Intentionally collide with existing cluster sizes to force candidate hashing
-                if cluster_sizes:
-                    s = cluster_sizes[u_idx % len(cluster_sizes)]
-
-            data = bytearray(generate_content(s, profile.similarity_profile, rng, shared_prefix, shared_suffix))
-            header = f"uniq_{u_idx:08d}_".encode("ascii")
-            if len(data) >= len(header):
-                data[:len(header)] = header
+        # Ensure unique payload does not collide with cluster hashes
+        while hashlib.sha256(data_bytes).hexdigest() in used_cluster_hashes:
+            data = bytearray(rng.randbytes(s))
+            data[:len(header)] = header
             data_bytes = bytes(data)
-            # Ensure unique payload does not collide with any cluster
-            while hashlib.sha256(data_bytes).hexdigest() in used_cluster_hashes:
-                data = bytearray(rng.randbytes(s))
-                data[:len(header)] = header
-                data_bytes = bytes(data)
 
-            unique_payloads.append(data_bytes)
-            unique_sizes.append(len(data_bytes))
+        unique_payloads.append(data_bytes)
 
-    # Build full file list: (rel_path, payload)
+    # Build file list: (rel_path, payload)
     files_to_write: list[tuple[str, bytes]] = []
 
-    # Distribute duplicate copies across distinct paths
+    # Distribute duplicate copies across distinct directories
     file_counter = 0
-    for c_idx, c_size in enumerate(cluster_specs):
+    for c_idx, c_size in enumerate(plan.cluster_specs):
         payload = cluster_payloads[c_idx]
         used_dirs: set[str] = set()
         for copy_idx in range(c_size):
-            # Pick distinct directories when available
             avail_dirs = [d for d in dir_prefixes if d not in used_dirs] or dir_prefixes
             d = rng.choice(avail_dirs)
             used_dirs.add(d)
@@ -432,15 +451,18 @@ def generate_corpus(
     result_digest = compute_result_digest(oracle_out)
 
     actual_dup_files_count = sum(len(g["files"]) for g in oracle_out["duplicate_groups"])
-    actual_dup_ratio = round(actual_dup_files_count / file_count, 6)
+    actual_dup_ratio = round(actual_dup_files_count / plan.file_count, 6)
 
     manifest = Manifest(
         schema_version=1,
         corpus_id=profile.corpus_id,
         seed=seed,
+        scale=scale,
         generator_version=get_generator_version(),
-        file_count=file_count,
+        file_count=plan.file_count,
         total_bytes=actual_total_bytes,
+        target_bytes=plan.target_bytes,
+        size_tolerance_ratio=profile.size_tolerance_ratio,
         duplicate_ratio=actual_dup_ratio,
         duplicate_groups=len(oracle_out["duplicate_groups"]),
         duplicate_files=actual_dup_files_count,
@@ -473,7 +495,7 @@ def main() -> None:
         type=str,
         choices=list(NAMED_PROFILES.keys()),
         default="C2",
-        help="Named standard corpus profile (C1–C7). Default: C2",
+        help="Named standard corpus profile (C1-C7). Default: C2",
     )
     parser.add_argument(
         "--out-dir",
@@ -507,7 +529,7 @@ def main() -> None:
     parser.add_argument(
         "--list",
         action="store_true",
-        help="List available named standard corpora profiles (C1–C7) and exit",
+        help="List available named standard corpora profiles (C1-C7) and exit",
     )
     args = parser.parse_args()
 
@@ -559,6 +581,8 @@ def main() -> None:
         print("Corpus generation SUCCESS:")
         print(f"  Files written:              {manifest.file_count}")
         print(f"  Total bytes:                {manifest.total_bytes} ({manifest.total_bytes / (1024*1024):.2f} MB)")
+        print(f"  Target bytes:               {manifest.target_bytes} ({manifest.target_bytes / (1024*1024):.2f} MB)")
+        print(f"  Size tolerance:             {manifest.size_tolerance_ratio * 100:.1f}%")
         print(f"  Duplicate ratio:            {manifest.duplicate_ratio * 100:.1f}%")
         print(f"  Duplicate groups:           {manifest.duplicate_groups}")
         print(f"  Duplicate files:            {manifest.duplicate_files}")
@@ -569,6 +593,9 @@ def main() -> None:
     except PermissionError as exc:
         print(f"\nERROR: {exc}", file=sys.stderr)
         sys.exit(2)
+    except FileExistsError as exc:
+        print(f"\nERROR: {exc}", file=sys.stderr)
+        sys.exit(3)
     except Exception as exc:
         print(f"\nERROR: {exc}", file=sys.stderr)
         sys.exit(1)

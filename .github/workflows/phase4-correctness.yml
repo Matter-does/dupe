@@ -6,11 +6,13 @@ on:
     paths:
       - 'src/**'
       - 'tests/**'
+      - 'benchmarks/**'
       - '.github/workflows/phase4-correctness.yml'
   pull_request:
     paths:
       - 'src/**'
       - 'tests/**'
+      - 'benchmarks/**'
       - '.github/workflows/phase4-correctness.yml'
 
 concurrency:
@@ -41,6 +43,10 @@ jobs:
       - name: Run offline self-tests
         run: |
           python3 tests/phase4_differential.py --offline
+
+      - name: Run benchmark corpus generator tests
+        run: |
+          python3 tests/test_benchmark_corpus.py -v
 
   differential:
     name: Differential correctness (J2 interpreter + native)
