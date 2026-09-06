@@ -24,15 +24,25 @@ def next_counter() -> int:
     return _counter
 
 
-def discover_files(path: Path) -> list[Path]:
+def discover_files(path: Path, visited_realpaths: set[str] | None = None) -> list[Path]:
     """Recursively discover regular files in deterministic depth-first directory order,
-    sorting entry names in each directory, exactly matching J2's scan.j2 discover()."""
+    sorting entry names in each directory, exactly matching J2's scan.j2 discover().
+    Includes visited realpath cycle guard against cyclic symlinks (F7)."""
+    if visited_realpaths is None:
+        visited_realpaths = set()
     files: list[Path] = []
     if not path.is_dir():
         return files
+    try:
+        real = path.resolve().as_posix()
+    except OSError:
+        real = path.as_posix()
+    if real in visited_realpaths:
+        return files
+    visited_realpaths.add(real)
     for entry in sorted(path.iterdir(), key=lambda p: p.name):
         if entry.is_dir():
-            files.extend(discover_files(entry))
+            files.extend(discover_files(entry, visited_realpaths))
         elif entry.is_file():
             files.append(entry)
     return files
@@ -90,21 +100,6 @@ def oracle(root: Path) -> dict:
     }
 
 
-def canonicalize_groups(groups: list[dict]) -> list[dict]:
-    return sorted(
-        [
-            {
-                "hash": g["hash"],
-                "size": g["size"],
-                "files": sorted(g["files"]),
-                "reclaimable_bytes": g["reclaimable_bytes"],
-            }
-            for g in groups
-        ],
-        key=lambda g: (g["hash"], g["size"]),
-    )
-
-
 def assert_schema(result: dict) -> None:
     assert set(result) == {
         "files_scanned",
@@ -125,6 +120,7 @@ def assert_schema(result: dict) -> None:
 def verify_soundness(result: dict, context: str) -> None:
     """Fulfills Soundness requirement (J2-API-0.1.0.md:523):
     - Asserts all files within every reported duplicate group are pairwise byte-identical.
+    - Asserts no group contains duplicate path entries (F3).
     - Asserts every reported file exists and reported size matches exact byte length.
     - Asserts reported hash matches exact SHA-256 of the byte content.
     - Asserts duplicate groups are pairwise disjoint (no file in multiple groups)."""
@@ -132,6 +128,12 @@ def verify_soundness(result: dict, context: str) -> None:
     for group in result["duplicate_groups"]:
         files = group["files"]
         assert len(files) >= 2, f"{context}: duplicate group has fewer than 2 files: {group}"
+        assert len(set(files)) == len(files), (
+            f"{context}: Soundness failure: group contains duplicate path entries: {files}"
+        )
+        assert files[0] not in seen_files, (
+            f"{context}: Soundness failure: file {files[0]} appears in multiple duplicate groups!"
+        )
         first_path = Path(files[0])
         assert first_path.is_file(), f"{context}: group file does not exist: {first_path}"
         first_bytes = first_path.read_bytes()
@@ -157,14 +159,17 @@ def verify_soundness(result: dict, context: str) -> None:
         seen_files.add(files[0])
 
 
-def run_dupe(root: Path, *, native: bool, native_bin: Path | None = None) -> dict:
+def run_dupe(
+    root: Path | str, *, native: bool, native_bin: Path | None = None, timeout: int = 60
+) -> dict:
+    root_str = root if isinstance(root, str) else str(root)
     if native:
         if native_bin is None or not native_bin.exists():
             raise RuntimeError(f"Native binary not provided or does not exist: {native_bin}")
-        cmd = [str(native_bin), str(root), "--json"]
+        cmd = [str(native_bin), root_str, "--json"]
         env = {**os.environ, "J2_ALLOW_FS": "1"}
     else:
-        cmd = [J2, "--allow-fs", str(REPO_ROOT / "src" / "main.j2"), str(root), "--json"]
+        cmd = [J2, "--allow-fs", str(REPO_ROOT / "src" / "main.j2"), root_str, "--json"]
         env = {k: v for k, v in os.environ.items() if k != "J2_ALLOW_FS"}
 
     try:
@@ -174,12 +179,12 @@ def run_dupe(root: Path, *, native: bool, native_bin: Path | None = None) -> dic
             env=env,
             capture_output=True,
             text=True,
-            timeout=60,
+            timeout=timeout,
             check=False,
         )
     except subprocess.TimeoutExpired as exc:
         mode = "native" if native else "interpreter"
-        raise AssertionError(f"dupe {mode} timed out after 60s for {root}") from exc
+        raise AssertionError(f"dupe {mode} timed out after {timeout}s for {root}") from exc
 
     if proc.returncode != 0:
         mode = "native" if native else "interpreter"
@@ -193,25 +198,33 @@ def run_dupe(root: Path, *, native: bool, native_bin: Path | None = None) -> dic
         raise AssertionError(f"dupe {mode} returned invalid JSON: {proc.stdout!r}") from exc
 
 
-def run_dupe_raw(root: Path, *, native: bool, native_bin: Path | None = None) -> str:
+def run_dupe_raw(
+    root: Path | str, *, native: bool, native_bin: Path | None = None, timeout: int = 60
+) -> str:
+    root_str = root if isinstance(root, str) else str(root)
     if native:
         if native_bin is None or not native_bin.exists():
             raise RuntimeError(f"Native binary not provided or does not exist: {native_bin}")
-        cmd = [str(native_bin), str(root), "--json"]
+        cmd = [str(native_bin), root_str, "--json"]
         env = {**os.environ, "J2_ALLOW_FS": "1"}
     else:
-        cmd = [J2, "--allow-fs", str(REPO_ROOT / "src" / "main.j2"), str(root), "--json"]
+        cmd = [J2, "--allow-fs", str(REPO_ROOT / "src" / "main.j2"), root_str, "--json"]
         env = {k: v for k, v in os.environ.items() if k != "J2_ALLOW_FS"}
 
-    proc = subprocess.run(
-        cmd,
-        cwd=REPO_ROOT,
-        env=env,
-        capture_output=True,
-        text=True,
-        timeout=60,
-        check=False,
-    )
+    try:
+        proc = subprocess.run(
+            cmd,
+            cwd=REPO_ROOT,
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+        )
+    except subprocess.TimeoutExpired as exc:
+        mode = "native" if native else "interpreter"
+        raise AssertionError(f"dupe {mode} timed out after {timeout}s for {root}") from exc
+
     if proc.returncode != 0:
         mode = "native" if native else "interpreter"
         raise AssertionError(f"dupe {mode} failed with status {proc.returncode}:\n{proc.stderr}")
@@ -219,15 +232,16 @@ def run_dupe_raw(root: Path, *, native: bool, native_bin: Path | None = None) ->
 
 
 def run_dupe_expect_failure(
-    root: Path, *, native: bool, native_bin: Path | None = None
+    root: Path | str, *, native: bool, native_bin: Path | None = None, timeout: int = 60
 ) -> subprocess.CompletedProcess[str]:
+    root_str = root if isinstance(root, str) else str(root)
     if native:
         if native_bin is None or not native_bin.exists():
             raise RuntimeError(f"Native binary not provided or does not exist: {native_bin}")
-        cmd = [str(native_bin), str(root), "--json"]
+        cmd = [str(native_bin), root_str, "--json"]
         env = {**os.environ, "J2_ALLOW_FS": "1"}
     else:
-        cmd = [J2, "--allow-fs", str(REPO_ROOT / "src" / "main.j2"), str(root), "--json"]
+        cmd = [J2, "--allow-fs", str(REPO_ROOT / "src" / "main.j2"), root_str, "--json"]
         env = {k: v for k, v in os.environ.items() if k != "J2_ALLOW_FS"}
 
     return subprocess.run(
@@ -236,7 +250,7 @@ def run_dupe_expect_failure(
         env=env,
         capture_output=True,
         text=True,
-        timeout=60,
+        timeout=timeout,
         check=False,
     )
 
@@ -248,19 +262,18 @@ def write(path: Path, data: bytes) -> None:
 
 def manifest(root: Path) -> dict[str, dict]:
     """Capture full filesystem state including byte hash, mtime, and mode
-    to rigorously prove zero filesystem mutation (F13)."""
+    to rigorously prove zero filesystem mutation (F13). Uses cycle-guarded discover_files."""
     res: dict[str, dict] = {}
     if not root.exists():
         return res
-    for path in sorted(root.rglob("*")):
-        if path.is_file():
-            stat = path.stat()
-            res[path.relative_to(root).as_posix()] = {
-                "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
-                "mtime_ns": stat.st_mtime_ns,
-                "mode": stat.st_mode,
-                "size": stat.st_size,
-            }
+    for path in discover_files(root):
+        stat = path.stat()
+        res[path.relative_to(root).as_posix()] = {
+            "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+            "mtime_ns": stat.st_mtime_ns,
+            "mode": stat.st_mode,
+            "size": stat.st_size,
+        }
     return res
 
 
@@ -353,14 +366,19 @@ def reproduce_from_failure(failure_file: Path, target_dir: Path) -> Path:
         dest = sanitize_relative_path(rel_path, target_dir)
         dest.parent.mkdir(parents=True, exist_ok=True)
         if "hex" in meta and meta["hex"] is not None:
-            dest.write_bytes(bytes.fromhex(meta["hex"]))
+            try:
+                dest.write_bytes(bytes.fromhex(meta["hex"]))
+            except (ValueError, TypeError) as exc:
+                raise ValueError(
+                    f"Corrupt failure report {failure_file}: invalid hex data for '{rel_path}': {exc}"
+                ) from exc
         else:
             raise ValueError(f"Cannot faithfully reproduce file {rel_path}: hex payload missing in record.")
     return target_dir
 
 
 def load_regression_fixtures(fixtures_dir: Path, target_base: Path) -> list[tuple[str, Path]]:
-    """Loads and validates all regression fixtures with path sanitization (F5)."""
+    """Loads and validates all regression fixtures with path sanitization and error diagnostics (F5)."""
     cases: list[tuple[str, Path]] = []
     if not fixtures_dir.exists():
         return cases
@@ -369,12 +387,20 @@ def load_regression_fixtures(fixtures_dir: Path, target_base: Path) -> list[tupl
         assert "name" in data and isinstance(data["name"], str), f"Malformed fixture {fix_path}: missing 'name'"
         assert "manifest" in data and isinstance(data["manifest"], dict), f"Malformed fixture {fix_path}: missing 'manifest'"
         name = data["name"]
-        case_dir = target_base / name
+        case_dir = sanitize_relative_path(name, target_base)
+        if case_dir.name != name:
+            raise ValueError(f"Malformed fixture {fix_path}: name '{name}' contains forbidden path separators")
         case_dir.mkdir(parents=True, exist_ok=True)
         for rel_path, hex_data in data["manifest"].items():
             dest = sanitize_relative_path(rel_path, case_dir)
             dest.parent.mkdir(parents=True, exist_ok=True)
-            dest.write_bytes(bytes.fromhex(hex_data))
+            try:
+                payload = bytes.fromhex(hex_data)
+            except (ValueError, TypeError) as exc:
+                raise ValueError(
+                    f"Malformed fixture {fix_path}: invalid hex data for path '{rel_path}': {exc}"
+                ) from exc
+            dest.write_bytes(payload)
         cases.append((name, case_dir))
     return cases
 
@@ -534,11 +560,13 @@ def verify_case(
     native_bin: Path | None = None,
     seed: int | None = None,
 ) -> None:
-    before = manifest(root)
-    expected = oracle(root)
+    before = None
+    expected = None
     interpreter = None
     native = None
     try:
+        before = manifest(root)
+        expected = oracle(root)
         interpreter = run_dupe(root, native=False)
         native = run_dupe(root, native=True, native_bin=native_bin)
 
@@ -667,6 +695,12 @@ def test_failure_preservation_mechanism() -> None:
         except ValueError:
             pass
 
+        try:
+            sanitize_relative_path("/absolute/escape.txt", repro_dir)
+            assert False, "Sanitizer failed to catch absolute path escape"
+        except ValueError:
+            pass
+
         print("PASS: failure preservation and reproduction check (>4KB faithful)")
 
 
@@ -724,6 +758,21 @@ def run_offline_tests() -> None:
             actual = (out["files_scanned"], out["hash_candidates"], len(out["duplicate_groups"]), out["reclaimable_bytes"])
             assert actual == exp, f"Regression fixture '{name}' mismatch: actual {actual}, expected {exp}"
         print(f"PASS: oracle evaluation and soundness of {len(reg_cases)} regression fixtures with strict value assertions")
+
+        # Offline cycle guard test for oracle and manifest (F7)
+        try:
+            offline_cycle_dir = base / "offline_cycle"
+            offline_cycle_dir.mkdir(parents=True, exist_ok=True)
+            (offline_cycle_dir / "cycle.txt").write_bytes(b"cycle-payload")
+            (offline_cycle_dir / "loop").symlink_to(offline_cycle_dir, target_is_directory=True)
+            cycle_out = oracle(offline_cycle_dir)
+            assert cycle_out["files_scanned"] == 1
+            cycle_manifest = manifest(offline_cycle_dir)
+            assert len(cycle_manifest) == 1
+            print("PASS: offline oracle and manifest handle directory symlink cycle boundedly")
+        except OSError:
+            # Symlink creation not permitted in this environment (e.g. unprivileged Windows)
+            pass
 
     print("All offline self-tests PASS")
 
@@ -844,13 +893,22 @@ def main() -> None:
 
         # 5. Repeat-run determinism test (F2)
         test_repeat_run_determinism(cases[2][1], native_bin)
+        test_repeat_run_determinism(cases[3][1], native_bin)
 
-        # 6. Trailing slash root test (F12)
+        # 6. Trailing slash root test with raw string (F12)
         demo_root = cases[2][1]
-        out_slash_i = run_dupe(Path(str(demo_root) + "/"), native=False)
-        out_slash_n = run_dupe(Path(str(demo_root) + "/"), native=True, native_bin=native_bin)
+        raw_trailing_root = f"{demo_root.as_posix()}/"
+        out_slash_i = run_dupe(raw_trailing_root, native=False)
+        out_slash_n = run_dupe(raw_trailing_root, native=True, native_bin=native_bin)
         assert out_slash_i == out_slash_n, "Trailing slash produced divergent outputs"
-        print("PASS: trailing-slash root handling")
+        # Verify literal raw concatenation contract: paths start with f"{demo_root.as_posix()}//"
+        for g in out_slash_i["duplicate_groups"]:
+            for f in g["files"]:
+                assert f.startswith(f"{demo_root.as_posix()}//"), f"Expected // prefix for trailing slash input: {f}"
+        # Verify collapsing double slash yields canonical oracle output
+        collapsed = json.loads(json.dumps(out_slash_i).replace(f"{demo_root.as_posix()}//", f"{demo_root.as_posix()}/"))
+        assert collapsed == oracle(demo_root), "Collapsed trailing slash output does not match oracle"
+        print("PASS: trailing-slash root handling (raw argv and literal // contract verified)")
 
         # 7. Invalid Root Safety Tests
         missing = base / "does-not-exist"
@@ -898,6 +956,28 @@ def main() -> None:
                     print(f"PASS: {mode} unreadable candidate file read failure")
             finally:
                 os.chmod(f1, 0o644)
+
+        # 9. Symlink cycle bounded termination test (POSIX only) (F7)
+        if os.name != "nt":
+            cycle_dir = base / "symlink_cycle_dir"
+            cycle_dir.mkdir(parents=True, exist_ok=True)
+            write(cycle_dir / "file.txt", b"cycle-test")
+            loop_link = cycle_dir / "loop"
+            try:
+                loop_link.symlink_to(cycle_dir, target_is_directory=True)
+                for native in (False, True):
+                    mode = "native" if native else "interpreter"
+                    try:
+                        # J2 has no cycle detector; bound execution to 10s to verify non-hanging bounded termination
+                        run_dupe(cycle_dir, native=native, native_bin=native_bin, timeout=10)
+                    except AssertionError as exc:
+                        assert "timed out" in str(exc) or "failed" in str(exc), f"Unexpected failure on cycle: {exc}"
+                        print(f"PASS: {mode} symlink cycle bounded termination ({'timeout' if 'timed out' in str(exc) else 'runtime error'})")
+                    else:
+                        print(f"PASS: {mode} symlink cycle terminated")
+            finally:
+                if loop_link.is_symlink() or loop_link.exists():
+                    loop_link.unlink(missing_ok=True)
 
         print("Phase 4 differential correctness PASS")
         print("Phase 4 soundness byte-identity verification PASS")

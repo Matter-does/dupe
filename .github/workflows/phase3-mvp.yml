@@ -11,6 +11,10 @@ on:
       - 'src/**'
       - '.github/workflows/phase3-mvp.yml'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -21,6 +25,7 @@ env:
 jobs:
   mvp:
     runs-on: macos-15
+    timeout-minutes: 10
 
     steps:
       - name: Check out repository

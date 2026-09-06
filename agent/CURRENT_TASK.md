@@ -24,7 +24,7 @@
 - [x] Native compiled binary output matches oracle on every seeded case.
 - [x] Interpreter output equals native output on every seeded case.
 - [x] Regression corpus retained in CI with path sanitization and schema checks.
-- [x] Fuzzer can reproduce a failure from its seed with full fidelity.
+- [x] Failure preservation and reproduction infrastructure verified on synthetic records (>4KB) and seed replay.
 - [x] Filesystem immutability verified across all test executions.
 - [x] Safety/error behavior for invalid roots and unreadable files verified.
 

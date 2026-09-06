@@ -16,6 +16,14 @@ T002 is COMPLETE and fully hardened against independent adversarial review findi
    - **F10**: Added collision-proof failure filenames using sanitized name, timestamp, PID, and counter.
    - **F11**: Expanded fuzzer to generate distinct same-size files, empty directories, and dotfiles; verified multi-seed reproducibility.
    - **F13**: Strengthened tree immutability check to verify byte content hash, `mtime_ns`, and `mode`.
+   - **Second Review Fixes**:
+     * Verified raw argv trailing-slash test and frozen literal '//' concatenation contract (F12).
+     * Added fixture `name` sanitization and descriptive hex decode error reporting (F5).
+     * Handled `TimeoutExpired` in `run_dupe_raw` and added `timeout-minutes: 10` to `phase3-mvp.yml` (F6).
+     * Added bounded symlink-cycle test and cycle guards to `discover_files` (F7).
+     * Added duplicate-path check to `verify_soundness` (F3).
+     * Documented discover-vs-hash TOCTOU limitation and path concatenation (F13, F12).
+     * Removed dead `canonicalize_groups`.
 2. `.github/workflows/phase4-correctness.yml`:
    - Added concurrency group with `cancel-in-progress: true`.
    - Added `timeout-minutes: 15` to prevent hanging CI runs.

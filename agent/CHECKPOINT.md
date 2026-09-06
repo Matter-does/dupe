@@ -14,6 +14,14 @@ completed:
   - Strict offline self-tests with ground-truth assertions passing locally and in dedicated CI job (F9, F10)
   - Hard timeouts (60s subprocess, 15m CI workflow) enforced against symlink loops and recursion hangs (F6, F7)
   - Workflow update in .github/workflows/phase4-correctness.yml with version assertion, j2 fmt, and native build
+  - Second independent review remediation applied:
+    * F12: verified trailing-slash raw argv handling and frozen literal '//' concatenation contract
+    * F5: sanitized fixture name escaping and enhanced hex decode error diagnostics
+    * F6: added timeout-minutes: 10 to phase3-mvp.yml and wrapped TimeoutExpired in run_dupe_raw
+    * F7: added symlink-cycle bounded termination test and moved oracle/manifest inside preservation try with cycle guards
+    * F3: added within-group duplicate path entry assertion
+    * F13: documented discover-vs-hash TOCTOU limitation and path concatenation in docs/J2-API-0.1.0.md
+    * Removed dead canonicalize_groups helper
   - docs/PHASE-4-CORRECTNESS.md and docs/J2-API-0.1.0.md updated to document all verified behaviors
 
 not_done:

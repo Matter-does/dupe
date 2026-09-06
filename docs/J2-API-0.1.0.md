@@ -541,6 +541,9 @@ Probed in CI workflow `j2-native-capabilities.yml`:
 5. **Sort Contract**: `sort(array)` sorts 1D arrays of primitives (strings, numbers). It does not support nested array comparison (e.g. `[["b", 1], ["a", 2]]`).
 6. **Builtin `fmt()`**: Positionally formats strings using `{}` placeholders (e.g. `fmt("{} ({} files, {} bytes each):", digest, count, size)`).
 7. **Directory & Grouping Determinism**: `fs.list_dir(path)` returns bare child names. Traversals sort children via `sort(fs.list_dir(path))`. Duplicate groups are formed in first-discovery order, and paths within each group preserve first-discovery order.
+8. **Trailing Slash Path Concatenation**: `join_path(base, name)` performs literal string concatenation `fmt("{}/{}", base, name)`. When the root argument ends with a trailing slash (e.g. `/tmp/dir/`), child paths preserve the literal concatenation prefix `//` (e.g. `/tmp/dir//file.txt`). POSIX path resolution handles adjacent slashes transparently, while the emitted JSON faithfully reflects the verbatim path strings without synthetic normalization.
+9. **Symlink Cycles & Bounded Recursion**: J2 0.1.0 provides no builtin cycle detection or inode tracking. Directory symlink cycles cause recursive descent that continues until OS/process recursion limits or execution timeouts; external test harnesses and CI jobs must enforce strict timeouts (60s subprocess, 15m CI).
+10. **TOCTOU Limitation (Discover vs Hash)**: In accordance with the single-pass pipeline design, file sizes are recorded in `discover()` and preserved into candidate records. Hashing occurs subsequently in `hash_candidates()`. If a file is mutated concurrently between discovery and hashing, the reported size will reflect the initial discovery state while the SHA-256 digest reflects the bytes read at hash time. Concurrent tree modification during scanning is outside the static analysis contract.
 
 ## Next implementation gate
 
