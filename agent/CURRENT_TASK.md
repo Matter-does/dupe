@@ -1,38 +1,42 @@
 # Current Task
 
-**Task:** T002 — Complete Phase 4 correctness and regression gates
-**Status:** COMPLETE (Hardened against independent review F1–F14)
+**Task:** T003 — Competitive and technical research consolidation  
+**Status:** COMPLETE (Fact-checked and reconciled against J2 0.1.0 runtime contract)
 
 ## Completed
-- Verified genuine compiled native binary (`j2 build src/main.j2 -o build/dupe`) with runtime capability `J2_ALLOW_FS=1` and negative control test (F1).
-- Enforced frozen discovery-order grouping contract with strict direct equality (`require_direct_match=True`) across all cases (F2).
-- Implemented independent `verify_soundness()` asserting pairwise byte identity and group disjointness (F3).
-- Implemented faithful failure preservation retaining full file contents, empty dirs, exit codes, and stderr without truncation (F4).
-- Added path sanitization and fixture schema validation preventing directory traversal attacks (F5).
-- Added hard 60s subprocess timeouts and 15m CI workflow timeouts to guard against symlink loops (F6, F7).
-- Expanded seed corpus to 13 cases (dotfiles, empty dirs, 1MB duplicates, size boundaries) (F7, F8, F12).
-- Added strict ground-truth value assertions to offline self-tests and added dedicated offline CI job on `ubuntu-latest` (F9, F10).
-- Pinned Python 3.12, asserted exact J2 0.1.0 version, and added `j2 fmt` verification to CI workflow (F10).
-- Expanded fuzzer to generate distinct same-size files, empty directories, and dotfiles with multi-seed reproducibility (F11).
-- Strengthened tree immutability check to verify byte content hash, `mtime_ns`, and `mode` (F13).
-- Documented verified runtime capabilities, symlink semantics, and sort constraints in `docs/J2-API-0.1.0.md` and `docs/PHASE-4-CORRECTNESS.md` (F14).
+- Reconciled the fact-checked T003 research report with `docs/J2-API-0.1.0.md` and `docs/PHASE-4-CORRECTNESS.md`.
+- Comprehensive rewrite and expansion of `docs/RESEARCH.md`:
+  * Applied explicit Evidence Classification System (Grades A through E).
+  * Formalized `dupe` product thesis as a J2-native filesystem intelligence engine studying automatic parallelism.
+  * Verified execution modes (`j2 run` interpreter, `j2 build` native binary with `J2_ALLOW_FS=1`).
+  * Quarantined unsupported/unverified controls (`J2_PARALLEL=0`, `J2_FORCE_NATIVE`, `J2_NO_NATIVE`, `J2_NO_NESTED`, `J2_DEBUG`).
+  * Established serial-vs-parallel experimental design (Path A official probe, Path B serial-equivalent baseline).
+  * Documented competitive analysis (`fclones`, `Czkawka`, `fdupes`, `jdupes`, `rmlint`, `duperemove`) and storage-adaptive concurrency lessons.
+  * Formalized filesystem performance model and corrected 256-bit collision mathematics ($4.31 \times 10^{-48}$ at $n=10^{15}$).
+  * Formulated hypotheses H1–H9 and established standard CI runner budget (<= 1 GB storage constraint).
+- Updated `docs/ARCHITECTURE.md` to establish the reusable `FileRecord[]` abstraction feeding multiple analysis passes.
+- Established actionable specifications for downstream tasks:
+  * `agent/tasks/T004-benchmark-corpus.md`: 8 orthogonal dimensions, 7 named corpora (C1–C7), JSON manifest schema, and runner storage budget (<=1 GB).
+  * `agent/tasks/T005-j2-baseline-benchmark.md`: 3 baselines (interpreter, native, pure J2 control), repetition protocol, stage timings, and serial-equivalent native baseline requirement.
+  * `agent/tasks/T006-automatic-parallelism.md`: 4-stage experimental ladder (T006-A through T006-D) and 5-level observability hierarchy.
+  * `agent/tasks/T007-checksum-inventory.md`: Complete specification for Checksum Inventory pass over `FileRecord[]`.
+- Preserved the frozen Phase 3 exact-duplicate algorithm as the reference baseline workload.
 
-## Acceptance criteria
-- [x] Independent Python oracle implemented with byte-identity soundness checker.
-- [x] Seed corpus covers 13 required edge cases.
-- [x] Interpreter output matches oracle on every seeded case.
-- [x] Native compiled binary output matches oracle on every seeded case.
-- [x] Interpreter output equals native output on every seeded case.
-- [x] Regression corpus retained in CI with path sanitization and schema checks.
-- [x] Failure preservation and reproduction infrastructure verified on synthetic records (>4KB) and seed replay.
-- [x] Filesystem immutability verified across all test executions.
-- [x] Safety/error behavior for invalid roots and unreadable files verified.
+## Acceptance Criteria
+- [x] Verified J2 facts clearly separated from hypotheses via explicit Evidence Grades (A through E).
+- [x] Unsupported/undocumented claims (`J2_PARALLEL=0`, `J2_FORCE_NATIVE`, etc.) quarantined and prohibited.
+- [x] Frozen Phase 3 duplicate detection algorithm preserved as reference baseline without unverified partial-hash changes.
+- [x] T004 benchmark corpus specification and generator requirements made explicit (8 dimensions, 7 named corpora, <=1 GB CI ceiling).
+- [x] T005 interpreter/native baseline specification made explicit (3 baselines, repetition rules, stage timings).
+- [x] T006 automatic-parallelism experiment specification made explicit (4-stage ladder, 5-level observability).
+- [x] T007 second read-only workload (Checksum Inventory) specified over common `FileRecord[]` pipeline.
+- [x] CI runner storage constraints (14 GB SSD ceiling) documented and respected.
+- [x] Tracking state (`agent/TODO.md`, `agent/CHECKPOINT.md`, `agent/HANDOFF.md`, `agent/CURRENT_TASK.md`) updated.
 
-## Verification evidence
-- CI run `34019865197` (job `101450344313` macOS 15 arm64 / J2 0.1.0 [1m8s], job `101450325863` Ubuntu offline [7s]): PASS
-- CI run `34019865207` (Phase 3 MVP genuine native build / `J2_ALLOW_FS=1`): PASS
-- CI run `34019865243` (J2 CI toolchain smoke tests): PASS
-- Local Python offline self-tests: PASS
+## Verification Evidence
+- Offline differential and regression suite: PASS (`python tests/phase4_differential.py --offline`).
+- Git diff reviewed; no modifications to Phase 3 J2 sources (`src/*.j2`).
+- Specifications cross-checked against J2 0.1.0 runtime-verified APIs in `docs/J2-API-0.1.0.md`.
 
-## Next task
-T003 — Competitive and technical research consolidation (from `agent/tasks/T003-research.md`).
+## Next Task
+T004 — Benchmark corpus specification and generator (`agent/tasks/T004-benchmark-corpus.md`).

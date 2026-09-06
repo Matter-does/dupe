@@ -4,7 +4,7 @@
 
 - [x] T001 — Repository agent workflow
 - [x] T002 — Complete Phase 4 correctness and regression gates
-- [ ] T003 — Competitive/technical research consolidation
+- [x] T003 — Competitive/technical research consolidation
 - [ ] T004 — Benchmark corpus specification and generator
 - [ ] T005 — J2 interpreter/native baseline benchmark
 - [ ] T006 — Automatic-parallelism experiment and evidence collection
