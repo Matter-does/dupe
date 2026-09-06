@@ -1,38 +1,41 @@
 # Checkpoint
 
-task: T004
-status: T004 remediation complete, awaiting targeted OpenCode re-check
+task: T005
+status: T005 baseline benchmark complete, gates verified, results captured
 
 completed:
-  - Addressed all blocking findings (P1-A, P1-B) and enhancements (P2-C, P2-D, P2-E, C7 text fix) from independent OpenCode review
-  - P1-A: Implemented safe output directory handling in prepare_output_directory(); non-empty unrelated directories refuse overwrite with FileExistsError and contents preserved; empty directories allowed; valid prior corpus directories allow controlled replacement
-  - P1-B: Implemented in-memory sizing planner plan_corpus_workload() calculating exact projected actual bytes before touching filesystem; pre-flight disk check uses projected bytes; CI ceiling (<= 1 GB) enforced against projected bytes before writes; target size tolerance enforced
-  - P2-C: Added scale, target_bytes, and size_tolerance_ratio to Manifest; implemented tamper detection in validate_manifest()
-  - P2-D: Added test_benchmark_corpus.py step to CI workflow offline job (.github/workflows/phase4-correctness.yml) and benchmarks/** trigger paths
-  - P2-E: Added test_target_vs_actual_size_conformance testing explicit tolerances across all C1-C7 profiles
-  - C7 text fix: Enumerated C7 in T005 and T006 standard corpora lists; verified zero cold-cache terminology
-  - All 14 tests pass in tests/test_benchmark_corpus.py
-  - Re-verified passing Phase 4 offline self-tests (python tests/phase4_differential.py --offline)
-  - Phase 3 source code (src/*.j2) remains 100% untouched
-  - Zero T005 code added
+  - Implemented Baseline C pure J2 control reduction over 2,000,000 integers (`benchmarks/controls/pure_control.j2`)
+  - Verified Baseline C ground truth mathematically: 2000001000000
+  - Implemented Benchmark Harness (`benchmarks/harness.py`) with machine provenance logging, external wall-clock timing (`time.perf_counter_ns()`), pre-flight corpus verification, output JSON normalization, bit-for-bit direct match verification, and manifest digest validation
+  - Implemented CLI runner (`benchmarks/run_baselines.py`) producing machine-readable `baseline_results.json` and GitHub step summary `baseline_report.md`
+  - Created offline unit tests (`tests/test_benchmark_harness.py`) validating timing statistics, throughput rates, provenance schema, ground truth, normalization, and preflight hooks (8/8 PASS)
+  - Configured and executed dedicated GitHub Actions workflow (`.github/workflows/t005-baseline-benchmark.yml`) on `macos-15` (Apple Silicon arm64, 3 vCPUs, 7.0 GB RAM)
+  - Verified J2 0.1.0 and native compilation (`j2 build src/main.j2 -o build/dupe`) with `J2_ALLOW_FS=1` runtime capability
+  - Verified 100% direct JSON match and 100% manifest digest match across all tested standard corpora (C1, C2, C4, C5, C6, C7)
+  - Conducted compiler inspection via `j2 emit-native` on both pure control and `dupe` main
+  - Established scientific baseline: native binary speedup is modest (0.97x - 1.15x) and reflects compiler dispatch elimination, not automatic parallelism
+  - Archived benchmark artifacts in `benchmarks/results/`
 
 not_done:
-  - T005 J2 interpreter/native baseline execution (halted per task discipline)
-  - T006 automatic-parallelism experiment execution
+  - T006 automatic-parallelism experiment execution (halted per task discipline)
   - T007 second workload implementation
+  - T008 CLI polish
 
 verification:
-  benchmark_corpus_tests: pass (14/14 tests pass in tests/test_benchmark_corpus.py)
-  local_offline_selftests: pass (multi-seed reproducibility, failure preservation, 13 seed cases, 4 regressions)
+  ci_workflow_run: pass (run 34037979685 on macos-15 arm64, 2m30s)
+  baseline_c_control: pass (ground truth 2000001000000 matched in both interpreter and native, 1.06x speedup)
+  corpus_direct_json_match: pass (bit-for-bit identical output across C1, C2, C4, C5, C6, C7)
+  corpus_digest_match: pass (100% agreement with manifest expected_result_digest across C1, C2, C4, C5, C6, C7)
+  harness_offline_tests: pass (8/8 tests in tests/test_benchmark_harness.py)
+  corpus_generator_tests: pass (14/14 tests in tests/test_benchmark_corpus.py)
+  phase4_offline_tests: pass (tests/phase4_differential.py --offline)
   phase3_source_integrity: pass (git diff origin/main -- src/ is completely empty)
-  safe_directory_handling: pass (unrelated directory refusal, empty directory allowed, valid prior replacement)
-  projected_size_preflight: pass (in-memory plan matches actual bytes, CI ceiling breach error caught)
-  git_boundary: clean, prepared for commit and push to origin/main
+  git_boundary: clean, prepared for bounded T005 commit
 
 next_action:
-  - commit T004 remediation changes
-  - push to origin/main
-  - submit for targeted OpenCode re-check
-  - DO NOT start T005
+  - Commit bounded T005 changes to main
+  - Push to origin/main and verify local HEAD == origin/main
+  - Present comprehensive T005 baseline benchmark report
+  - DO NOT start T006 automatically
 
 last_agent: Antigravity

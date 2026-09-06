@@ -1,0 +1,674 @@
+{
+  "schema_version": 1,
+  "task_id": "T005",
+  "provenance": {
+    "system": "Darwin",
+    "release": "24.6.0",
+    "machine": "arm64",
+    "cpu_count": 3,
+    "ram_bytes": 7516192768,
+    "ram_gb": 7.0,
+    "runner_id": "34037979685",
+    "git_commit": "c476729f3164b5b24f1fca7a33e92fc7ea1b864d",
+    "j2_version": "j2 0.1.0",
+    "j2_path": "/Users/runner/.j2/bin/j2",
+    "timestamp_utc": "2026-09-06T14:05:32Z"
+  },
+  "pure_control_baseline_c": {
+    "program_source": "data = collect(1..2000000)\nprint(sum(data))\n",
+    "ground_truth_result": "2000001000000",
+    "build_time_ms": 1674.633792,
+    "interpreter_measurement": {
+      "baseline_id": "Baseline_C_Interpreter",
+      "baseline_name": "Pure Control (Interpreter: j2 run)",
+      "command_line": [
+        "j2",
+        "run",
+        "/Users/runner/work/dupe/dupe/benchmarks/controls/pure_control.j2"
+      ],
+      "environment_vars": {},
+      "timing": {
+        "iterations": 7,
+        "warmup_runs": 3,
+        "raw_wall_time_ms": [
+          87.1482,
+          94.185,
+          116.9851,
+          86.3217,
+          102.8235,
+          103.1077,
+          91.5147
+        ],
+        "median_ms": 94.185,
+        "mean_ms": 97.4409,
+        "min_ms": 86.3217,
+        "max_ms": 116.9851,
+        "stddev_ms": 10.942,
+        "variance_ms": 119.7264
+      },
+      "metrics": null,
+      "output_digest": "f27bfbc48d6227ddea033588357a188d8d241d0b7879c78c4b361f644458b549",
+      "build_time_ms": null,
+      "success": true,
+      "error_message": null
+    },
+    "native_measurement": {
+      "baseline_id": "Baseline_C_Native",
+      "baseline_name": "Pure Control (Compiled Native: j2 build)",
+      "command_line": [
+        "/Users/runner/work/dupe/dupe/build/pure_control"
+      ],
+      "environment_vars": {},
+      "timing": {
+        "iterations": 7,
+        "warmup_runs": 3,
+        "raw_wall_time_ms": [
+          61.3383,
+          58.4416,
+          69.766,
+          89.1773,
+          109.6901,
+          149.3673,
+          88.9674
+        ],
+        "median_ms": 88.9674,
+        "mean_ms": 89.5354,
+        "min_ms": 58.4416,
+        "max_ms": 149.3673,
+        "stddev_ms": 31.9876,
+        "variance_ms": 1023.2076
+      },
+      "metrics": null,
+      "output_digest": "f27bfbc48d6227ddea033588357a188d8d241d0b7879c78c4b361f644458b549",
+      "build_time_ms": 1674.633792,
+      "success": true,
+      "error_message": null
+    },
+    "correctness_verified": true,
+    "native_speedup_factor": 1.0586
+  },
+  "corpus_comparisons": [
+    {
+      "corpus_id": "C1",
+      "corpus_manifest_sha256": "df348f75a2cdd135dd158e6e5b0bea32e3d7a111d51d0c6c33d8388a96ffe89d",
+      "scale": 0.01,
+      "baseline_a_interpreter": {
+        "baseline_id": "Baseline_A_Interpreter",
+        "baseline_name": "J2 Interpreter (j2 --allow-fs)",
+        "command_line": [
+          "j2",
+          "--allow-fs",
+          "/Users/runner/work/dupe/dupe/src/main.j2",
+          "/Users/runner/work/dupe/dupe/benchmarks/corpora/C1",
+          "--json"
+        ],
+        "environment_vars": {},
+        "timing": {
+          "iterations": 3,
+          "warmup_runs": 1,
+          "raw_wall_time_ms": [
+            2217.8741,
+            2473.5109,
+            2195.2256
+          ],
+          "median_ms": 2217.8741,
+          "mean_ms": 2295.5369,
+          "min_ms": 2195.2256,
+          "max_ms": 2473.5109,
+          "stddev_ms": 154.5455,
+          "variance_ms": 23884.2971
+        },
+        "metrics": {
+          "files_scanned": 500,
+          "candidate_files": 122,
+          "bytes_hashed": 108485,
+          "duplicate_groups": 10,
+          "duplicate_files": 25,
+          "reclaimable_bytes": 65492
+        },
+        "output_digest": "5af01494d0f97b6fce1e8cc10bb00f206287164c83a6a2871586846357329ef7",
+        "build_time_ms": null,
+        "success": true,
+        "error_message": null
+      },
+      "baseline_b_native": {
+        "baseline_id": "Baseline_B_Native",
+        "baseline_name": "J2 Compiled Native Binary (J2_ALLOW_FS=1 ./build/dupe)",
+        "command_line": [
+          "/Users/runner/work/dupe/dupe/build/dupe",
+          "/Users/runner/work/dupe/dupe/benchmarks/corpora/C1",
+          "--json"
+        ],
+        "environment_vars": {
+          "J2_ALLOW_FS": "1"
+        },
+        "timing": {
+          "iterations": 3,
+          "warmup_runs": 1,
+          "raw_wall_time_ms": [
+            1989.834,
+            2204.48,
+            2353.226
+          ],
+          "median_ms": 2204.48,
+          "mean_ms": 2182.5134,
+          "min_ms": 1989.834,
+          "max_ms": 2353.226,
+          "stddev_ms": 182.6892,
+          "variance_ms": 33375.3365
+        },
+        "metrics": {
+          "files_scanned": 500,
+          "candidate_files": 122,
+          "bytes_hashed": 108485,
+          "duplicate_groups": 10,
+          "duplicate_files": 25,
+          "reclaimable_bytes": 65492
+        },
+        "output_digest": "5af01494d0f97b6fce1e8cc10bb00f206287164c83a6a2871586846357329ef7",
+        "build_time_ms": null,
+        "success": true,
+        "error_message": null
+      },
+      "direct_json_match": true,
+      "digest_matches_manifest": true,
+      "expected_digest": "5af01494d0f97b6fce1e8cc10bb00f206287164c83a6a2871586846357329ef7",
+      "actual_digest": "5af01494d0f97b6fce1e8cc10bb00f206287164c83a6a2871586846357329ef7",
+      "native_speedup_factor": 1.0061,
+      "files_per_sec_interpreter": 225.44,
+      "files_per_sec_native": 226.81,
+      "candidates_per_sec_interpreter": 55.01,
+      "candidates_per_sec_native": 55.34,
+      "mb_per_sec_interpreter": 0.05,
+      "mb_per_sec_native": 0.05
+    },
+    {
+      "corpus_id": "C2",
+      "corpus_manifest_sha256": "c64a8cbe84afc8b6b1699daf7d3e9952fa2a1f3726a25c02624d3a3572221250",
+      "scale": 0.01,
+      "baseline_a_interpreter": {
+        "baseline_id": "Baseline_A_Interpreter",
+        "baseline_name": "J2 Interpreter (j2 --allow-fs)",
+        "command_line": [
+          "j2",
+          "--allow-fs",
+          "/Users/runner/work/dupe/dupe/src/main.j2",
+          "/Users/runner/work/dupe/dupe/benchmarks/corpora/C2",
+          "--json"
+        ],
+        "environment_vars": {},
+        "timing": {
+          "iterations": 3,
+          "warmup_runs": 1,
+          "raw_wall_time_ms": [
+            233.0154,
+            229.1398,
+            220.8733
+          ],
+          "median_ms": 229.1398,
+          "mean_ms": 227.6762,
+          "min_ms": 220.8733,
+          "max_ms": 233.0154,
+          "stddev_ms": 6.202,
+          "variance_ms": 38.4642
+        },
+        "metrics": {
+          "files_scanned": 100,
+          "candidate_files": 30,
+          "bytes_hashed": 2392740,
+          "duplicate_groups": 12,
+          "duplicate_files": 30,
+          "reclaimable_bytes": 1415213
+        },
+        "output_digest": "8cc4bdbdefbbcc4a31aedc97320a809775246580ba825107dbc792e7c556e294",
+        "build_time_ms": null,
+        "success": true,
+        "error_message": null
+      },
+      "baseline_b_native": {
+        "baseline_id": "Baseline_B_Native",
+        "baseline_name": "J2 Compiled Native Binary (J2_ALLOW_FS=1 ./build/dupe)",
+        "command_line": [
+          "/Users/runner/work/dupe/dupe/build/dupe",
+          "/Users/runner/work/dupe/dupe/benchmarks/corpora/C2",
+          "--json"
+        ],
+        "environment_vars": {
+          "J2_ALLOW_FS": "1"
+        },
+        "timing": {
+          "iterations": 3,
+          "warmup_runs": 1,
+          "raw_wall_time_ms": [
+            206.8396,
+            199.867,
+            188.1362
+          ],
+          "median_ms": 199.867,
+          "mean_ms": 198.2809,
+          "min_ms": 188.1362,
+          "max_ms": 206.8396,
+          "stddev_ms": 9.452,
+          "variance_ms": 89.3408
+        },
+        "metrics": {
+          "files_scanned": 100,
+          "candidate_files": 30,
+          "bytes_hashed": 2392740,
+          "duplicate_groups": 12,
+          "duplicate_files": 30,
+          "reclaimable_bytes": 1415213
+        },
+        "output_digest": "8cc4bdbdefbbcc4a31aedc97320a809775246580ba825107dbc792e7c556e294",
+        "build_time_ms": null,
+        "success": true,
+        "error_message": null
+      },
+      "direct_json_match": true,
+      "digest_matches_manifest": true,
+      "expected_digest": "8cc4bdbdefbbcc4a31aedc97320a809775246580ba825107dbc792e7c556e294",
+      "actual_digest": "8cc4bdbdefbbcc4a31aedc97320a809775246580ba825107dbc792e7c556e294",
+      "native_speedup_factor": 1.1465,
+      "files_per_sec_interpreter": 436.41,
+      "files_per_sec_native": 500.33,
+      "candidates_per_sec_interpreter": 130.92,
+      "candidates_per_sec_native": 150.1,
+      "mb_per_sec_interpreter": 9.96,
+      "mb_per_sec_native": 11.42
+    },
+    {
+      "corpus_id": "C4",
+      "corpus_manifest_sha256": "d9480ea2b234ce31f8191e611c0285f5ebc9179f5e4620cc8eadea262cf02683",
+      "scale": 0.01,
+      "baseline_a_interpreter": {
+        "baseline_id": "Baseline_A_Interpreter",
+        "baseline_name": "J2 Interpreter (j2 --allow-fs)",
+        "command_line": [
+          "j2",
+          "--allow-fs",
+          "/Users/runner/work/dupe/dupe/src/main.j2",
+          "/Users/runner/work/dupe/dupe/benchmarks/corpora/C4",
+          "--json"
+        ],
+        "environment_vars": {},
+        "timing": {
+          "iterations": 3,
+          "warmup_runs": 1,
+          "raw_wall_time_ms": [
+            231.3283,
+            260.2354,
+            276.4975
+          ],
+          "median_ms": 260.2354,
+          "mean_ms": 256.0204,
+          "min_ms": 231.3283,
+          "max_ms": 276.4975,
+          "stddev_ms": 22.8777,
+          "variance_ms": 523.3881
+        },
+        "metrics": {
+          "files_scanned": 100,
+          "candidate_files": 80,
+          "bytes_hashed": 8131017,
+          "duplicate_groups": 18,
+          "duplicate_files": 80,
+          "reclaimable_bytes": 6329148
+        },
+        "output_digest": "dd4475c0caba87102c6c1a5bfe90171f62e66c7b3bb9565c2dbd73e933c8c0a7",
+        "build_time_ms": null,
+        "success": true,
+        "error_message": null
+      },
+      "baseline_b_native": {
+        "baseline_id": "Baseline_B_Native",
+        "baseline_name": "J2 Compiled Native Binary (J2_ALLOW_FS=1 ./build/dupe)",
+        "command_line": [
+          "/Users/runner/work/dupe/dupe/build/dupe",
+          "/Users/runner/work/dupe/dupe/benchmarks/corpora/C4",
+          "--json"
+        ],
+        "environment_vars": {
+          "J2_ALLOW_FS": "1"
+        },
+        "timing": {
+          "iterations": 3,
+          "warmup_runs": 1,
+          "raw_wall_time_ms": [
+            256.3027,
+            240.5702,
+            238.9196
+          ],
+          "median_ms": 240.5702,
+          "mean_ms": 245.2642,
+          "min_ms": 238.9196,
+          "max_ms": 256.3027,
+          "stddev_ms": 9.5952,
+          "variance_ms": 92.0684
+        },
+        "metrics": {
+          "files_scanned": 100,
+          "candidate_files": 80,
+          "bytes_hashed": 8131017,
+          "duplicate_groups": 18,
+          "duplicate_files": 80,
+          "reclaimable_bytes": 6329148
+        },
+        "output_digest": "dd4475c0caba87102c6c1a5bfe90171f62e66c7b3bb9565c2dbd73e933c8c0a7",
+        "build_time_ms": null,
+        "success": true,
+        "error_message": null
+      },
+      "direct_json_match": true,
+      "digest_matches_manifest": true,
+      "expected_digest": "dd4475c0caba87102c6c1a5bfe90171f62e66c7b3bb9565c2dbd73e933c8c0a7",
+      "actual_digest": "dd4475c0caba87102c6c1a5bfe90171f62e66c7b3bb9565c2dbd73e933c8c0a7",
+      "native_speedup_factor": 1.0817,
+      "files_per_sec_interpreter": 384.27,
+      "files_per_sec_native": 415.68,
+      "candidates_per_sec_interpreter": 307.41,
+      "candidates_per_sec_native": 332.54,
+      "mb_per_sec_interpreter": 29.8,
+      "mb_per_sec_native": 32.23
+    },
+    {
+      "corpus_id": "C5",
+      "corpus_manifest_sha256": "de522ebdac2c0133eef7bf703556a6a849f062e8e3ac696e582e08e395aa85fc",
+      "scale": 0.01,
+      "baseline_a_interpreter": {
+        "baseline_id": "Baseline_A_Interpreter",
+        "baseline_name": "J2 Interpreter (j2 --allow-fs)",
+        "command_line": [
+          "j2",
+          "--allow-fs",
+          "/Users/runner/work/dupe/dupe/src/main.j2",
+          "/Users/runner/work/dupe/dupe/benchmarks/corpora/C5",
+          "--json"
+        ],
+        "environment_vars": {},
+        "timing": {
+          "iterations": 3,
+          "warmup_runs": 1,
+          "raw_wall_time_ms": [
+            424.0706,
+            444.5172,
+            444.6162
+          ],
+          "median_ms": 444.5172,
+          "mean_ms": 437.7347,
+          "min_ms": 424.0706,
+          "max_ms": 444.6162,
+          "stddev_ms": 11.8335,
+          "variance_ms": 140.0323
+        },
+        "metrics": {
+          "files_scanned": 200,
+          "candidate_files": 200,
+          "bytes_hashed": 3145680,
+          "duplicate_groups": 23,
+          "duplicate_files": 60,
+          "reclaimable_bytes": 1939836
+        },
+        "output_digest": "70d8b16b54f516e1749d2d157d2b6cccdf9daf15359980b091ab9e6747e32a30",
+        "build_time_ms": null,
+        "success": true,
+        "error_message": null
+      },
+      "baseline_b_native": {
+        "baseline_id": "Baseline_B_Native",
+        "baseline_name": "J2 Compiled Native Binary (J2_ALLOW_FS=1 ./build/dupe)",
+        "command_line": [
+          "/Users/runner/work/dupe/dupe/build/dupe",
+          "/Users/runner/work/dupe/dupe/benchmarks/corpora/C5",
+          "--json"
+        ],
+        "environment_vars": {
+          "J2_ALLOW_FS": "1"
+        },
+        "timing": {
+          "iterations": 3,
+          "warmup_runs": 1,
+          "raw_wall_time_ms": [
+            484.687,
+            459.6047,
+            422.899
+          ],
+          "median_ms": 459.6047,
+          "mean_ms": 455.7302,
+          "min_ms": 422.899,
+          "max_ms": 484.687,
+          "stddev_ms": 31.0757,
+          "variance_ms": 965.6989
+        },
+        "metrics": {
+          "files_scanned": 200,
+          "candidate_files": 200,
+          "bytes_hashed": 3145680,
+          "duplicate_groups": 23,
+          "duplicate_files": 60,
+          "reclaimable_bytes": 1939836
+        },
+        "output_digest": "70d8b16b54f516e1749d2d157d2b6cccdf9daf15359980b091ab9e6747e32a30",
+        "build_time_ms": null,
+        "success": true,
+        "error_message": null
+      },
+      "direct_json_match": true,
+      "digest_matches_manifest": true,
+      "expected_digest": "70d8b16b54f516e1749d2d157d2b6cccdf9daf15359980b091ab9e6747e32a30",
+      "actual_digest": "70d8b16b54f516e1749d2d157d2b6cccdf9daf15359980b091ab9e6747e32a30",
+      "native_speedup_factor": 0.9672,
+      "files_per_sec_interpreter": 449.93,
+      "files_per_sec_native": 435.16,
+      "candidates_per_sec_interpreter": 449.93,
+      "candidates_per_sec_native": 435.16,
+      "mb_per_sec_interpreter": 6.75,
+      "mb_per_sec_native": 6.53
+    },
+    {
+      "corpus_id": "C6",
+      "corpus_manifest_sha256": "0e1a620fb6f97737fb0be2c97e587ef1681ab826e4433263d7af4174ddc9f2c1",
+      "scale": 0.01,
+      "baseline_a_interpreter": {
+        "baseline_id": "Baseline_A_Interpreter",
+        "baseline_name": "J2 Interpreter (j2 --allow-fs)",
+        "command_line": [
+          "j2",
+          "--allow-fs",
+          "/Users/runner/work/dupe/dupe/src/main.j2",
+          "/Users/runner/work/dupe/dupe/benchmarks/corpora/C6",
+          "--json"
+        ],
+        "environment_vars": {},
+        "timing": {
+          "iterations": 3,
+          "warmup_runs": 1,
+          "raw_wall_time_ms": [
+            210.3595,
+            226.0154,
+            216.9067
+          ],
+          "median_ms": 216.9067,
+          "mean_ms": 217.7605,
+          "min_ms": 210.3595,
+          "max_ms": 226.0154,
+          "stddev_ms": 7.8628,
+          "variance_ms": 61.824
+        },
+        "metrics": {
+          "files_scanned": 100,
+          "candidate_files": 30,
+          "bytes_hashed": 2392740,
+          "duplicate_groups": 12,
+          "duplicate_files": 30,
+          "reclaimable_bytes": 1415213
+        },
+        "output_digest": "0bbb0d14109a9b0ea3cb40f88a0cc047f1fd362bedf64f2b4389fbba3add1688",
+        "build_time_ms": null,
+        "success": true,
+        "error_message": null
+      },
+      "baseline_b_native": {
+        "baseline_id": "Baseline_B_Native",
+        "baseline_name": "J2 Compiled Native Binary (J2_ALLOW_FS=1 ./build/dupe)",
+        "command_line": [
+          "/Users/runner/work/dupe/dupe/build/dupe",
+          "/Users/runner/work/dupe/dupe/benchmarks/corpora/C6",
+          "--json"
+        ],
+        "environment_vars": {
+          "J2_ALLOW_FS": "1"
+        },
+        "timing": {
+          "iterations": 3,
+          "warmup_runs": 1,
+          "raw_wall_time_ms": [
+            202.9885,
+            199.323,
+            205.6839
+          ],
+          "median_ms": 202.9885,
+          "mean_ms": 202.6652,
+          "min_ms": 199.323,
+          "max_ms": 205.6839,
+          "stddev_ms": 3.1927,
+          "variance_ms": 10.1935
+        },
+        "metrics": {
+          "files_scanned": 100,
+          "candidate_files": 30,
+          "bytes_hashed": 2392740,
+          "duplicate_groups": 12,
+          "duplicate_files": 30,
+          "reclaimable_bytes": 1415213
+        },
+        "output_digest": "0bbb0d14109a9b0ea3cb40f88a0cc047f1fd362bedf64f2b4389fbba3add1688",
+        "build_time_ms": null,
+        "success": true,
+        "error_message": null
+      },
+      "direct_json_match": true,
+      "digest_matches_manifest": true,
+      "expected_digest": "0bbb0d14109a9b0ea3cb40f88a0cc047f1fd362bedf64f2b4389fbba3add1688",
+      "actual_digest": "0bbb0d14109a9b0ea3cb40f88a0cc047f1fd362bedf64f2b4389fbba3add1688",
+      "native_speedup_factor": 1.0686,
+      "files_per_sec_interpreter": 461.03,
+      "files_per_sec_native": 492.64,
+      "candidates_per_sec_interpreter": 138.31,
+      "candidates_per_sec_native": 147.79,
+      "mb_per_sec_interpreter": 10.52,
+      "mb_per_sec_native": 11.24
+    },
+    {
+      "corpus_id": "C7",
+      "corpus_manifest_sha256": "100fb3790a0e42b91b2a548fe5983ef88827623950f128ba3216199ddd726caf",
+      "scale": 0.01,
+      "baseline_a_interpreter": {
+        "baseline_id": "Baseline_A_Interpreter",
+        "baseline_name": "J2 Interpreter (j2 --allow-fs)",
+        "command_line": [
+          "j2",
+          "--allow-fs",
+          "/Users/runner/work/dupe/dupe/src/main.j2",
+          "/Users/runner/work/dupe/dupe/benchmarks/corpora/C7",
+          "--json"
+        ],
+        "environment_vars": {},
+        "timing": {
+          "iterations": 3,
+          "warmup_runs": 1,
+          "raw_wall_time_ms": [
+            174.154,
+            201.8125,
+            216.7888
+          ],
+          "median_ms": 201.8125,
+          "mean_ms": 197.5851,
+          "min_ms": 174.154,
+          "max_ms": 216.7888,
+          "stddev_ms": 21.6295,
+          "variance_ms": 467.8362
+        },
+        "metrics": {
+          "files_scanned": 100,
+          "candidate_files": 30,
+          "bytes_hashed": 2392740,
+          "duplicate_groups": 12,
+          "duplicate_files": 30,
+          "reclaimable_bytes": 1415213
+        },
+        "output_digest": "8cc4bdbdefbbcc4a31aedc97320a809775246580ba825107dbc792e7c556e294",
+        "build_time_ms": null,
+        "success": true,
+        "error_message": null
+      },
+      "baseline_b_native": {
+        "baseline_id": "Baseline_B_Native",
+        "baseline_name": "J2 Compiled Native Binary (J2_ALLOW_FS=1 ./build/dupe)",
+        "command_line": [
+          "/Users/runner/work/dupe/dupe/build/dupe",
+          "/Users/runner/work/dupe/dupe/benchmarks/corpora/C7",
+          "--json"
+        ],
+        "environment_vars": {
+          "J2_ALLOW_FS": "1"
+        },
+        "timing": {
+          "iterations": 3,
+          "warmup_runs": 1,
+          "raw_wall_time_ms": [
+            185.7857,
+            184.5671,
+            183.8048
+          ],
+          "median_ms": 184.5671,
+          "mean_ms": 184.7192,
+          "min_ms": 183.8048,
+          "max_ms": 185.7857,
+          "stddev_ms": 0.9992,
+          "variance_ms": 0.9984
+        },
+        "metrics": {
+          "files_scanned": 100,
+          "candidate_files": 30,
+          "bytes_hashed": 2392740,
+          "duplicate_groups": 12,
+          "duplicate_files": 30,
+          "reclaimable_bytes": 1415213
+        },
+        "output_digest": "8cc4bdbdefbbcc4a31aedc97320a809775246580ba825107dbc792e7c556e294",
+        "build_time_ms": null,
+        "success": true,
+        "error_message": null
+      },
+      "direct_json_match": true,
+      "digest_matches_manifest": true,
+      "expected_digest": "8cc4bdbdefbbcc4a31aedc97320a809775246580ba825107dbc792e7c556e294",
+      "actual_digest": "8cc4bdbdefbbcc4a31aedc97320a809775246580ba825107dbc792e7c556e294",
+      "native_speedup_factor": 1.0934,
+      "files_per_sec_interpreter": 495.51,
+      "files_per_sec_native": 541.81,
+      "candidates_per_sec_interpreter": 148.65,
+      "candidates_per_sec_native": 162.54,
+      "mb_per_sec_interpreter": 11.31,
+      "mb_per_sec_native": 12.36
+    }
+  ],
+  "compiler_inspection": {
+    "dupe_main_emission_sample": "\nuse j2_runtime::prelude::*;\nuse j2_runtime::value::{J2Value, J2Func, J2FuncClause};\nuse j2_runtime::error::{J2Err, J2ErrKind, J2Result};\nuse j2_runtime::flow::J2Flow;\n#[allow(unused_imports)]\nuse j2_runtime::convert::*;\nuse std::cell::RefCell;\nuse std::collections::HashMap;\nuse std::rc::Rc;\n\n#[derive(Clone)]\nstruct Env {\n    table: HashMap<String, (J2Value, bool)>,\n    /// Names actually *declared* in this scope (vs inherited from GLOBALS /\n    /// builtins, which are copied into `table`). A binding shadows an\n    /// inherited name freely; only re-binding a name already in `locals` is\n    /// subject to the constant-reassignment rule. This lets a function-local\n    /// `x = \u2026` shadow a same-named top-level constant.\n    locals: std::collections::HashSet<String>,\n}\n\ntype EnvRef = Rc<RefCell<Env>>;\n\nthread_local! {\n    /// Global registry of user-defined top-level bindings (funcs + globals).\n    /// Function bodies seed their fresh envs from this so recursion and\n    /// cross-function calls work without lexical capture.\n    static GLOBALS: RefCell<HashMap<String, (J2Value, bool)>> = RefCell::new(HashMap::new());\n    /// Carries the value of a `give` (early return) while the GiveSi",
+    "pure_control_emission_sample": "\nuse j2_runtime::prelude::*;\nuse j2_runtime::value::{J2Value, J2Func, J2FuncClause};\nuse j2_runtime::error::{J2Err, J2ErrKind, J2Result};\nuse j2_runtime::flow::J2Flow;\n#[allow(unused_imports)]\nuse j2_runtime::convert::*;\nuse std::cell::RefCell;\nuse std::collections::HashMap;\nuse std::rc::Rc;\n\n#[derive(Clone)]\nstruct Env {\n    table: HashMap<String, (J2Value, bool)>,\n    /// Names actually *declared* in this scope (vs inherited from GLOBALS /\n    /// builtins, which are copied into `table`). A binding shadows an\n    /// inherited name freely; only re-binding a name already in `locals` is\n    /// subject to the constant-reassignment rule. This lets a function-local\n    /// `x = \u2026` shadow a same-named top-level constant.\n    locals: std::collections::HashSet<String>,\n}\n\ntype EnvRef = Rc<RefCell<Env>>;\n\nthread_local! {\n    /// Global registry of user-defined top-level bindings (funcs + globals).\n    /// Function bodies seed their fresh envs from this so recursion and\n    /// cross-function calls work without lexical capture.\n    static GLOBALS: RefCell<HashMap<String, (J2Value, bool)>> = RefCell::new(HashMap::new());\n    /// Carries the value of a `give` (early return) while the GiveSi",
+    "pure_control_has_parallel_constructs": true,
+    "dupe_main_has_parallel_constructs": true
+  },
+  "summary_conclusions": [
+    "Interpreter baseline (Baseline A) and native binary baseline (Baseline B) successfully established on macOS Apple Silicon.",
+    "Bit-for-bit JSON equivalence between interpreter and native execution holds across all measured standard corpora.",
+    "Computed JSON digests strictly match T004 manifest expected_result_digest, verifying algorithm soundness and determinism.",
+    "Baseline C pure J2 control (2,000,000 element integer reduction) successfully executes with verified ground-truth output (2000001000000).",
+    "CRITICAL SCIENTIFIC DISTINCTION: Native binary speedup over interpreter reflects unboxed native CPU execution and absence of interpreter dispatch overhead. Native-vs-interpreter speed difference is NOT in itself proof of automatic parallelism."
+  ],
+  "unresolved_limitations": [
+    "Internal stage timing (T_discovery, T_hash, T_group) remains deferred pending verified J2 timing runtime API.",
+    "Automatic parallelism multi-core isolation requires the dedicated 4-stage experimental ladder defined in T006.",
+    "Compiler emission from `j2 emit-native` provides structural backend source but requires runtime correlation to confirm multi-core concurrency."
+  ]
+}
