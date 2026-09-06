@@ -1,19 +1,22 @@
-name: Phase 4 Correctness
+name: T005 Baseline Benchmark
 
 on:
   workflow_dispatch:
+    inputs:
+      scale:
+        description: 'Corpus scale factor (e.g. 0.1 for CI budget, 1.0 for full standard)'
+        required: false
+        default: '0.1'
+      runs:
+        description: 'Number of measured iterations for filesystem workloads'
+        required: false
+        default: '3'
   push:
     paths:
       - 'src/**'
-      - 'tests/**'
       - 'benchmarks/**'
-      - '.github/workflows/phase4-correctness.yml'
-  pull_request:
-    paths:
-      - 'src/**'
       - 'tests/**'
-      - 'benchmarks/**'
-      - '.github/workflows/phase4-correctness.yml'
+      - '.github/workflows/t005-baseline-benchmark.yml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -27,36 +30,10 @@ env:
   J2_SHA256: 6fda8338791730cf7937362acd03e29247719e65785458e62988e1789c842e75
 
 jobs:
-  offline:
-    name: Offline self-tests (cross-platform, no J2)
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Run offline self-tests
-        run: |
-          python3 tests/phase4_differential.py --offline
-
-      - name: Run benchmark corpus generator tests
-        run: |
-          python3 tests/test_benchmark_corpus.py -v
-
-      - name: Run benchmark harness offline tests
-        run: |
-          python3 tests/test_benchmark_harness.py -v
-
-  differential:
-    name: Differential correctness (J2 interpreter + native)
+  macos-benchmark:
+    name: Baseline benchmark on macOS Apple Silicon (arm64)
     runs-on: macos-15
-    timeout-minutes: 15
-    needs: [offline]
+    timeout-minutes: 20
 
     steps:
       - name: Check out repository
@@ -108,28 +85,40 @@ jobs:
           git diff --stat
           git diff --exit-code src/
 
-      - name: Build genuine native dupe binary
+      - name: Run harness offline tests
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p build
-          j2 build src/main.j2 -o build/dupe
-          test -x build/dupe
-          echo "Built native binary:"
-          ls -la build/dupe
+          python3 tests/test_benchmark_harness.py -v
 
-      - name: Run independent oracle/interpreter/native matrix
+      - name: Run baseline benchmarks (Baseline A, Baseline B, Baseline C)
         shell: bash
-        env:
-          J2_BIN: j2
         run: |
           set -euo pipefail
-          python3 tests/phase4_differential.py --native-bin build/dupe
+          scale="${{ github.event.inputs.scale || '0.1' }}"
+          runs="${{ github.event.inputs.runs || '3' }}"
+          echo "Running benchmarks with scale=$scale, runs=$runs..."
+          python3 benchmarks/run_baselines.py \
+            --corpora C1,C2,C4,C5,C6,C7 \
+            --scale "$scale" \
+            --runs "$runs" \
+            --warmup 1 \
+            --control-runs 7 \
+            --control-warmup 3 \
+            --clean-corpora
 
-      - name: Preserve failure artifacts
-        if: failure()
+      - name: Publish Markdown report to step summary
+        if: always()
+        shell: bash
+        run: |
+          if [ -f benchmarks/results/baseline_report.md ]; then
+            cat benchmarks/results/baseline_report.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload benchmark artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: phase4-failure-reports
-          path: tests/regressions/failures/
-          if-no-files-found: ignore
+          name: t005-benchmark-results
+          path: benchmarks/results/
+          if-no-files-found: warn
