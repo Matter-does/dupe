@@ -8,16 +8,16 @@
     "cpu_count": 3,
     "ram_bytes": 7516192768,
     "ram_gb": 7.0,
-    "runner_id": "34037979685",
-    "git_commit": "c476729f3164b5b24f1fca7a33e92fc7ea1b864d",
+    "runner_id": "34038191455",
+    "git_commit": "fb5f57aa49af02fa6171de9b761e79d9307b475f",
     "j2_version": "j2 0.1.0",
     "j2_path": "/Users/runner/.j2/bin/j2",
-    "timestamp_utc": "2026-09-06T14:05:32Z"
+    "timestamp_utc": "2026-09-06T14:09:17Z"
   },
   "pure_control_baseline_c": {
     "program_source": "data = collect(1..2000000)\nprint(sum(data))\n",
     "ground_truth_result": "2000001000000",
-    "build_time_ms": 1674.633792,
+    "build_time_ms": 1169.812042,
     "interpreter_measurement": {
       "baseline_id": "Baseline_C_Interpreter",
       "baseline_name": "Pure Control (Interpreter: j2 run)",
@@ -31,20 +31,20 @@
         "iterations": 7,
         "warmup_runs": 3,
         "raw_wall_time_ms": [
-          87.1482,
-          94.185,
-          116.9851,
-          86.3217,
-          102.8235,
-          103.1077,
-          91.5147
+          76.9367,
+          78.6645,
+          79.6638,
+          70.4713,
+          82.4144,
+          88.3929,
+          79.936
         ],
-        "median_ms": 94.185,
-        "mean_ms": 97.4409,
-        "min_ms": 86.3217,
-        "max_ms": 116.9851,
-        "stddev_ms": 10.942,
-        "variance_ms": 119.7264
+        "median_ms": 79.6638,
+        "mean_ms": 79.4971,
+        "min_ms": 70.4713,
+        "max_ms": 88.3929,
+        "stddev_ms": 5.4249,
+        "variance_ms": 29.4299
       },
       "metrics": null,
       "output_digest": "f27bfbc48d6227ddea033588357a188d8d241d0b7879c78c4b361f644458b549",
@@ -63,34 +63,34 @@
         "iterations": 7,
         "warmup_runs": 3,
         "raw_wall_time_ms": [
-          61.3383,
-          58.4416,
-          69.766,
-          89.1773,
-          109.6901,
-          149.3673,
-          88.9674
+          61.3702,
+          59.4046,
+          58.5945,
+          55.2743,
+          56.3103,
+          58.9738,
+          56.6788
         ],
-        "median_ms": 88.9674,
-        "mean_ms": 89.5354,
-        "min_ms": 58.4416,
-        "max_ms": 149.3673,
-        "stddev_ms": 31.9876,
-        "variance_ms": 1023.2076
+        "median_ms": 58.5945,
+        "mean_ms": 58.0866,
+        "min_ms": 55.2743,
+        "max_ms": 61.3702,
+        "stddev_ms": 2.106,
+        "variance_ms": 4.435
       },
       "metrics": null,
       "output_digest": "f27bfbc48d6227ddea033588357a188d8d241d0b7879c78c4b361f644458b549",
-      "build_time_ms": 1674.633792,
+      "build_time_ms": 1169.812042,
       "success": true,
       "error_message": null
     },
     "correctness_verified": true,
-    "native_speedup_factor": 1.0586
+    "native_speedup_factor": 1.3596
   },
   "corpus_comparisons": [
     {
       "corpus_id": "C1",
-      "corpus_manifest_sha256": "df348f75a2cdd135dd158e6e5b0bea32e3d7a111d51d0c6c33d8388a96ffe89d",
+      "corpus_manifest_sha256": "b6591cea6e0ab3e9664a397f863403cbd8badb8423f6212f589687f2f70c5a83",
       "scale": 0.01,
       "baseline_a_interpreter": {
         "baseline_id": "Baseline_A_Interpreter",
@@ -107,16 +107,16 @@
           "iterations": 3,
           "warmup_runs": 1,
           "raw_wall_time_ms": [
-            2217.8741,
-            2473.5109,
-            2195.2256
+            2624.3285,
+            2540.9004,
+            3257.4143
           ],
-          "median_ms": 2217.8741,
-          "mean_ms": 2295.5369,
-          "min_ms": 2195.2256,
-          "max_ms": 2473.5109,
-          "stddev_ms": 154.5455,
-          "variance_ms": 23884.2971
+          "median_ms": 2624.3285,
+          "mean_ms": 2807.5477,
+          "min_ms": 2540.9004,
+          "max_ms": 3257.4143,
+          "stddev_ms": 391.8227,
+          "variance_ms": 153525.0034
         },
         "metrics": {
           "files_scanned": 500,
@@ -146,16 +146,16 @@
           "iterations": 3,
           "warmup_runs": 1,
           "raw_wall_time_ms": [
-            1989.834,
-            2204.48,
-            2353.226
+            2626.1402,
+            2669.6132,
+            3011.0586
           ],
-          "median_ms": 2204.48,
-          "mean_ms": 2182.5134,
-          "min_ms": 1989.834,
-          "max_ms": 2353.226,
-          "stddev_ms": 182.6892,
-          "variance_ms": 33375.3365
+          "median_ms": 2669.6132,
+          "mean_ms": 2768.9373,
+          "min_ms": 2626.1402,
+          "max_ms": 3011.0586,
+          "stddev_ms": 210.8068,
+          "variance_ms": 44439.4983
         },
         "metrics": {
           "files_scanned": 500,
@@ -174,17 +174,17 @@
       "digest_matches_manifest": true,
       "expected_digest": "5af01494d0f97b6fce1e8cc10bb00f206287164c83a6a2871586846357329ef7",
       "actual_digest": "5af01494d0f97b6fce1e8cc10bb00f206287164c83a6a2871586846357329ef7",
-      "native_speedup_factor": 1.0061,
-      "files_per_sec_interpreter": 225.44,
-      "files_per_sec_native": 226.81,
-      "candidates_per_sec_interpreter": 55.01,
-      "candidates_per_sec_native": 55.34,
-      "mb_per_sec_interpreter": 0.05,
-      "mb_per_sec_native": 0.05
+      "native_speedup_factor": 0.983,
+      "files_per_sec_interpreter": 190.52,
+      "files_per_sec_native": 187.29,
+      "candidates_per_sec_interpreter": 46.49,
+      "candidates_per_sec_native": 45.7,
+      "mb_per_sec_interpreter": 0.04,
+      "mb_per_sec_native": 0.04
     },
     {
       "corpus_id": "C2",
-      "corpus_manifest_sha256": "c64a8cbe84afc8b6b1699daf7d3e9952fa2a1f3726a25c02624d3a3572221250",
+      "corpus_manifest_sha256": "85fdcad58045991462be902a7132ef5e51767280537540e7b2f5d0664e0b4a87",
       "scale": 0.01,
       "baseline_a_interpreter": {
         "baseline_id": "Baseline_A_Interpreter",
@@ -201,16 +201,16 @@
           "iterations": 3,
           "warmup_runs": 1,
           "raw_wall_time_ms": [
-            233.0154,
-            229.1398,
-            220.8733
+            251.6792,
+            288.0246,
+            274.6094
           ],
-          "median_ms": 229.1398,
-          "mean_ms": 227.6762,
-          "min_ms": 220.8733,
-          "max_ms": 233.0154,
-          "stddev_ms": 6.202,
-          "variance_ms": 38.4642
+          "median_ms": 274.6094,
+          "mean_ms": 271.4377,
+          "min_ms": 251.6792,
+          "max_ms": 288.0246,
+          "stddev_ms": 18.3791,
+          "variance_ms": 337.7903
         },
         "metrics": {
           "files_scanned": 100,
@@ -240,16 +240,16 @@
           "iterations": 3,
           "warmup_runs": 1,
           "raw_wall_time_ms": [
-            206.8396,
-            199.867,
-            188.1362
+            241.5339,
+            196.8877,
+            223.0667
           ],
-          "median_ms": 199.867,
-          "mean_ms": 198.2809,
-          "min_ms": 188.1362,
-          "max_ms": 206.8396,
-          "stddev_ms": 9.452,
-          "variance_ms": 89.3408
+          "median_ms": 223.0667,
+          "mean_ms": 220.4961,
+          "min_ms": 196.8877,
+          "max_ms": 241.5339,
+          "stddev_ms": 22.4338,
+          "variance_ms": 503.277
         },
         "metrics": {
           "files_scanned": 100,
@@ -268,17 +268,17 @@
       "digest_matches_manifest": true,
       "expected_digest": "8cc4bdbdefbbcc4a31aedc97320a809775246580ba825107dbc792e7c556e294",
       "actual_digest": "8cc4bdbdefbbcc4a31aedc97320a809775246580ba825107dbc792e7c556e294",
-      "native_speedup_factor": 1.1465,
-      "files_per_sec_interpreter": 436.41,
-      "files_per_sec_native": 500.33,
-      "candidates_per_sec_interpreter": 130.92,
-      "candidates_per_sec_native": 150.1,
-      "mb_per_sec_interpreter": 9.96,
-      "mb_per_sec_native": 11.42
+      "native_speedup_factor": 1.2311,
+      "files_per_sec_interpreter": 364.15,
+      "files_per_sec_native": 448.3,
+      "candidates_per_sec_interpreter": 109.25,
+      "candidates_per_sec_native": 134.49,
+      "mb_per_sec_interpreter": 8.31,
+      "mb_per_sec_native": 10.23
     },
     {
       "corpus_id": "C4",
-      "corpus_manifest_sha256": "d9480ea2b234ce31f8191e611c0285f5ebc9179f5e4620cc8eadea262cf02683",
+      "corpus_manifest_sha256": "90c5eb87eb069623588ff4e43e11a8b2a80627f55d5b0222a1902dd2be8133ca",
       "scale": 0.01,
       "baseline_a_interpreter": {
         "baseline_id": "Baseline_A_Interpreter",
@@ -295,16 +295,16 @@
           "iterations": 3,
           "warmup_runs": 1,
           "raw_wall_time_ms": [
-            231.3283,
-            260.2354,
-            276.4975
+            283.3195,
+            278.1539,
+            247.6174
           ],
-          "median_ms": 260.2354,
-          "mean_ms": 256.0204,
-          "min_ms": 231.3283,
-          "max_ms": 276.4975,
-          "stddev_ms": 22.8777,
-          "variance_ms": 523.3881
+          "median_ms": 278.1539,
+          "mean_ms": 269.6969,
+          "min_ms": 247.6174,
+          "max_ms": 283.3195,
+          "stddev_ms": 19.2951,
+          "variance_ms": 372.3009
         },
         "metrics": {
           "files_scanned": 100,
@@ -334,16 +334,16 @@
           "iterations": 3,
           "warmup_runs": 1,
           "raw_wall_time_ms": [
-            256.3027,
-            240.5702,
-            238.9196
+            246.3286,
+            248.9079,
+            233.4546
           ],
-          "median_ms": 240.5702,
-          "mean_ms": 245.2642,
-          "min_ms": 238.9196,
-          "max_ms": 256.3027,
-          "stddev_ms": 9.5952,
-          "variance_ms": 92.0684
+          "median_ms": 246.3286,
+          "mean_ms": 242.897,
+          "min_ms": 233.4546,
+          "max_ms": 248.9079,
+          "stddev_ms": 8.2784,
+          "variance_ms": 68.5324
         },
         "metrics": {
           "files_scanned": 100,
@@ -362,17 +362,17 @@
       "digest_matches_manifest": true,
       "expected_digest": "dd4475c0caba87102c6c1a5bfe90171f62e66c7b3bb9565c2dbd73e933c8c0a7",
       "actual_digest": "dd4475c0caba87102c6c1a5bfe90171f62e66c7b3bb9565c2dbd73e933c8c0a7",
-      "native_speedup_factor": 1.0817,
-      "files_per_sec_interpreter": 384.27,
-      "files_per_sec_native": 415.68,
-      "candidates_per_sec_interpreter": 307.41,
-      "candidates_per_sec_native": 332.54,
-      "mb_per_sec_interpreter": 29.8,
-      "mb_per_sec_native": 32.23
+      "native_speedup_factor": 1.1292,
+      "files_per_sec_interpreter": 359.51,
+      "files_per_sec_native": 405.96,
+      "candidates_per_sec_interpreter": 287.61,
+      "candidates_per_sec_native": 324.77,
+      "mb_per_sec_interpreter": 27.88,
+      "mb_per_sec_native": 31.48
     },
     {
       "corpus_id": "C5",
-      "corpus_manifest_sha256": "de522ebdac2c0133eef7bf703556a6a849f062e8e3ac696e582e08e395aa85fc",
+      "corpus_manifest_sha256": "ffff75dfe50ddc2c46d693b189ee26fe5c2a5a1c379fb05093e9206604f952c7",
       "scale": 0.01,
       "baseline_a_interpreter": {
         "baseline_id": "Baseline_A_Interpreter",
@@ -389,16 +389,16 @@
           "iterations": 3,
           "warmup_runs": 1,
           "raw_wall_time_ms": [
-            424.0706,
-            444.5172,
-            444.6162
+            474.4873,
+            404.8511,
+            649.0443
           ],
-          "median_ms": 444.5172,
-          "mean_ms": 437.7347,
-          "min_ms": 424.0706,
-          "max_ms": 444.6162,
-          "stddev_ms": 11.8335,
-          "variance_ms": 140.0323
+          "median_ms": 474.4873,
+          "mean_ms": 509.4609,
+          "min_ms": 404.8511,
+          "max_ms": 649.0443,
+          "stddev_ms": 125.7972,
+          "variance_ms": 15824.9437
         },
         "metrics": {
           "files_scanned": 200,
@@ -428,16 +428,16 @@
           "iterations": 3,
           "warmup_runs": 1,
           "raw_wall_time_ms": [
-            484.687,
-            459.6047,
-            422.899
+            503.6939,
+            414.1278,
+            438.6583
           ],
-          "median_ms": 459.6047,
-          "mean_ms": 455.7302,
-          "min_ms": 422.899,
-          "max_ms": 484.687,
-          "stddev_ms": 31.0757,
-          "variance_ms": 965.6989
+          "median_ms": 438.6583,
+          "mean_ms": 452.16,
+          "min_ms": 414.1278,
+          "max_ms": 503.6939,
+          "stddev_ms": 46.2844,
+          "variance_ms": 2142.2438
         },
         "metrics": {
           "files_scanned": 200,
@@ -456,17 +456,17 @@
       "digest_matches_manifest": true,
       "expected_digest": "70d8b16b54f516e1749d2d157d2b6cccdf9daf15359980b091ab9e6747e32a30",
       "actual_digest": "70d8b16b54f516e1749d2d157d2b6cccdf9daf15359980b091ab9e6747e32a30",
-      "native_speedup_factor": 0.9672,
-      "files_per_sec_interpreter": 449.93,
-      "files_per_sec_native": 435.16,
-      "candidates_per_sec_interpreter": 449.93,
-      "candidates_per_sec_native": 435.16,
-      "mb_per_sec_interpreter": 6.75,
-      "mb_per_sec_native": 6.53
+      "native_speedup_factor": 1.0817,
+      "files_per_sec_interpreter": 421.51,
+      "files_per_sec_native": 455.94,
+      "candidates_per_sec_interpreter": 421.51,
+      "candidates_per_sec_native": 455.94,
+      "mb_per_sec_interpreter": 6.32,
+      "mb_per_sec_native": 6.84
     },
     {
       "corpus_id": "C6",
-      "corpus_manifest_sha256": "0e1a620fb6f97737fb0be2c97e587ef1681ab826e4433263d7af4174ddc9f2c1",
+      "corpus_manifest_sha256": "2c45255c646e0e01b674e24c6ff7123d03c09464ddb313dd9344e4e50e0a4157",
       "scale": 0.01,
       "baseline_a_interpreter": {
         "baseline_id": "Baseline_A_Interpreter",
@@ -483,16 +483,16 @@
           "iterations": 3,
           "warmup_runs": 1,
           "raw_wall_time_ms": [
-            210.3595,
-            226.0154,
-            216.9067
+            237.3083,
+            232.7622,
+            249.3548
           ],
-          "median_ms": 216.9067,
-          "mean_ms": 217.7605,
-          "min_ms": 210.3595,
-          "max_ms": 226.0154,
-          "stddev_ms": 7.8628,
-          "variance_ms": 61.824
+          "median_ms": 237.3083,
+          "mean_ms": 239.8085,
+          "min_ms": 232.7622,
+          "max_ms": 249.3548,
+          "stddev_ms": 8.5742,
+          "variance_ms": 73.5165
         },
         "metrics": {
           "files_scanned": 100,
@@ -522,16 +522,16 @@
           "iterations": 3,
           "warmup_runs": 1,
           "raw_wall_time_ms": [
-            202.9885,
-            199.323,
-            205.6839
+            214.734,
+            250.1726,
+            180.58
           ],
-          "median_ms": 202.9885,
-          "mean_ms": 202.6652,
-          "min_ms": 199.323,
-          "max_ms": 205.6839,
-          "stddev_ms": 3.1927,
-          "variance_ms": 10.1935
+          "median_ms": 214.734,
+          "mean_ms": 215.1622,
+          "min_ms": 180.58,
+          "max_ms": 250.1726,
+          "stddev_ms": 34.7983,
+          "variance_ms": 1210.9194
         },
         "metrics": {
           "files_scanned": 100,
@@ -550,17 +550,17 @@
       "digest_matches_manifest": true,
       "expected_digest": "0bbb0d14109a9b0ea3cb40f88a0cc047f1fd362bedf64f2b4389fbba3add1688",
       "actual_digest": "0bbb0d14109a9b0ea3cb40f88a0cc047f1fd362bedf64f2b4389fbba3add1688",
-      "native_speedup_factor": 1.0686,
-      "files_per_sec_interpreter": 461.03,
-      "files_per_sec_native": 492.64,
-      "candidates_per_sec_interpreter": 138.31,
-      "candidates_per_sec_native": 147.79,
-      "mb_per_sec_interpreter": 10.52,
-      "mb_per_sec_native": 11.24
+      "native_speedup_factor": 1.1051,
+      "files_per_sec_interpreter": 421.39,
+      "files_per_sec_native": 465.69,
+      "candidates_per_sec_interpreter": 126.42,
+      "candidates_per_sec_native": 139.71,
+      "mb_per_sec_interpreter": 9.62,
+      "mb_per_sec_native": 10.63
     },
     {
       "corpus_id": "C7",
-      "corpus_manifest_sha256": "100fb3790a0e42b91b2a548fe5983ef88827623950f128ba3216199ddd726caf",
+      "corpus_manifest_sha256": "d61808f2ece0221ffdbe276bd542328d0f2c131200a586fdf77d33b2482c3738",
       "scale": 0.01,
       "baseline_a_interpreter": {
         "baseline_id": "Baseline_A_Interpreter",
@@ -577,16 +577,16 @@
           "iterations": 3,
           "warmup_runs": 1,
           "raw_wall_time_ms": [
-            174.154,
-            201.8125,
-            216.7888
+            253.986,
+            242.4041,
+            235.8935
           ],
-          "median_ms": 201.8125,
-          "mean_ms": 197.5851,
-          "min_ms": 174.154,
-          "max_ms": 216.7888,
-          "stddev_ms": 21.6295,
-          "variance_ms": 467.8362
+          "median_ms": 242.4041,
+          "mean_ms": 244.0945,
+          "min_ms": 235.8935,
+          "max_ms": 253.986,
+          "stddev_ms": 9.1639,
+          "variance_ms": 83.9778
         },
         "metrics": {
           "files_scanned": 100,
@@ -616,16 +616,16 @@
           "iterations": 3,
           "warmup_runs": 1,
           "raw_wall_time_ms": [
-            185.7857,
-            184.5671,
-            183.8048
+            194.6416,
+            242.7852,
+            224.9218
           ],
-          "median_ms": 184.5671,
-          "mean_ms": 184.7192,
-          "min_ms": 183.8048,
-          "max_ms": 185.7857,
-          "stddev_ms": 0.9992,
-          "variance_ms": 0.9984
+          "median_ms": 224.9218,
+          "mean_ms": 220.7828,
+          "min_ms": 194.6416,
+          "max_ms": 242.7852,
+          "stddev_ms": 24.3372,
+          "variance_ms": 592.3
         },
         "metrics": {
           "files_scanned": 100,
@@ -644,13 +644,13 @@
       "digest_matches_manifest": true,
       "expected_digest": "8cc4bdbdefbbcc4a31aedc97320a809775246580ba825107dbc792e7c556e294",
       "actual_digest": "8cc4bdbdefbbcc4a31aedc97320a809775246580ba825107dbc792e7c556e294",
-      "native_speedup_factor": 1.0934,
-      "files_per_sec_interpreter": 495.51,
-      "files_per_sec_native": 541.81,
-      "candidates_per_sec_interpreter": 148.65,
-      "candidates_per_sec_native": 162.54,
-      "mb_per_sec_interpreter": 11.31,
-      "mb_per_sec_native": 12.36
+      "native_speedup_factor": 1.0777,
+      "files_per_sec_interpreter": 412.53,
+      "files_per_sec_native": 444.6,
+      "candidates_per_sec_interpreter": 123.76,
+      "candidates_per_sec_native": 133.38,
+      "mb_per_sec_interpreter": 9.41,
+      "mb_per_sec_native": 10.15
     }
   ],
   "compiler_inspection": {

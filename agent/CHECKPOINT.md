@@ -13,7 +13,7 @@ completed:
   - Verified J2 0.1.0 and native compilation (`j2 build src/main.j2 -o build/dupe`) with `J2_ALLOW_FS=1` runtime capability
   - Verified 100% direct JSON match and 100% manifest digest match across all tested standard corpora (C1, C2, C4, C5, C6, C7)
   - Conducted compiler inspection via `j2 emit-native` on both pure control and `dupe` main
-  - Established scientific baseline: native binary speedup is modest (0.97x - 1.15x) and reflects compiler dispatch elimination, not automatic parallelism
+  - Established scientific baseline: native binary speedup is modest (0.98x - 1.23x) and reflects compiler dispatch elimination, not automatic parallelism
   - Archived benchmark artifacts in `benchmarks/results/`
 
 not_done:
@@ -22,8 +22,8 @@ not_done:
   - T008 CLI polish
 
 verification:
-  ci_workflow_run: pass (run 34037979685 on macos-15 arm64, 2m30s)
-  baseline_c_control: pass (ground truth 2000001000000 matched in both interpreter and native, 1.06x speedup)
+  ci_workflow_run: pass (run 34038191455 on macos-15 arm64, 2m14s)
+  baseline_c_control: pass (ground truth 2000001000000 matched in both interpreter and native, 1.36x speedup)
   corpus_direct_json_match: pass (bit-for-bit identical output across C1, C2, C4, C5, C6, C7)
   corpus_digest_match: pass (100% agreement with manifest expected_result_digest across C1, C2, C4, C5, C6, C7)
   harness_offline_tests: pass (8/8 tests in tests/test_benchmark_harness.py)

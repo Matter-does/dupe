@@ -8,15 +8,15 @@
   - OS / Kernel: Darwin 24.6.0 (arm64 Apple Silicon)
   - Hardware: 3 vCPUs, 7.0 GB RAM
   - Toolchain: `j2 0.1.0` (`6fda8338791730cf7937362acd03e29247719e65785458e62988e1789c842e75`)
-  - CI Run: GitHub Actions run `34037979685` (`macos-15`)
+  - CI Run: GitHub Actions run `34038191455` (`macos-15`)
 
 - **Baseline C — Pure J2 Automatic-Parallelism Control:**
   - Workload: `data = collect(1..2000000); print(sum(data))`
   - Mathematical Ground Truth: `2000001000000` (Verified PASS in both interpreter and native)
-  - Build Duration: 1,674.63 ms
-  - Interpreter Median: 94.19 ms (min: 86.32 ms, max: 116.99 ms, stddev: 10.94 ms)
-  - Native Median: 88.97 ms (min: 58.44 ms, max: 149.37 ms, stddev: 31.99 ms)
-  - Native Speedup: **1.06x**
+  - Build Duration: 1,169.81 ms
+  - Interpreter Median: 79.66 ms (min: 70.47 ms, max: 88.39 ms, stddev: 5.42 ms)
+  - Native Median: 58.59 ms (min: 55.27 ms, max: 61.37 ms, stddev: 2.11 ms)
+  - Native Speedup: **1.36x**
 
 - **Filesystem Workload Baselines (Baseline A vs Baseline B):**
   - **Baseline A (Interpreter):** `j2 --allow-fs src/main.j2 <corpus> --json`
@@ -25,12 +25,12 @@
   - **Direct JSON Match:** PASS (100% bit-for-bit equivalence across all corpora)
   - **Manifest Digest Match:** PASS (100% match against T004 expected_result_digest across all corpora)
   - **Measured Wall-Clock Durations & Speedup Factors:**
-    - **C1 (Metadata Heavy, 500 files, 122 candidates):** Interp 2,217.87 ms vs Native 2,204.48 ms (**1.01x**)
-    - **C2 (Balanced Baseline, 100 files, 30 candidates):** Interp 229.14 ms vs Native 199.87 ms (**1.15x**)
-    - **C4 (High Dup Density, 100 files, 80 candidates):** Interp 260.24 ms vs Native 240.57 ms (**1.08x**)
-    - **C5 (Adversarial Same Size, 200 files, 200 candidates):** Interp 444.52 ms vs Native 459.60 ms (**0.97x**)
-    - **C6 (Mixed Hierarchy, 100 files, 30 candidates):** Interp 216.91 ms vs Native 202.99 ms (**1.07x**)
-    - **C7 (Cache Transition / Warm Runs, 100 files, 30 candidates):** Interp 201.81 ms vs Native 184.57 ms (**1.09x**)
+    - **C1 (Metadata Heavy, 500 files, 122 candidates):** Interp 2,624.33 ms vs Native 2,669.61 ms (**0.98x**)
+    - **C2 (Balanced Baseline, 100 files, 30 candidates):** Interp 274.61 ms vs Native 223.07 ms (**1.23x**)
+    - **C4 (High Dup Density, 100 files, 80 candidates):** Interp 278.15 ms vs Native 246.33 ms (**1.13x**)
+    - **C5 (Adversarial Same Size, 200 files, 200 candidates):** Interp 474.49 ms vs Native 438.66 ms (**1.08x**)
+    - **C6 (Mixed Hierarchy, 100 files, 30 candidates):** Interp 237.31 ms vs Native 214.73 ms (**1.11x**)
+    - **C7 (Cache Transition / Warm Runs, 100 files, 30 candidates):** Interp 242.40 ms vs Native 224.92 ms (**1.08x**)
 
 - **Compiler Inspection (`j2 emit-native`):**
   - Inspected emitted Rust backend code for both pure control and `dupe` main.
@@ -38,12 +38,12 @@
   - Confirms automatic-parallelism constructs lowered by compiler, but runtime wall-clock speedup is constrained by filesystem I/O serialization and thread initialization overhead.
 
 - **Critical Scientific Conclusion:**
-  - Native binary speedup over the interpreter is modest (0.97x to 1.15x across filesystem workloads, 1.06x on pure control).
+  - Native binary speedup over the interpreter is modest (0.98x to 1.23x across filesystem workloads, 1.36x on pure control).
   - Native speedup represents compilation to native machine code without interpreter loop dispatch; it is **NOT** evidence of automatic parallel speedup.
   - Automatic parallelism multi-core scaling remains to be isolated and evaluated in T006.
 
 ## Verification Evidence
-- GitHub Actions CI Run `34037979685` (`macos-15`): PASS (2m30s)
+- GitHub Actions CI Run `34038191455` (`macos-15`): PASS (2m14s)
 - Harness offline tests (`tests/test_benchmark_harness.py`): 8/8 PASS (1.1s)
 - Benchmark corpus tests (`tests/test_benchmark_corpus.py`): 14/14 PASS (9.2s)
 - Phase 4 differential offline self-tests (`tests/phase4_differential.py --offline`): PASS

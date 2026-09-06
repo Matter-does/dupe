@@ -1,12 +1,12 @@
 # T005 — J2 Interpreter/Native Baseline Benchmark Report
 
 **Task ID:** T005  
-**Timestamp:** 2026-09-06T14:05:32Z  
+**Timestamp:** 2026-09-06T14:09:17Z  
 **Platform:** Darwin 24.6.0 (arm64)  
 **CPU:** 3 vCPUs  
 **Memory:** 7.0 GB RAM  
-**Runner:** `34037979685`  
-**Git Commit:** `c476729f3164b5b24f1fca7a33e92fc7ea1b864d`  
+**Runner:** `34038191455`  
+**Git Commit:** `fb5f57aa49af02fa6171de9b761e79d9307b475f`  
 **J2 Version:** `j2 0.1.0`  
 
 ---
@@ -20,39 +20,39 @@ print(sum(data))
 
 - **Ground Truth Result:** `2000001000000`
 - **Correctness Verified:** `PASS`
-- **Native Build Time:** `1674.63 ms`
-- **Native Speedup Factor:** `1.06x`
+- **Native Build Time:** `1169.81 ms`
+- **Native Speedup Factor:** `1.36x`
 
 | Metric | Interpreter (`j2 run`) | Native Binary (`j2 build`) | Speedup |
 | :--- | :---: | :---: | :---: |
-| **Median Wall Time** | **94.19 ms** | **88.97 ms** | **1.06x** |
-| Mean Wall Time | 97.44 ms | 89.54 ms | — |
-| Min Wall Time | 86.32 ms | 58.44 ms | — |
-| Max Wall Time | 116.99 ms | 149.37 ms | — |
-| Std Dev | 10.94 ms | 31.99 ms | — |
+| **Median Wall Time** | **79.66 ms** | **58.59 ms** | **1.36x** |
+| Mean Wall Time | 79.50 ms | 58.09 ms | — |
+| Min Wall Time | 70.47 ms | 55.27 ms | — |
+| Max Wall Time | 88.39 ms | 61.37 ms | — |
+| Std Dev | 5.42 ms | 2.11 ms | — |
 | Iterations (Warmup / Measured) | 3 / 7 | 3 / 7 | — |
 
 ## Filesystem Workload Baselines (Baseline A vs Baseline B)
 
 | Corpus | Scale | Files | Candidates | Interp Median (ms) | Native Median (ms) | Native Speedup | Direct JSON Match | Digest Match |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **C1** | 0.01 | 500 | 122 | 2217.87 | 2204.48 | **1.01x** | PASS | PASS |
-| **C2** | 0.01 | 100 | 30 | 229.14 | 199.87 | **1.15x** | PASS | PASS |
-| **C4** | 0.01 | 100 | 80 | 260.24 | 240.57 | **1.08x** | PASS | PASS |
-| **C5** | 0.01 | 200 | 200 | 444.52 | 459.60 | **0.97x** | PASS | PASS |
-| **C6** | 0.01 | 100 | 30 | 216.91 | 202.99 | **1.07x** | PASS | PASS |
-| **C7** | 0.01 | 100 | 30 | 201.81 | 184.57 | **1.09x** | PASS | PASS |
+| **C1** | 0.01 | 500 | 122 | 2624.33 | 2669.61 | **0.98x** | PASS | PASS |
+| **C2** | 0.01 | 100 | 30 | 274.61 | 223.07 | **1.23x** | PASS | PASS |
+| **C4** | 0.01 | 100 | 80 | 278.15 | 246.33 | **1.13x** | PASS | PASS |
+| **C5** | 0.01 | 200 | 200 | 474.49 | 438.66 | **1.08x** | PASS | PASS |
+| **C6** | 0.01 | 100 | 30 | 237.31 | 214.73 | **1.11x** | PASS | PASS |
+| **C7** | 0.01 | 100 | 30 | 242.40 | 224.92 | **1.08x** | PASS | PASS |
 
 ### Detailed Throughput Rates
 
 | Corpus | Files/sec (Interp) | Files/sec (Native) | Cand/sec (Interp) | Cand/sec (Native) | MB/sec (Interp) | MB/sec (Native) |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **C1** | 225.4 | 226.8 | 55.0 | 55.3 | 0.05 | 0.05 |
-| **C2** | 436.4 | 500.3 | 130.9 | 150.1 | 9.96 | 11.42 |
-| **C4** | 384.3 | 415.7 | 307.4 | 332.5 | 29.80 | 32.23 |
-| **C5** | 449.9 | 435.2 | 449.9 | 435.2 | 6.75 | 6.53 |
-| **C6** | 461.0 | 492.6 | 138.3 | 147.8 | 10.52 | 11.24 |
-| **C7** | 495.5 | 541.8 | 148.7 | 162.5 | 11.31 | 12.36 |
+| **C1** | 190.5 | 187.3 | 46.5 | 45.7 | 0.04 | 0.04 |
+| **C2** | 364.1 | 448.3 | 109.2 | 134.5 | 8.31 | 10.23 |
+| **C4** | 359.5 | 406.0 | 287.6 | 324.8 | 27.88 | 31.48 |
+| **C5** | 421.5 | 455.9 | 421.5 | 455.9 | 6.32 | 6.84 |
+| **C6** | 421.4 | 465.7 | 126.4 | 139.7 | 9.62 | 10.63 |
+| **C7** | 412.5 | 444.6 | 123.8 | 133.4 | 9.41 | 10.15 |
 
 ## Compiler Inspection (`j2 emit-native`)
 
