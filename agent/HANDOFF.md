@@ -1,54 +1,57 @@
 # Agent Handoff
 
 ## Current state
-T003 is COMPLETE. The fact-checked T003 research report has been reconciled against the repository's verified J2 0.1.0 runtime contract (`docs/J2-API-0.1.0.md`, `docs/PHASE-4-CORRECTNESS.md`). Durable documentation has been updated with explicit Evidence Grades (A through E). Downstream specifications for T004, T005, T006, and T007 are established, and undocumented J2 environment flags have been strictly quarantined.
+T003 targeted remediation is COMPLETE and prepared for targeted OpenCode re-check. All 18 findings from OpenCode's independent review (P1-1 to P1-10, P2-1 to P2-8) have been systematically resolved with primary evidence from official J2 documentation (`j2-lang.org`), official GitHub runner specifications, and repository differential testing. Non-negotiable boundaries were strictly respected: `src/*.j2` is 100% untouched, the Phase 3 duplicate detection algorithm is unmodified, and T004 implementation has NOT been started.
 
 ## What changed?
 1. **`docs/RESEARCH.md`**:
-   - Expanded into an authoritative technical and competitive register with an explicit Evidence Classification System (Grades A through E).
-   - Documented verified execution modes (`j2 run`, `j2 build`), native capability mechanism (`J2_ALLOW_FS=1`), and backend inspection (`j2 emit-native`).
-   - Quarantined unsupported/unverified controls (`J2_PARALLEL=0`, `J2_FORCE_NATIVE`, `J2_NO_NATIVE`, `J2_NO_NESTED`, `J2_DEBUG`).
-   - Formulated hypotheses H1–H9 and established the 4-stage experimental ladder.
-   - Synthesized competitive intelligence from `fclones`, `Czkawka`, `fdupes`, `jdupes`, `rmlint`, and `duperemove` (storage-adaptive concurrency and staged candidate reduction).
-   - Decomposed the filesystem performance equation and corrected 256-bit collision probability ($4.31 \times 10^{-48}$ at $10^{15}$ files).
-   - Established standard CI runner storage budget (<= 1 GB) and recommended Checksum Inventory as the second workload.
+   - Reclassified `J2_FORCE_NATIVE` as documented in official J2 docs (`j2-lang.org/docs/parallelism.html`, `execution.html`) but unverified in `dupe`'s capability contract; clarified `J_FORCE_NATIVE` as a historical typo (P1-1).
+   - Removed Linux J2 execution legs and ELF claims; confirmed J2 0.1.0 is Apple Silicon macOS only; gated Linux benchmarks on future releases (P1-2).
+   - Corrected runner hardware specifications (`macos-15` = 3 vCPU / 7 GB RAM / 14 GB SSD; `ubuntu-latest` = 4 vCPU / 16 GB RAM / 14 GB SSD); re-calibrated scaling to 3 cores (P1-3).
+   - Corrected C1 corpus arithmetic (50,000 files, ~200 MB, tiny-heavy <4 KB) (P1-4).
+   - Reframed C7 as warm-state transition and run-to-run variance, dropping cold-cache claims (P1-5).
+   - Split H2 into Grade B principle (with official citation) and Grade D control speedup hypothesis (P1-7).
+   - Replaced "<1 MB" threshold with official 32,768-element reduction threshold (P1-10).
+   - Added comprehensive Sources section with URLs, versions, dates, and access timestamps; added `dupeGuru` to competitive matrix (P1-8).
+   - Harmonized C3 definition (200–500 large files, 10% duplicates, ~1–2 GB, labeled Developer-Hardware Only) (P2-1).
+   - Added explicit Evidence Grades (B, C, D) to each row of the §10 stage table (P2-4).
 2. **`docs/ARCHITECTURE.md`**:
-   - Formalized the reusable `FileRecord[]` abstraction feeding both `Duplicate Analysis` and `Checksum Inventory` without redundant directory traversal.
-   - Reaffirmed the frozen reference baseline and automatic parallelism principles.
+   - Made `FileRecord` representation-agnostic (`[path, size]`), avoiding unverified object-literal assumptions (P2-7).
+   - Clarified that output determinism strictly follows the established first-discovery order contract, not synthetic sorting (P2-7).
+   - Confirmed that Pass B (Checksum Inventory) is additive and preserves frozen baseline code (P2-6).
 3. **`agent/tasks/T004-benchmark-corpus.md`**:
-   - Updated specification with 8 orthogonal workload dimensions (file count, total bytes, size distribution, duplicate ratio, collision density, tree shape, similarity structure, cache state).
-   - Defined 7 named standard corpora (C1 through C7) and JSON manifest schema (`manifest.json`).
-   - Enforced <= 1 GB size limit for automated CI corpora.
+   - Reconciled C1 (50K, ~200 MB, <4 KB) and C3 (200–500 files, 10% dupes, ~1–2 GB, Dev Only) (P1-4, P2-1).
+   - Updated runner specifications to 3 vCPU / 7 GB RAM on `macos-15` (P1-3).
+   - Reframed C7 as warm-state transition (P1-5).
+   - Defined `duplicate_ratio = duplicate_files / total_files`; defined `expected_result_digest` as SHA-256 of deterministic output JSON; closed all profile enums (P2-2).
+   - Renamed dimensions to "Controlled Workload Dimensions" and documented interactions (P2-3).
+   - Scoped byte-identity criterion to content, relative paths, and manifest (excluding volatile OS mtime) (P3).
 4. **`agent/tasks/T005-j2-baseline-benchmark.md`**:
-   - Defined the 3 distinct baselines: Baseline A (interpreter), Baseline B (compiled native binary), and Baseline C (pure J2 parallelism control).
-   - Established measurement protocol: stage timings ($T_{discovery}$, $T_{read+hash}$, $T_{group}$), throughput rates, metadata logging, and repetition counts (3 warmup + 7 measured for microbenchmarks; 1 warmup + 3–5 measured for filesystem workloads).
-   - Enforced serial-equivalent native baseline requirement if no official parallelism-disable switch is discovered.
+   - Restricted J2 benchmark target to `macos-15` (arm64, 3 vCPUs) (P1-2, P1-3).
+   - Made total process wall-clock time mandatory; deferred internal stage timings pending verified runtime timing API (P1-6).
+   - Named concrete Baseline C control program: `data = collect(1..2000000); print(sum(data))` from `j2-lang.org/docs/parallelism.html` (P2-5).
+   - Mandated explicit `j2 run --allow-fs` for Baseline A (P2-8).
 5. **`agent/tasks/T006-automatic-parallelism.md`**:
-   - Specified the 4-stage experimental ladder (T006-A pure control, T006-B in-memory hashing, T006-C read + hash, T006-D full `dupe` pipeline).
-   - Established the 5-level observability hierarchy (emit-native IR, runtime timing, OS profiling, CPU utilization, bit-for-bit output identity).
-   - Formulated acceptance criteria addressing all 7 core research questions.
+   - Named concrete T006-A control program (P2-5).
+   - Calibrated scaling expectations to 3 cores on `macos-15` (P1-3).
+   - Hedged Level 1 `emit-native` interpretability (P2-4).
 6. **`agent/tasks/T007-checksum-inventory.md`**:
-   - Created full specification for the second read-only workload (Checksum Inventory) reusing `FileRecord[]`.
-7. **`agent/TODO.md`, `agent/CURRENT_TASK.md`, `agent/CHECKPOINT.md`**:
-   - Marked T003 complete, updated checkpoint, and transitioned current task to T004.
-
-## Key Research Decisions Incorporated
-- **Keep Phase 3 Reference Workload Stable**: The exact-duplicate pipeline (`discovery -> metadata -> size filter -> full SHA-256 -> group -> output`) is not altered. Partial hashing is reserved as a future experimental variant, not a replacement baseline.
-- **Strict Quarantine of Undocumented Flags**: `J2_PARALLEL=0` is Grade E (unverified) and must not be used in benchmarks or contracts. Serial comparisons must use an explicit source-level serial-equivalent native baseline.
-- **CI Storage Reality**: Public GitHub runners provide ~14 GB SSD. Standard CI corpora are capped at <= 1 GB; multi-gigabyte corpora are developer-only.
-- **Checksum Inventory as Second Workload**: Reuses `FileRecord[]`, eliminates grouping overhead, and isolates raw I/O and cryptographic hashing for parallel scaling tests.
+   - Made internal elapsed timing output deferred pending verified J2 timing API (P2-6).
+   - Specified sub-command argv handling (`dupe checksum <path>`) (P2-6).
+   - Mandated additive implementation in new modules without refactoring or modifying `src/*.j2` (P2-6).
+7. **`agent/CURRENT_TASK.md`, `agent/CHECKPOINT.md`, `agent/TODO.md`**:
+   - Updated tracking state to reflect remediation completion and hold for OpenCode re-check.
 
 ## Unresolved J2 Questions
-1. **Public Parallelism Control**: Does J2 0.1.0 expose any official command-line option or environment variable to suppress automatic loop parallelization? (If not, T005 must rely strictly on source-level serial-equivalent baselines).
-2. **Buffer Allocation in `fs.read_bytes`**: Does `fs.read_bytes` allocate a complete new buffer on every call, or does the runtime reuse internal buffers? (T004/T005 will observe memory behavior).
-3. **Streaming Hashing**: J2 0.1.0 does not expose an incremental hashing API (`hash.init/update/finish`), remaining an unresolved symbol.
+1. **Official Parallelism Disable Switch:** Does J2 0.1.0 expose an officially supported public command-line option or environment variable for disabling automatic parallelism?
+2. **`fs.read_bytes` Allocation Mechanics:** What is the actual allocation/copy behavior of `fs.read_bytes` in the J2 0.1.0 runtime, particularly for large files and repeated hashing workloads?
+3. **Incremental/Streaming Hashing:** Is there a verified incremental/streaming hashing API in J2 0.1.0?
 
 ## What should the next agent avoid repeating?
-- Do NOT introduce or assume `J2_PARALLEL=0` or `J2_FORCE_NATIVE`.
-- Do NOT modify `src/*.j2` to add partial hashing.
-- Do NOT generate benchmark corpora exceeding 1 GB in CI workflows.
-- Do NOT skip Baseline C (known pure J2 parallel control) in T005 before testing `dupe`.
+- Do NOT start T004 implementation until the targeted OpenCode re-check approves T003.
+- Do NOT modify `src/*.j2`.
+- Do NOT re-introduce unsupported Linux J2 execution legs or ELF claims.
+- Do NOT treat `J2_FORCE_NATIVE` as an established capability contract in `dupe`; native execution requires genuine `j2 build`.
 
-## Next task
-**T004 — Benchmark corpus specification and generator.**
-Implement the deterministic, seed-based generator in `benchmarks/generator/`, generating corpora C1 through C7 with verifiable `manifest.json` metadata.
+## Next Action
+Submit T003 for targeted OpenCode re-check.

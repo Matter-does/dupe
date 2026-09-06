@@ -1,42 +1,36 @@
 # Current Task
 
 **Task:** T003 — Competitive and technical research consolidation  
-**Status:** COMPLETE (Fact-checked and reconciled against J2 0.1.0 runtime contract)
+**Status:** READY FOR TARGETED OPENCODE RE-CHECK (Remediated post-independent review)
 
-## Completed
-- Reconciled the fact-checked T003 research report with `docs/J2-API-0.1.0.md` and `docs/PHASE-4-CORRECTNESS.md`.
-- Comprehensive rewrite and expansion of `docs/RESEARCH.md`:
-  * Applied explicit Evidence Classification System (Grades A through E).
-  * Formalized `dupe` product thesis as a J2-native filesystem intelligence engine studying automatic parallelism.
-  * Verified execution modes (`j2 run` interpreter, `j2 build` native binary with `J2_ALLOW_FS=1`).
-  * Quarantined unsupported/unverified controls (`J2_PARALLEL=0`, `J2_FORCE_NATIVE`, `J2_NO_NATIVE`, `J2_NO_NESTED`, `J2_DEBUG`).
-  * Established serial-vs-parallel experimental design (Path A official probe, Path B serial-equivalent baseline).
-  * Documented competitive analysis (`fclones`, `Czkawka`, `fdupes`, `jdupes`, `rmlint`, `duperemove`) and storage-adaptive concurrency lessons.
-  * Formalized filesystem performance model and corrected 256-bit collision mathematics ($4.31 \times 10^{-48}$ at $n=10^{15}$).
-  * Formulated hypotheses H1–H9 and established standard CI runner budget (<= 1 GB storage constraint).
-- Updated `docs/ARCHITECTURE.md` to establish the reusable `FileRecord[]` abstraction feeding multiple analysis passes.
-- Established actionable specifications for downstream tasks:
-  * `agent/tasks/T004-benchmark-corpus.md`: 8 orthogonal dimensions, 7 named corpora (C1–C7), JSON manifest schema, and runner storage budget (<=1 GB).
-  * `agent/tasks/T005-j2-baseline-benchmark.md`: 3 baselines (interpreter, native, pure J2 control), repetition protocol, stage timings, and serial-equivalent native baseline requirement.
-  * `agent/tasks/T006-automatic-parallelism.md`: 4-stage experimental ladder (T006-A through T006-D) and 5-level observability hierarchy.
-  * `agent/tasks/T007-checksum-inventory.md`: Complete specification for Checksum Inventory pass over `FileRecord[]`.
-- Preserved the frozen Phase 3 exact-duplicate algorithm as the reference baseline workload.
+## Completed Remediation
+- **P1-1 (`J2_FORCE_NATIVE`):** Reclassified from "proven non-existent" to documented in official J2 docs (`j2-lang.org/docs/parallelism.html`) but unverified in `dupe`'s runtime capability contract. Clarified `J_FORCE_NATIVE` as a historical typo. Reaffirmed native execution via `j2 build`.
+- **P1-2 (Linux J2):** Removed Linux J2 execution legs and ELF claims; cited `j2-lang.org/download.html` confirming J2 0.1.0 is macOS Apple Silicon only. Gated Linux benchmarking on future J2 releases.
+- **P1-3 (Runner specs):** Corrected runner hardware specifications per official GitHub docs (`macos-15` = 3 vCPU / 7 GB RAM / 14 GB SSD; `ubuntu-latest` = 4 vCPU / 16 GB RAM / 14 GB SSD). Re-calibrated scaling expectations to 3 cores.
+- **P1-4 (C1 arithmetic):** Reconciled C1 corpus arithmetic to 50,000 files, ~200 MB (tiny-heavy <4 KB, avg 4 KB) identically across `docs/RESEARCH.md` and T004.
+- **P1-5 (C7 methodology):** Reframed C7 as warm-state transition and run-to-run variance, dropping cold-cache claims.
+- **P1-6 (T005 stage timing):** Made total process wall-clock time mandatory; made internal stage timings optional/deferred pending verified runtime timing API.
+- **P1-7 (H2 grade inflation):** Split H2: J2 compiler parallelism principle = Grade B (with doc citation); specific control speedup = Grade D hypothesis.
+- **P1-8 (Sources & dupeGuru):** Added comprehensive Sources section with URLs, access dates, and evidence grades to `docs/RESEARCH.md`. Added `dupeGuru` row to the competitive table.
+- **P1-9 (Git boundary):** Committed all remediated files and prepared push to `origin/main`.
+- **P1-10 ("<1 MB" threshold):** Replaced "<1 MB" with the official 32,768-element reduction threshold and cited `j2-lang.org/docs/parallelism.html`.
+- **P2-1 (C3 definition):** Harmonized C3 across files (200–500 large files, 10% duplicates, ~1–2 GB, labeled Developer-Hardware Only).
+- **P2-2 (Manifest semantics):** Defined `duplicate_ratio = duplicate_files / total_files`, defined digest input as deterministic JSON output, and closed all profile string enums.
+- **P2-3 (Controlled dimensions):** Renamed to "Controlled Workload Dimensions", documented interactions, and reconciled allowed values with named corpora.
+- **P2-4 (Stage table grades):** Added explicit Evidence Grades (B, C, D) to each row of the §10 stage table.
+- **P2-5 (Concrete control):** Named exact Baseline C control program: `data = collect(1..2000000); print(sum(data))`.
+- **P2-6 (T007 implementability):** Deferred mandatory internal elapsed timing; specified sub-command argv layout; mandated additive implementation without altering `src/*.j2`.
+- **P2-7 (Architecture contract drift):** Made `FileRecord` representation-agnostic (`[path, size]`); clarified output determinism contract preserves discovery order.
+- **P2-8 (Interpreter invocation):** Mandated explicit `j2 run --allow-fs` for all interpreter benchmark executions.
 
 ## Acceptance Criteria
-- [x] Verified J2 facts clearly separated from hypotheses via explicit Evidence Grades (A through E).
-- [x] Unsupported/undocumented claims (`J2_PARALLEL=0`, `J2_FORCE_NATIVE`, etc.) quarantined and prohibited.
-- [x] Frozen Phase 3 duplicate detection algorithm preserved as reference baseline without unverified partial-hash changes.
-- [x] T004 benchmark corpus specification and generator requirements made explicit (8 dimensions, 7 named corpora, <=1 GB CI ceiling).
-- [x] T005 interpreter/native baseline specification made explicit (3 baselines, repetition rules, stage timings).
-- [x] T006 automatic-parallelism experiment specification made explicit (4-stage ladder, 5-level observability).
-- [x] T007 second read-only workload (Checksum Inventory) specified over common `FileRecord[]` pipeline.
-- [x] CI runner storage constraints (14 GB SSD ceiling) documented and respected.
-- [x] Tracking state (`agent/TODO.md`, `agent/CHECKPOINT.md`, `agent/HANDOFF.md`, `agent/CURRENT_TASK.md`) updated.
+- [x] All 18 OpenCode review findings (P1-1 to P1-10, P2-1 to P2-8) addressed and classified.
+- [x] Verified J2 facts separated from hypotheses with defensible Evidence Grades.
+- [x] Sources section populated with URLs, versions, and access dates.
+- [x] Zero changes to Phase 3 code (`src/*.j2`).
+- [x] Offline tests pass (`python tests/phase4_differential.py --offline`).
+- [x] Git boundary synchronized with remote.
+- [ ] T004 implementation NOT started (strictly blocked pending OpenCode re-check).
 
-## Verification Evidence
-- Offline differential and regression suite: PASS (`python tests/phase4_differential.py --offline`).
-- Git diff reviewed; no modifications to Phase 3 J2 sources (`src/*.j2`).
-- Specifications cross-checked against J2 0.1.0 runtime-verified APIs in `docs/J2-API-0.1.0.md`.
-
-## Next Task
-T004 — Benchmark corpus specification and generator (`agent/tasks/T004-benchmark-corpus.md`).
+## Next Action
+Submit T003 remediation for targeted OpenCode re-check. Do NOT start T004 implementation.
