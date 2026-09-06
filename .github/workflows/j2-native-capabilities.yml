@@ -92,8 +92,23 @@ jobs:
             echo "--- Test 5: J2_CAPABILITIES=allow-fs ---"
             J2_CAPABILITIES=allow-fs "$d/dupe_bin" "$d/testdir" --json 2>&1 || true
 
-            echo "--- Test 6: j2 emit-native src/main.j2 cap check ---"
-            j2 emit-native src/main.j2 | grep -i "allow" || echo "no allow in emit-native"
+            echo "--- Test 6: Probe J2 sorting of nested arrays ---"
+            printf 'print(sort([["b", 1], ["a", 2]]))\n' > "$d/sort_probe.j2"
+            j2 run "$d/sort_probe.j2" 2>&1 || true
+
+            printf 'print(sort(["beta", "alpha"]))\n' > "$d/sort_str.j2"
+            j2 run "$d/sort_str.j2" 2>&1 || true
+
+            echo "--- Test 7: Probe J2 symlink behavior ---"
+            mkdir -p "$d/symlink_test/real"
+            echo "symlink target" > "$d/symlink_test/real/file.txt"
+            ln -s "$d/symlink_test/real" "$d/symlink_test/link_dir"
+            ln -s "$d/symlink_test/real/file.txt" "$d/symlink_test/link_file.txt"
+
+            printf 'print("is_dir link_dir:", fs.is_dir("%s/symlink_test/link_dir"))\n' "$d" > "$d/sym_probe.j2"
+            printf 'print("is_file link_file:", fs.is_file("%s/symlink_test/link_file.txt"))\n' "$d" >> "$d/sym_probe.j2"
+            printf 'print("list_dir:", fs.list_dir("%s/symlink_test"))\n' "$d" >> "$d/sym_probe.j2"
+            j2 --allow-fs run "$d/sym_probe.j2" 2>&1 || true
           fi
           exit 0
 
