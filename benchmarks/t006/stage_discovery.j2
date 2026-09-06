@@ -1,0 +1,11 @@
+# Standalone stage probe: Discovery only
+import "../../src/scan.j2"
+
+args = proc.argv()
+root := "."
+if len(args) > 1 {
+    root = args[1]
+}
+
+files = discover(root)
+print(fmt("DISCOVERED:{}", len(files)))

@@ -1,0 +1,12 @@
+# Standalone stage probe: Discovery + Size Candidate Filtering
+import "../../src/scan.j2"
+
+args = proc.argv()
+root := "."
+if len(args) > 1 {
+    root = args[1]
+}
+
+files = discover(root)
+candidates = size_candidates(files)
+print(fmt("CANDIDATES:{}", len(candidates)))

@@ -1,0 +1,40 @@
+# T006-B Serial-Equivalent Native Baseline: Pure In-Memory Hashing
+# Computes in-memory hashes with an explicit loop-carried dependency between
+# iteration i and i-1, enforcing sequential evaluation.
+
+args = proc.argv()
+num_buffers := 100
+buffer_size := 1024
+if len(args) > 1 {
+    num_buffers = json.parse(args[1])
+}
+if len(args) > 2 {
+    buffer_size = json.parse(args[2])
+}
+
+# 1. Pre-allocate buffers in memory
+template = collect(0..(buffer_size - 1))
+buffers := []
+for i in collect(1..num_buffers) {
+    buf = template + []
+    buf[0] = i % 256
+    buffers = buffers + [buf]
+}
+
+# 2. Sequential hashing loop with loop-carried dependency
+digests := []
+prev_len := 0
+for buf in buffers {
+    # Loop-carried dependency: buf[0] is modified by output of previous iteration
+    buf[0] = (buf[0] + prev_len) % 256
+    d = hash.sha256(buf)
+    prev_len = len(d)
+    digests = digests + [d]
+}
+
+# 3. Deterministic summary output
+combined := ""
+for d in digests {
+    combined = fmt("{}{}", combined, d)
+}
+print(hash.sha256(combined))

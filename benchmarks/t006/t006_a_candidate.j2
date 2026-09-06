@@ -1,0 +1,12 @@
+# T006-A Candidate: Canonical J2 pure reduction over independent collection
+# Source pattern: data = collect(1..n); print(sum(data))
+# Official J2 parallelism documentation notes reduction path engages at 32,768 elements.
+
+args = proc.argv()
+n := 2000000
+if len(args) > 1 {
+    n = json.parse(args[1])
+}
+
+data = collect(1..n)
+print(sum(data))

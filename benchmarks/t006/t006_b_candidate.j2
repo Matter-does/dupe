@@ -1,0 +1,35 @@
+# T006-B Candidate: Pure In-Memory Hashing
+# Hashes K independent in-memory buffers in RAM without filesystem access.
+
+args = proc.argv()
+num_buffers := 100
+buffer_size := 1024
+if len(args) > 1 {
+    num_buffers = json.parse(args[1])
+}
+if len(args) > 2 {
+    buffer_size = json.parse(args[2])
+}
+
+# 1. Pre-allocate buffers in memory
+template = collect(0..(buffer_size - 1))
+buffers := []
+for i in collect(1..num_buffers) {
+    buf = template + []
+    buf[0] = i % 256
+    buffers = buffers + [buf]
+}
+
+# 2. Independent in-memory hashing loop
+digests := []
+for buf in buffers {
+    d = hash.sha256(buf)
+    digests = digests + [d]
+}
+
+# 3. Deterministic summary output
+combined := ""
+for d in digests {
+    combined = fmt("{}{}", combined, d)
+}
+print(hash.sha256(combined))

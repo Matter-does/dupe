@@ -1,0 +1,22 @@
+# T006-A Serial-Equivalent Native Baseline:
+# Computes the exact same mathematical reduction sum(1..n), but forces sequential
+# evaluation through an explicit loop-carried dependency between iteration i and i-1.
+# This prevents safe independent chunking or associative tree reduction.
+
+args = proc.argv()
+n := 2000000
+if len(args) > 1 {
+    n = json.parse(args[1])
+}
+
+data = collect(1..n)
+acc := 0
+prev := 0
+for i in data {
+    # Loop-carried dependency: iteration i reads prev from iteration i-1
+    diff = i - prev
+    acc = acc + prev + diff
+    prev = i
+}
+
+print(acc)

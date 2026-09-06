@@ -1,0 +1,48 @@
+# T006-C Candidate: Filesystem Read + Hash
+# Reads files from disk and computes SHA-256 hashes with independent iterations.
+
+args = proc.argv()
+root := "."
+if len(args) > 1 {
+    root = args[1]
+}
+
+func join_path(base, name) = {
+    if base == "/" {
+        give fmt("/{}", name)
+    }
+    give fmt("{}/{}", base, name)
+}
+
+func list_files_flat(dir) = {
+    names = sort(fs.list_dir(dir))
+    files := []
+    for name in names {
+        p = join_path(dir, name)
+        if fs.is_dir(p) {
+            files = files + list_files_flat(p)
+        } else {
+            if fs.is_file(p) {
+                files = files + [p]
+            }
+        }
+    }
+    give files
+}
+
+files = list_files_flat(root)
+
+# Hot loop: Read file bytes and hash with independent iterations
+digests := []
+for p in files {
+    bytes = fs.read_bytes(p)
+    d = hash.sha256(bytes)
+    digests = digests + [d]
+}
+
+# Deterministic summary reduction
+combined := ""
+for d in digests {
+    combined = fmt("{}{}", combined, d)
+}
+print(hash.sha256(combined))

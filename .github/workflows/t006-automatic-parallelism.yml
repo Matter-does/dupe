@@ -1,0 +1,135 @@
+name: T006 Automatic Parallelism Experiment
+
+on:
+  workflow_dispatch:
+    inputs:
+      experiments:
+        description: 'Comma-separated experiment levels to run (e.g. A,B,C,D)'
+        required: false
+        default: 'A,B,C,D'
+      scale:
+        description: 'Corpus scale factor (e.g. 0.01 for CI, 0.1 for extended)'
+        required: false
+        default: '0.01'
+      runs:
+        description: 'Number of measured iterations'
+        required: false
+        default: '5'
+      warmup:
+        description: 'Number of warmup iterations'
+        required: false
+        default: '2'
+      seed:
+        description: 'PRNG seed for deterministic corpus generation'
+        required: false
+        default: '12345'
+  push:
+    paths:
+      - 'benchmarks/t006/**'
+      - 'benchmarks/t006_harness.py'
+      - 'benchmarks/run_t006.py'
+      - 'tests/test_t006_experiments.py'
+      - '.github/workflows/t006-automatic-parallelism.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  J2_VERSION: 0.1.0
+  J2_SHA256: 6fda8338791730cf7937362acd03e29247719e65785458e62988e1789c842e75
+
+jobs:
+  macos-experiment:
+    name: Automatic Parallelism Experiment on macOS Apple Silicon (arm64)
+    runs-on: macos-15
+    timeout-minutes: 25
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Verify runner architecture
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Architecture: $(uname -m)"
+          test "$(uname -m)" = "arm64"
+
+      - name: Install exact J2
+        shell: bash
+        run: |
+          set -euo pipefail
+          d="$RUNNER_TEMP/j2"
+          mkdir -p "$d"
+          cd "$d"
+          curl -fsSL --retry 3 --retry-delay 2 -o j2.tgz \
+            "https://github.com/JasnamSinghArora/j2/releases/download/v${J2_VERSION}/j2-${J2_VERSION}-aarch64-apple-darwin.tar.gz"
+          printf '%s  j2.tgz\n' "$J2_SHA256" | shasum -a 256 -c -
+          tar -xzf j2.tgz
+          s="$(find "$d" -type f -name install.sh -print -quit)"
+          test -n "$s"
+          cd "$(dirname "$s")"
+          chmod +x install.sh
+          ./install.sh
+          echo "$HOME/.j2/bin" >> "$GITHUB_PATH"
+
+      - name: Verify exact J2 version
+        shell: bash
+        run: |
+          set -euo pipefail
+          v="$(j2 --version)"
+          echo "Detected J2 version: $v"
+          test "$v" = "j2 0.1.0"
+
+      - name: Run T006 unit tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest tests/test_t006_experiments.py -v
+          python3 tests/test_benchmark_harness.py -v
+          python3 tests/test_benchmark_corpus.py -v
+
+      - name: Execute T006 Experiment Suite (Levels A, B, C, D)
+        shell: bash
+        run: |
+          set -euo pipefail
+          experiments="${{ github.event.inputs.experiments || 'A,B,C,D' }}"
+          scale="${{ github.event.inputs.scale || '0.01' }}"
+          runs="${{ github.event.inputs.runs || '5' }}"
+          warmup="${{ github.event.inputs.warmup || '2' }}"
+          seed="${{ github.event.inputs.seed || '12345' }}"
+          echo "Executing T006: experiments=$experiments scale=$scale runs=$runs warmup=$warmup seed=$seed"
+          python3 benchmarks/run_t006.py \
+            --experiments "$experiments" \
+            --scale "$scale" \
+            --runs "$runs" \
+            --warmup "$warmup" \
+            --seed "$seed" \
+            --corpora C1,C2,C4,C5,C6,C7 \
+            --out benchmarks/results/t006_results.json \
+            --report benchmarks/results/t006_report.md
+
+      - name: Publish Markdown report to step summary
+        if: always()
+        shell: bash
+        run: |
+          if [ -f benchmarks/results/t006_report.md ]; then
+            cat benchmarks/results/t006_report.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload T006 experiment artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: t006-experiment-results
+          path: benchmarks/results/
+          if-no-files-found: warn

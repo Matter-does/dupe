@@ -1,0 +1,16 @@
+# Standalone stage probe: Discovery + Filter + Hash + Group Duplicates
+import "../../src/scan.j2"
+import "../../src/hash.j2"
+import "../../src/group.j2"
+
+args = proc.argv()
+root := "."
+if len(args) > 1 {
+    root = args[1]
+}
+
+files = discover(root)
+candidates = size_candidates(files)
+hashed = hash_candidates(candidates)
+groups = group_duplicates(hashed)
+print(fmt("GROUPS:{}", len(groups)))

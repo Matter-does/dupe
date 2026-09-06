@@ -1,0 +1,55 @@
+# T006-C Serial-Equivalent Native Baseline: Filesystem Read + Hash
+# Reads files from disk and computes SHA-256 hashes with an explicit
+# loop-carried dependency between iteration i and i-1, enforcing sequential evaluation.
+
+args = proc.argv()
+root := "."
+if len(args) > 1 {
+    root = args[1]
+}
+
+func join_path(base, name) = {
+    if base == "/" {
+        give fmt("/{}", name)
+    }
+    give fmt("{}/{}", base, name)
+}
+
+func list_files_flat(dir) = {
+    names = sort(fs.list_dir(dir))
+    files := []
+    for name in names {
+        p = join_path(dir, name)
+        if fs.is_dir(p) {
+            files = files + list_files_flat(p)
+        } else {
+            if fs.is_file(p) {
+                files = files + [p]
+            }
+        }
+    }
+    give files
+}
+
+files = list_files_flat(root)
+
+# Sequential hot loop with loop-carried dependency
+digests := []
+prev_len := 0
+for p in files {
+    bytes = fs.read_bytes(p)
+    if len(bytes) > 0 {
+        # Loop-carried dependency: first byte depends on output of previous iteration
+        bytes[0] = (bytes[0] + prev_len) % 256
+    }
+    d = hash.sha256(bytes)
+    prev_len = len(d)
+    digests = digests + [d]
+}
+
+# Deterministic summary reduction
+combined := ""
+for d in digests {
+    combined = fmt("{}{}", combined, d)
+}
+print(hash.sha256(combined))
