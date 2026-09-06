@@ -55,27 +55,46 @@ jobs:
         run: |
           set +e
           d="$CAP_DIR"
-          j2 build --allow-fs "$d/probe.j2" -o "$d/build_before_subcommand" > "$d/a.out" 2>&1
-          echo "BUILD_ALLOW_FS_AFTER_BUILD_STATUS=$?"
-          cat "$d/a.out"
-          j2 --allow-fs build "$d/probe.j2" -o "$d/build_before_build" > "$d/b.out" 2>&1
-          echo "BUILD_ALLOW_FS_BEFORE_BUILD_STATUS=$?"
-          cat "$d/b.out"
-          j2 build "$d/probe.j2" -o "$d/build_plain" > "$d/c.out" 2>&1
-          echo "BUILD_PLAIN_STATUS=$?"
-          cat "$d/c.out"
+          echo "=== STRINGS IN J2 ==="
+          strings "$(which j2)" | grep -i "force_native" || echo "force_native: NOT FOUND"
+          strings "$(which j2)" | grep -i "j_force" || echo "j_force: NOT FOUND"
+          strings "$(which j2)" | grep -i "j2_force" || echo "j2_force: NOT FOUND"
+          strings "$(which j2)" | grep -i "allow-fs" | head -n 10
+          strings "$(which j2)" | grep -E "J2_[A-Z_]+" | sort -u || echo "no J2_ vars"
+          strings "$(which j2)" | grep -E "J_[A-Z_]+" | sort -u || echo "no J_ vars"
 
-          for b in "$d/build_before_subcommand" "$d/build_before_build" "$d/build_plain"; do
-            if [ -x "$b" ]; then
-              echo "=== BINARY: $b ==="
-              "$b" > "$b.plain.out" 2>&1
-              echo "PLAIN_NATIVE_STATUS=$?"
-              cat "$b.plain.out"
-              "$b" --allow-fs > "$b.arg.out" 2>&1
-              echo "NATIVE_ARG_ALLOW_FS_STATUS=$?"
-              cat "$b.arg.out"
-            fi
-          done
+          echo "=== COMPILE src/main.j2 ==="
+          j2 build src/main.j2 -o "$d/dupe_bin" 2>&1
+          echo "BUILD_DUPE_STATUS=$?"
+
+          if [ -f "$d/dupe_bin" ]; then
+            echo "=== STRINGS IN dupe_bin ==="
+            strings "$d/dupe_bin" | grep -i "allow-fs" | head -n 10
+            strings "$d/dupe_bin" | grep -E "J2_[A-Z_]+" | sort -u || echo "no J2_ vars in bin"
+            strings "$d/dupe_bin" | grep -E "J_[A-Z_]+" | sort -u || echo "no J_ vars in bin"
+
+            mkdir -p "$d/testdir"
+            echo "hello" > "$d/testdir/a.txt"
+            echo "hello" > "$d/testdir/b.txt"
+
+            echo "--- Test 1: plain binary ---"
+            "$d/dupe_bin" "$d/testdir" --json 2>&1 || true
+
+            echo "--- Test 2: binary with --allow-fs first ---"
+            "$d/dupe_bin" --allow-fs "$d/testdir" --json 2>&1 || true
+
+            echo "--- Test 3: J2_ALLOW_FS=1 ---"
+            J2_ALLOW_FS=1 "$d/dupe_bin" "$d/testdir" --json 2>&1 || true
+
+            echo "--- Test 4: ALLOW_FS=1 ---"
+            ALLOW_FS=1 "$d/dupe_bin" "$d/testdir" --json 2>&1 || true
+
+            echo "--- Test 5: J2_CAPABILITIES=allow-fs ---"
+            J2_CAPABILITIES=allow-fs "$d/dupe_bin" "$d/testdir" --json 2>&1 || true
+
+            echo "--- Test 6: j2 emit-native src/main.j2 cap check ---"
+            j2 emit-native src/main.j2 | grep -i "allow" || echo "no allow in emit-native"
+          fi
           exit 0
 
       - name: Research marker
