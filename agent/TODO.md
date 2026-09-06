@@ -2,7 +2,7 @@
 
 ## Priority order
 
-- [ ] T001 — Repository agent workflow (currently being completed)
+- [x] T001 — Repository agent workflow
 - [ ] T002 — Complete Phase 4 correctness and regression gates
 - [ ] T003 — Competitive/technical research consolidation
 - [ ] T004 — Benchmark corpus specification and generator
