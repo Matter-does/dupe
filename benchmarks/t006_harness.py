@@ -911,23 +911,32 @@ class T006ExperimentHarness:
 
             try:
                 # 1. Interpreter baseline
-                interp_cmd = [self.j2_bin, "--allow-fs", "run", str(main_src), str(c_dir), "--json"]
+                interp_cmd = [self.j2_bin, "--allow-fs", str(main_src), str(c_dir), "--json"]
                 interp_times: list[float] = []
                 interp_out = ""
+                last_interp_res: Optional[RunExecutionResult] = None
                 for _ in range(warmup_runs):
                     execute_with_cpu_monitoring(interp_cmd, timeout_s=self.timeout_s)
                 for _ in range(measured_runs):
                     res, _ = execute_with_cpu_monitoring(interp_cmd, timeout_s=self.timeout_s)
                     interp_times.append(res.wall_time_ms)
                     interp_out = res.stdout
+                    last_interp_res = res
 
                 interp_timing = calculate_timing_statistics(interp_times, warmup_runs)
-                interp_json = json.loads(interp_out) if interp_out.strip() else {}
+                try:
+                    interp_json = json.loads(interp_out) if interp_out.strip() else {}
+                except Exception as exc:
+                    raise RuntimeError(
+                        f"Baseline A (interpreter) returned non-JSON output on {cid}:\n"
+                        f"cmd: {interp_cmd}\nreturncode: {last_interp_res.returncode if last_interp_res else 'unknown'}\n"
+                        f"stdout: {interp_out}\nstderr: {last_interp_res.stderr if last_interp_res else ''}"
+                    ) from exc
                 interp_norm = normalize_dupe_output_paths(interp_json, c_dir)
                 interp_digest = compute_result_digest(interp_norm)
                 meas_interp = BaselineMeasurement(
                     baseline_id="Baseline_A_Interpreter",
-                    baseline_name="J2 Interpreter (j2 --allow-fs run)",
+                    baseline_name="J2 Interpreter (j2 --allow-fs)",
                     command_line=interp_cmd,
                     environment_vars={},
                     timing=interp_timing,
@@ -941,6 +950,7 @@ class T006ExperimentHarness:
                 native_times: list[float] = []
                 native_out = ""
                 last_cpu_cand = CpuUtilizationEvidence(0.0, 0.0, 0, False, "none")
+                last_native_res: Optional[RunExecutionResult] = None
                 for _ in range(warmup_runs):
                     execute_with_cpu_monitoring(native_cmd, env=native_env, timeout_s=self.timeout_s)
                 for _ in range(measured_runs):
@@ -948,9 +958,17 @@ class T006ExperimentHarness:
                     native_times.append(res.wall_time_ms)
                     native_out = res.stdout
                     last_cpu_cand = cpu
+                    last_native_res = res
 
                 native_timing = calculate_timing_statistics(native_times, warmup_runs)
-                native_json = json.loads(native_out) if native_out.strip() else {}
+                try:
+                    native_json = json.loads(native_out) if native_out.strip() else {}
+                except Exception as exc:
+                    raise RuntimeError(
+                        f"Baseline B (native) returned non-JSON output on {cid}:\n"
+                        f"cmd: {native_cmd}\nreturncode: {last_native_res.returncode if last_native_res else 'unknown'}\n"
+                        f"stdout: {native_out}\nstderr: {last_native_res.stderr if last_native_res else ''}"
+                    ) from exc
                 native_norm = normalize_dupe_output_paths(native_json, c_dir)
                 native_digest = compute_result_digest(native_norm)
                 meas_native = BaselineMeasurement(
