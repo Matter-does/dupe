@@ -1,42 +1,106 @@
 # dupe
 
-**J2-native file intelligence CLI**
+**J2-native filesystem intelligence engine**
 
-`dupe` is a small command-line utility for finding exact duplicate files, measuring reclaimable storage, and (later) detecting near-duplicates safely.
+`dupe` is a read-only filesystem analysis project written primarily in J2. Exact duplicate detection is the first real workload. The broader goal is to study how a real filesystem-analysis pipeline behaves under J2's automatic parallelism.
 
-The project is intentionally small: the primary goal is to build a useful tool while using J2's automatic parallelism on the expensive, independent file-analysis workload.
+This is deliberately **not** a feature-for-feature clone of established duplicate managers. The duplicate scanner is our correctness/reference workload; the hackathon contribution is the J2-native execution model, reproducible experiments, and evidence about what automatic parallelism actually does.
+
+## Product model
+
+```text
+filesystem
+    ↓
+discovery + metadata
+    ↓
+reusable file records
+    ↓
+analysis passes
+ ┌──┴───────────┬───────────────┐
+ │              │               │
+duplicates   largest files   statistics
+    ↓
+ deterministic result model
+    ↓
+ human / JSON output
+```
+
+The first analysis pass is exact duplicate detection:
+
+1. recursively discover regular files
+2. collect safe metadata
+3. reduce candidates by file size
+4. hash only files that can have duplicates
+5. group equal SHA-256 digests
+6. calculate reclaimable bytes
+7. emit deterministic output
+
+No destructive deletion is part of the current product.
+
+## Why this project exists
+
+Duplicate detection is already a mature software category. Projects such as dupeGuru and other modern duplicate finders provide substantial user-facing features and, in some cases, their own explicit parallel implementations.
+
+`dupe` therefore uses the category as a useful workload rather than claiming that duplicate detection itself is novel.
+
+The central question is:
+
+> **Can J2 express a useful filesystem-analysis workload as independent operations, and what does its automatic parallelism actually achieve on reproducible real-world-shaped workloads?**
+
+Performance claims are made only from controlled measurements.
 
 ## Development model
 
-Development is performed on Windows. J2-native compilation and benchmarking is performed in GitHub Actions on a macOS Apple Silicon runner because the public J2 0.1.0 release currently ships a macOS Apple Silicon binary.
+Development is performed on Windows. J2 native compilation and the reproducible execution/benchmark environment run in GitHub Actions on macOS Apple Silicon because the pinned public J2 0.1.0 release provides the required binary there.
 
-The workflow pins J2 0.1.0 and verifies its SHA-256 before use. See `.github/workflows/j2.yml`.
+The J2 version and checksum are pinned in CI. See the workflow files and `docs/J2-API-0.1.0.md`.
 
-## MVP pipeline
+## Repository-first agent workflow
 
-1. Recursively discover files.
-2. Collect safe metadata.
-3. Group candidates by file size.
-4. Hash only files that can actually have duplicates.
-5. Group equal hashes into duplicate sets.
-6. Report duplicate sets and reclaimable bytes.
-7. Produce deterministic, machine-readable JSON output.
+The repository is the durable project state. Agents must not depend on the full ChatGPT conversation to continue work.
 
-No destructive deletion is part of the MVP.
+Read first:
 
-## Intended CLI
+```text
+AGENTS.md
+docs/PROJECT.md
+docs/ARCHITECTURE.md
+docs/J2-API-0.1.0.md
+agent/CURRENT_TASK.md
+agent/CHECKPOINT.md
+agent/HANDOFF.md
+```
+
+Agent roles:
+
+- **Antigravity:** primary implementation.
+- **OpenCode:** persistent terminal continuation/fallback.
+- **Claude Code through OmniRouter:** adversarial architecture/correctness/J2/benchmark review.
+- **GLM-5:** independent second opinion or implementation/review.
+- **ChatGPT:** research, architecture, specification, task decomposition, and evidence synthesis.
+- **GitHub Actions:** reproducible verification authority.
+
+See `docs/HACKATHON.md` and `docs/AGENT-HARNESS.md`.
+
+## Current phases
+
+```text
+Phase 3  MVP                              COMPLETE / FROZEN
+Phase 4  Differential correctness        IN PROGRESS
+Phase 5  Performance / J2 research       NEXT
+Phase 6  Product surface                 LATER
+Final    Demo + documentation            LATER
+```
+
+## Important rule
+
+Do not invent J2 syntax or APIs. Verify uncertain behavior against the pinned compiler with an executable probe, and record important discoveries in the repository.
+
+## Current CLI
 
 ```text
 dupe PATH
 dupe PATH --json
-dupe PATH --explain
-dupe PATH --near
-dupe PATH --trash
-dupe --benchmark
 ```
 
-These commands are the target interface; implementation should only be added after the corresponding J2 / standard-library capabilities have been verified against the real compiler.
-
-## J2 rule
-
-Do not invent J2 APIs. The first engineering milestone is to compile tiny programs on the macOS CI runner and record the exact syntax and standard-library interfaces that are actually available in J2 0.1.0.
+Future interfaces must be specified and verified before implementation.
