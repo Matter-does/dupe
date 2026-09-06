@@ -570,7 +570,16 @@ class BenchmarkHarness:
 
         interp_timing = calculate_timing_statistics(interp_times, warmup_runs=warmup_runs)
         interp_json_str = interp_last_res.stdout.strip() if interp_last_res else ""
-        interp_json = json.loads(interp_json_str)
+        try:
+            interp_json = json.loads(interp_json_str)
+        except json.JSONDecodeError as exc:
+            raise ValueError(
+                f"Baseline A (interpreter) returned invalid JSON on {corpus_path.name}:\n"
+                f"cmd: {interp_cmd}\n"
+                f"stdout:\n{interp_last_res.stdout if interp_last_res else ''}\n"
+                f"stderr:\n{interp_last_res.stderr if interp_last_res else ''}\n"
+                f"returncode: {interp_last_res.returncode if interp_last_res else 'none'}"
+            ) from exc
         interp_digest = compute_result_digest(interp_json)
         interp_metrics = extract_workload_metrics(interp_json, corpus_manifest=manifest)
 
@@ -609,7 +618,16 @@ class BenchmarkHarness:
 
         native_timing = calculate_timing_statistics(native_times, warmup_runs=warmup_runs)
         native_json_str = native_last_res.stdout.strip() if native_last_res else ""
-        native_json = json.loads(native_json_str)
+        try:
+            native_json = json.loads(native_json_str)
+        except json.JSONDecodeError as exc:
+            raise ValueError(
+                f"Baseline B (native) returned invalid JSON on {corpus_path.name}:\n"
+                f"cmd: {native_cmd}\n"
+                f"stdout:\n{native_last_res.stdout if native_last_res else ''}\n"
+                f"stderr:\n{native_last_res.stderr if native_last_res else ''}\n"
+                f"returncode: {native_last_res.returncode if native_last_res else 'none'}"
+            ) from exc
         native_digest = compute_result_digest(native_json)
         native_metrics = extract_workload_metrics(native_json, corpus_manifest=manifest)
 
