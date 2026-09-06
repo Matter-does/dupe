@@ -868,19 +868,36 @@ def main() -> None:
             assert proc.returncode != 0, (mode, "file root unexpectedly succeeded")
             print(f"PASS: {mode} file-root failure")
 
-        # 8. Unreadable file error handling test (POSIX only) (F8)
+        # 8. Unreadable directory and candidate file error handling test (POSIX only) (F8)
         if os.name != "nt":
             unreadable_dir = base / "unreadable_dir"
-            write(unreadable_dir / "unreadable.txt", b"cannot read")
-            os.chmod(unreadable_dir / "unreadable.txt", 0o000)
+            forbidden_sub = unreadable_dir / "forbidden_sub"
+            forbidden_sub.mkdir(parents=True, exist_ok=True)
+            write(forbidden_sub / "inner.txt", b"inner")
+            os.chmod(forbidden_sub, 0o000)
             try:
                 for native in (False, True):
                     proc = run_dupe_expect_failure(unreadable_dir, native=native, native_bin=native_bin)
                     mode = "native" if native else "interpreter"
-                    assert proc.returncode != 0, (mode, "unreadable file unexpectedly succeeded")
-                    print(f"PASS: {mode} unreadable-file permission failure")
+                    assert proc.returncode != 0, (mode, "unreadable directory unexpectedly succeeded")
+                    print(f"PASS: {mode} unreadable directory permission failure")
             finally:
-                os.chmod(unreadable_dir / "unreadable.txt", 0o644)
+                os.chmod(forbidden_sub, 0o755)
+
+            unreadable_files_dir = base / "unreadable_files_dir"
+            f1 = unreadable_files_dir / "f1.dat"
+            f2 = unreadable_files_dir / "f2.dat"
+            write(f1, b"duplicate-candidate")
+            write(f2, b"duplicate-candidate")
+            os.chmod(f1, 0o000)
+            try:
+                for native in (False, True):
+                    proc = run_dupe_expect_failure(unreadable_files_dir, native=native, native_bin=native_bin)
+                    mode = "native" if native else "interpreter"
+                    assert proc.returncode != 0, (mode, "unreadable candidate file unexpectedly succeeded")
+                    print(f"PASS: {mode} unreadable candidate file read failure")
+            finally:
+                os.chmod(f1, 0o644)
 
         print("Phase 4 differential correctness PASS")
         print("Phase 4 soundness byte-identity verification PASS")
