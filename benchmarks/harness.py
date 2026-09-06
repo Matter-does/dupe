@@ -544,10 +544,9 @@ class BenchmarkHarness:
         if not bin_path.is_file():
             build_time_ms, _ = self.build_native_binary(self.dupe_source, bin_path)
 
-        # 3. Baseline A: Interpreter (`j2 run --allow-fs src/main.j2 <corpus> --json`)
+        # 3. Baseline A: Interpreter (`j2 --allow-fs src/main.j2 <corpus> --json`)
         interp_cmd = [
             self.j2_bin,
-            "run",
             "--allow-fs",
             str(self.dupe_source),
             str(corpus_path),
@@ -585,7 +584,7 @@ class BenchmarkHarness:
 
         meas_a = BaselineMeasurement(
             baseline_id="Baseline_A_Interpreter",
-            baseline_name="J2 Interpreter (j2 run --allow-fs)",
+            baseline_name="J2 Interpreter (j2 --allow-fs)",
             command_line=interp_cmd,
             environment_vars={},
             timing=interp_timing,
