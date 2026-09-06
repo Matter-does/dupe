@@ -8,7 +8,13 @@ completed:
   - Verified Baseline C ground truth mathematically: 2000001000000
   - Implemented Benchmark Harness (`benchmarks/harness.py`) with machine provenance logging, external wall-clock timing (`time.perf_counter_ns()`), pre-flight corpus verification, output JSON normalization, bit-for-bit direct match verification, and manifest digest validation
   - Implemented CLI runner (`benchmarks/run_baselines.py`) producing machine-readable `baseline_results.json` and GitHub step summary `baseline_report.md`
-  - Created offline unit tests (`tests/test_benchmark_harness.py`) validating timing statistics, throughput rates, provenance schema, ground truth, normalization, and preflight hooks (8/8 PASS)
+  - Remediated OpenCode review blockers B1–B4:
+    - B1: Verified Baseline A invocation `j2 --allow-fs src/main.j2 <corpus> --json`, reconciled specifications, added durable CI argv probe (`benchmarks/probes/verify_argv_probe.py`)
+    - B2: Corrected `bytes_hashed` metric definition to calculate total bytes across all size candidates, added B2 regression test, recomputed MB/s throughput
+    - B3: Made `emit-native` compiler inspection auditable (pattern matching for concurrency primitives with line/context excerpts), purged speculative parallelism prose
+    - B4: Added `--seed` CLI parameter to `run_baselines.py`, verified propagation to corpus generation, recorded effective seed in results
+  - Disclosed C7 generative equivalence to C2 for warm-state cache variance
+  - Created offline unit tests (`tests/test_benchmark_harness.py`, 11/11 PASS)
   - Configured and executed dedicated GitHub Actions workflow (`.github/workflows/t005-baseline-benchmark.yml`) on `macos-15` (Apple Silicon arm64, 3 vCPUs, 7.0 GB RAM)
   - Verified J2 0.1.0 and native compilation (`j2 build src/main.j2 -o build/dupe`) with `J2_ALLOW_FS=1` runtime capability
   - Verified 100% direct JSON match and 100% manifest digest match across all tested standard corpora (C1, C2, C4, C5, C6, C7)
@@ -26,16 +32,16 @@ verification:
   baseline_c_control: pass (ground truth 2000001000000 matched in both interpreter and native, 1.36x speedup)
   corpus_direct_json_match: pass (bit-for-bit identical output across C1, C2, C4, C5, C6, C7)
   corpus_digest_match: pass (100% agreement with manifest expected_result_digest across C1, C2, C4, C5, C6, C7)
-  harness_offline_tests: pass (8/8 tests in tests/test_benchmark_harness.py)
+  harness_offline_tests: pass (11/11 tests in tests/test_benchmark_harness.py)
   corpus_generator_tests: pass (14/14 tests in tests/test_benchmark_corpus.py)
   phase4_offline_tests: pass (tests/phase4_differential.py --offline)
   phase3_source_integrity: pass (git diff origin/main -- src/ is completely empty)
-  git_boundary: clean, prepared for bounded T005 commit
+  git_boundary: clean, prepared for bounded T005 remediation commit
 
 next_action:
-  - Commit bounded T005 changes to main
+  - Commit bounded T005 remediation changes to main
   - Push to origin/main and verify local HEAD == origin/main
-  - Present comprehensive T005 baseline benchmark report
+  - Present comprehensive T005 remediation summary for independent OpenCode review
   - DO NOT start T006 automatically
 
 last_agent: Antigravity

@@ -67,7 +67,7 @@ Every important J2 workload should be testable through:
 
 ```text
 source .j2
-  ├── interpreter execution (j2 run --allow-fs ...)
+  ├── interpreter execution (j2 --allow-fs ...)
   └── native execution (j2 build ... && J2_ALLOW_FS=1 ./build/dupe ...)
 ```
 

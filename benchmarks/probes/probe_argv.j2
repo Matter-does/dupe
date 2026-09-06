@@ -1,0 +1,6 @@
+# probe_argv.j2 — Test CLI argument forwarding in J2
+args = proc.argv()
+print(fmt("ARGV_COUNT:{}", len(args)))
+for a in args {
+    print(fmt("ARG:{}", a))
+}

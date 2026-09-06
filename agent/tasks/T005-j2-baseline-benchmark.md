@@ -16,10 +16,11 @@ Establish rigorous, reproducible execution baselines for `dupe` across J2 execut
 
 ### Baseline A — J2 Interpreter Baseline
 ```bash
-j2 run --allow-fs src/main.j2 <corpus_path> --json
+j2 --allow-fs src/main.j2 <corpus_path> --json
 ```
-- **Execution Engine:** Explicit `j2 run` invocation to guarantee serial interpreted execution without bare-form compiler fallback.
-- **Capabilities:** Explicit `--allow-fs` capability flag.
+- **Execution Engine:** Verified J2 interpreter capability invocation `j2 --allow-fs src/main.j2 <corpus_path> --json`.
+- **CLI Forwarding Contract:** In J2 0.1.0, `j2 run FILE.j2 arg1 arg2` silently drops all trailing arguments following the source file from `proc.argv()`; the verified capability form `j2 [capabilities] FILE.j2 [args...]` correctly forwards trailing arguments to the program.
+- **Scientific Status:** Invocation syntax alone does not prove serial execution or absence of parallel execution; it establishes the verified interpreted execution baseline to compare against the compiled native binary. Proof of runtime multi-core scaling remains an empirical measurement question reserved for T006.
 
 ### Baseline B — J2 Compiled Native Binary
 ```bash
@@ -78,7 +79,7 @@ print(sum(data))
 - Corpus ID and manifest SHA-256
 
 ## Acceptance Criteria
-1. Baseline A (interpreter) measured across standard corpora (C1, C2, C4, C5, C6, C7) using explicit `j2 run --allow-fs`.
+1. Baseline A (interpreter) measured across standard corpora (C1, C2, C4, C5, C6, C7) using verified `j2 --allow-fs src/main.j2`.
 2. Baseline B (compiled native) measured across identical corpora using `build/dupe` with `J2_ALLOW_FS=1`.
 3. Baseline C (concrete pure J2 parallel control) executed to validate multi-core reduction lowering.
 4. Identical corpus trees and manifests used across comparison runs.

@@ -11,6 +11,10 @@ on:
         description: 'Number of measured iterations for filesystem workloads'
         required: false
         default: '3'
+      seed:
+        description: 'PRNG seed for deterministic corpus generation'
+        required: false
+        default: '12345'
   push:
     paths:
       - 'src/**'
@@ -85,22 +89,31 @@ jobs:
           git diff --stat
           git diff --exit-code src/
 
-      - name: Run harness offline tests
+      - name: Verify J2 CLI argv forwarding behavior
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 benchmarks/probes/verify_argv_probe.py
+
+      - name: Run benchmark harness and corpus tests
         shell: bash
         run: |
           set -euo pipefail
           python3 tests/test_benchmark_harness.py -v
+          python3 tests/test_benchmark_corpus.py -v
 
       - name: Run baseline benchmarks (Baseline A, Baseline B, Baseline C)
         shell: bash
         run: |
           set -euo pipefail
           scale="${{ github.event.inputs.scale || '0.01' }}"
+          seed="${{ github.event.inputs.seed || '12345' }}"
           runs="${{ github.event.inputs.runs || '3' }}"
-          echo "Running benchmarks with scale=$scale, runs=$runs..."
+          echo "Running benchmarks with scale=$scale, seed=$seed, runs=$runs..."
           python3 benchmarks/run_baselines.py \
             --corpora C1,C2,C4,C5,C6,C7 \
             --scale "$scale" \
+            --seed "$seed" \
             --runs "$runs" \
             --warmup 1 \
             --control-runs 7 \

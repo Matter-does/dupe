@@ -31,11 +31,12 @@
     - **C5 (Adversarial Same Size, 200 files, 200 candidates):** Interp 474.49 ms vs Native 438.66 ms (**1.08x**)
     - **C6 (Mixed Hierarchy, 100 files, 30 candidates):** Interp 237.31 ms vs Native 214.73 ms (**1.11x**)
     - **C7 (Cache Transition / Warm Runs, 100 files, 30 candidates):** Interp 242.40 ms vs Native 224.92 ms (**1.08x**)
+    - *Topology Note on C7:* Generated with parameters identical to C2; produces byte-identical files for identical seeds. Designed to measure warm-state repeated-run variance over the baseline topology.
 
 - **Compiler Inspection (`j2 emit-native`):**
   - Inspected emitted Rust backend code for both pure control and `dupe` main.
-  - Identifies thread-local global state, `j2_runtime::prelude`, and dynamic value evaluation structures.
-  - Confirms automatic-parallelism constructs lowered by compiler, but runtime wall-clock speedup is constrained by filesystem I/O serialization and thread initialization overhead.
+  - Identifies single-threaded runtime structures: thread-local global state (`thread_local! static GLOBALS`), `j2_runtime::prelude`, and dynamic value evaluation structures (`Rc<RefCell<Env>>`).
+  - No multi-core concurrency primitives (such as `rayon`, `par_iter`, or `thread::spawn`) were detected in the backend emission.
 
 - **Critical Scientific Conclusion:**
   - Native binary speedup over the interpreter is modest (0.98x to 1.23x across filesystem workloads, 1.36x on pure control).

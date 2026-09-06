@@ -42,14 +42,16 @@ All acceptance criteria, baseline measurements, and correctness verifications ha
 - **Native Speedup Factor:** **1.36x**
 
 ### Filesystem Baselines (Baseline A vs Baseline B across C1–C7)
-| Corpus | Scale | Files Scanned | Hash Candidates | Interp Median (ms) | Native Median (ms) | Native Speedup | Direct JSON Match | Manifest Digest Match |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **C1** (Metadata Heavy) | 0.01 | 500 | 122 | 2,624.33 | 2,669.61 | **0.98x** | PASS | PASS |
-| **C2** (Balanced Baseline) | 0.01 | 100 | 30 | 274.61 | 223.07 | **1.23x** | PASS | PASS |
-| **C4** (High Dup Density) | 0.01 | 100 | 80 | 278.15 | 246.33 | **1.13x** | PASS | PASS |
-| **C5** (Adversarial Same Size) | 0.01 | 200 | 200 | 474.49 | 438.66 | **1.08x** | PASS | PASS |
-| **C6** (Mixed Hierarchy) | 0.01 | 100 | 30 | 237.31 | 214.73 | **1.11x** | PASS | PASS |
-| **C7** (Warm Runs Variance) | 0.01 | 100 | 30 | 242.40 | 224.92 | **1.08x** | PASS | PASS |
+| Corpus | Scale | Seed | Files Scanned | Hash Candidates | Interp Median (ms) | Native Median (ms) | Native Speedup | Direct JSON Match | Manifest Digest Match |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **C1** (Metadata Heavy) | 0.01 | 12345 | 500 | 122 | 2,624.33 | 2,669.61 | **0.98x** | PASS | PASS |
+| **C2** (Balanced Baseline) | 0.01 | 12345 | 100 | 30 | 274.61 | 223.07 | **1.23x** | PASS | PASS |
+| **C4** (High Dup Density) | 0.01 | 12345 | 100 | 80 | 278.15 | 246.33 | **1.13x** | PASS | PASS |
+| **C5** (Adversarial Same Size) | 0.01 | 12345 | 200 | 200 | 474.49 | 438.66 | **1.08x** | PASS | PASS |
+| **C6** (Mixed Hierarchy) | 0.01 | 12345 | 100 | 30 | 237.31 | 214.73 | **1.11x** | PASS | PASS |
+| **C7** (Warm Runs Variance) | 0.01 | 12345 | 100 | 30 | 242.40 | 224.92 | **1.08x** | PASS | PASS |
+
+> **Workload Topology Note on C7:** Corpus C7 is generated using parameters identical to C2 (10,000 files, ~1 GB target, 30% duplicate ratio, mixed directory hierarchy). For a given seed, C7 and C2 contain byte-identical files. C7 is designed specifically to measure warm-cache repeated-run variance over the standard baseline topology rather than to serve as an independent workload.
 
 ---
 
@@ -59,8 +61,9 @@ All acceptance criteria, baseline measurements, and correctness verifications ha
    - This speedup reflects compilation to native machine code without interpreter bytecode dispatch overhead.
    - **Native speedup is NOT in itself proof of automatic parallelism.**
 2. **Compiler Backend Inspection (`j2 emit-native`):**
-   - Rust emission reveals thread-local global state (`thread_local! static GLOBALS`), `j2_runtime::prelude`, and dynamic value evaluation structures.
-   - Automatic-parallelism constructs are lowered by the compiler toolchain, but wall-clock speedup is masked by thread pool initialization and filesystem I/O serialization.
+   - Emitted Rust backend code reveals sequential lowering using single-threaded thread-local globals (`thread_local! static GLOBALS`), `j2_runtime::prelude`, and dynamic value evaluation structures (`Rc<RefCell<Env>>`).
+   - No multi-core concurrency primitives (such as `rayon`, `par_iter`, or `thread::spawn`) were detected in the backend emission.
+   - Compiler emission alone does not establish runtime multi-core concurrency; runtime parallelism evaluation is deferred to the T006 experimental ladder.
 3. **Integration Insight (Manifest Isolation):**
    - The T004 reference oracle explicitly excludes `manifest.json` from the corpus payload.
    - `dupe` (`src/scan.j2`) has no ignore patterns and traverses all files in the target directory.

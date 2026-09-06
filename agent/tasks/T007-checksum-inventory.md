@@ -75,7 +75,7 @@ Total files: N, Total bytes: B
 1. **Additive Implementation:** T007 must be added in new additive files (e.g. `src/checksum.j2` or as a secondary entrypoint). It must **NOT** modify or refactor the frozen Phase 3 code in `src/main.j2`, `src/scan.j2`, etc.
 2. **Deterministic Output:** Entries in the inventory ledger must preserve deterministic discovery order (or explicit path sorting).
 3. **Capability Contract:** Standalone compiled native execution requires runtime capability `J2_ALLOW_FS=1`.
-4. **Cross-Mode Equivalence:** Interpreter (`j2 run`) and compiled native binary must produce bit-for-bit identical JSON output.
+4. **Cross-Mode Equivalence:** Interpreter (`j2 --allow-fs`) and compiled native binary must produce bit-for-bit identical JSON output.
 
 ## Acceptance Criteria
 1. Checksum inventory pass implemented additively in J2 without modifying frozen Phase 3 sources.

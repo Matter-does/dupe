@@ -33,6 +33,7 @@ from benchmarks.generator import (
 )
 from benchmarks.generator.manifest import (
     MANIFEST_FILENAME,
+    compute_corpus_candidate_bytes,
     compute_result_digest,
     format_deterministic_json,
 )
@@ -108,20 +109,77 @@ class TestBenchmarkHarness(unittest.TestCase):
         """Verify correct extraction of workload metrics from dupe JSON output."""
         sample_json = {
             "files_scanned": 150,
-            "hash_candidates": 40,
+            "hash_candidates": 5,
             "duplicate_groups": [
                 {"hash": "aaa", "size": 1024, "files": ["f1", "f2"], "reclaimable_bytes": 1024},
                 {"hash": "bbb", "size": 2048, "files": ["f3", "f4", "f5"], "reclaimable_bytes": 4096},
             ],
             "reclaimable_bytes": 5120,
         }
+        # When all candidates belong to duplicate groups (candidate_files == duplicate_files)
         metrics = extract_workload_metrics(sample_json)
         self.assertEqual(metrics.files_scanned, 150)
-        self.assertEqual(metrics.candidate_files, 40)
+        self.assertEqual(metrics.candidate_files, 5)
         self.assertEqual(metrics.duplicate_groups, 2)
         self.assertEqual(metrics.duplicate_files, 5)  # 2 + 3
         self.assertEqual(metrics.reclaimable_bytes, 5120)
         self.assertEqual(metrics.bytes_hashed, (1024 * 2) + (2048 * 3))
+
+    def test_bytes_hashed_includes_all_candidates(self) -> None:
+        """Verify bytes_hashed includes all same-size candidates, including unique ones (B2 regression test)."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            corpus_root = Path(tmp_dir)
+            # 3 files with size 100 bytes (2 duplicates, 1 unique content)
+            # 1 file with size 250 bytes (unique size -> not a candidate)
+            (corpus_root / "f1.txt").write_bytes(b"A" * 100)
+            (corpus_root / "f2.txt").write_bytes(b"A" * 100)
+            (corpus_root / "f3.txt").write_bytes(b"B" * 100)
+            (corpus_root / "f4.txt").write_bytes(b"C" * 250)
+
+            sample_json = {
+                "files_scanned": 4,
+                "hash_candidates": 3,
+                "duplicate_groups": [
+                    {"hash": "aaa", "size": 100, "files": ["f1.txt", "f2.txt"], "reclaimable_bytes": 100}
+                ],
+                "reclaimable_bytes": 100,
+            }
+            cand_bytes = compute_corpus_candidate_bytes(corpus_root)
+            self.assertEqual(cand_bytes, 300)
+
+            # bytes_hashed MUST be 300 (all 3 candidates), NOT 200 (duplicate group files only)
+            metrics = extract_workload_metrics(sample_json, corpus_path=corpus_root)
+            self.assertEqual(metrics.candidate_files, 3)
+            self.assertEqual(metrics.bytes_hashed, 300)
+
+            # Also verify candidate_bytes parameter override
+            metrics_direct = extract_workload_metrics(sample_json, candidate_bytes=cand_bytes)
+            self.assertEqual(metrics_direct.bytes_hashed, 300)
+
+    def test_bytes_hashed_all_candidates_in_duplicate_groups(self) -> None:
+        """Verify bytes_hashed when every candidate belongs to duplicate groups (B2)."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            corpus_root = Path(tmp_dir)
+            (corpus_root / "g1_a.txt").write_bytes(b"X" * 200)
+            (corpus_root / "g1_b.txt").write_bytes(b"X" * 200)
+            (corpus_root / "g2_a.txt").write_bytes(b"Y" * 200)
+            (corpus_root / "g2_b.txt").write_bytes(b"Y" * 200)
+            (corpus_root / "uniq.txt").write_bytes(b"Z" * 500)
+
+            sample_json = {
+                "files_scanned": 5,
+                "hash_candidates": 4,
+                "duplicate_groups": [
+                    {"hash": "xxx", "size": 200, "files": ["g1_a.txt", "g1_b.txt"], "reclaimable_bytes": 200},
+                    {"hash": "yyy", "size": 200, "files": ["g2_a.txt", "g2_b.txt"], "reclaimable_bytes": 200},
+                ],
+                "reclaimable_bytes": 400,
+            }
+            cand_bytes = compute_corpus_candidate_bytes(corpus_root)
+            self.assertEqual(cand_bytes, 800)
+            metrics = extract_workload_metrics(sample_json, corpus_path=corpus_root)
+            self.assertEqual(metrics.candidate_files, 4)
+            self.assertEqual(metrics.bytes_hashed, 800)
 
     def test_output_equivalence_and_digest_verification(self) -> None:
         """Verify JSON output equivalence and digest verification logic."""
@@ -244,6 +302,7 @@ class TestBenchmarkHarness(unittest.TestCase):
             corpus_id="C2",
             corpus_manifest_sha256="b" * 64,
             scale=0.1,
+            seed=12345,
             baseline_a_interpreter=meas_a,
             baseline_b_native=meas_b,
             direct_json_match=True,
@@ -285,6 +344,7 @@ class TestBenchmarkHarness(unittest.TestCase):
         decoded = json.loads(report_json)
         self.assertEqual(decoded["task_id"], "T005")
         self.assertEqual(decoded["corpus_comparisons"][0]["corpus_id"], "C2")
+        self.assertEqual(decoded["corpus_comparisons"][0]["seed"], 12345)
 
         # Verify Markdown formatting
         md = format_markdown_report(report)
@@ -293,6 +353,52 @@ class TestBenchmarkHarness(unittest.TestCase):
         self.assertIn("## Filesystem Workload Baselines", md)
         self.assertIn("### Detailed Throughput Rates", md)
         self.assertIn("## Scientific Findings & Baseline Conclusions", md)
+
+    def test_seed_propagation_and_provenance(self) -> None:
+        """Verify --seed parameter propagation and effective seed recording in comparison result (B4)."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            dir_a = Path(tmp_dir) / "corpus_a"
+            dir_b = Path(tmp_dir) / "corpus_b"
+
+            # Generate with different seeds
+            _, manifest_a = generate_corpus(C2_PROFILE, dir_a, seed=12345, scale=0.01)
+            _, manifest_b = generate_corpus(C2_PROFILE, dir_b, seed=99999, scale=0.01)
+
+            self.assertEqual(manifest_a.seed, 12345)
+            self.assertEqual(manifest_b.seed, 99999)
+
+            # Changing the seed must produce different expected_result_digest
+            self.assertNotEqual(manifest_a.expected_result_digest, manifest_b.expected_result_digest)
+
+            # Verify CorpusComparisonResult preserves seed
+            meas = BaselineMeasurement(
+                baseline_id="Baseline_A_Interpreter",
+                baseline_name="Interpreter",
+                command_line=["j2"],
+                environment_vars={},
+                timing=calculate_timing_statistics([10.0]),
+            )
+            comp = CorpusComparisonResult(
+                corpus_id="C2",
+                corpus_manifest_sha256="c" * 64,
+                scale=0.01,
+                seed=manifest_b.seed,
+                baseline_a_interpreter=meas,
+                baseline_b_native=meas,
+                direct_json_match=True,
+                digest_matches_manifest=True,
+                expected_digest="d" * 64,
+                actual_digest="d" * 64,
+                native_speedup_factor=1.0,
+                files_per_sec_interpreter=100.0,
+                files_per_sec_native=100.0,
+                candidates_per_sec_interpreter=10.0,
+                candidates_per_sec_native=10.0,
+                mb_per_sec_interpreter=1.0,
+                mb_per_sec_native=1.0,
+            )
+            self.assertEqual(comp.seed, 99999)
+            self.assertEqual(comp.to_dict()["seed"], 99999)
 
 
 if __name__ == "__main__":

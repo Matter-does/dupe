@@ -36,6 +36,7 @@ if str(_REPO_ROOT) not in sys.path:
 from benchmarks.generator.manifest import (
     MANIFEST_FILENAME,
     Manifest,
+    compute_corpus_candidate_bytes,
     compute_result_digest,
     format_deterministic_json,
     validate_manifest,
@@ -283,9 +284,17 @@ class BaselineWorkloadMetrics:
 
 
 def extract_workload_metrics(
-    parsed_json: dict[str, Any], corpus_manifest: Optional[Manifest] = None
+    parsed_json: dict[str, Any],
+    corpus_manifest: Optional[Manifest] = None,
+    corpus_path: Optional[Path] = None,
+    candidate_bytes: Optional[int] = None,
 ) -> BaselineWorkloadMetrics:
-    """Extract standard workload metrics from dupe JSON output and optional manifest."""
+    """Extract standard workload metrics from dupe JSON output and corpus data.
+
+    bytes_hashed is the total bytes processed by SHA-256 hashing after size-based candidate reduction.
+    All same-size candidates (files sharing a size with >= 1 other file) are hashed, including
+    unique candidates that do not form duplicate groups.
+    """
     files_scanned = int(parsed_json.get("files_scanned", 0))
     candidate_files = int(parsed_json.get("hash_candidates", 0))
     groups = parsed_json.get("duplicate_groups", [])
@@ -293,13 +302,18 @@ def extract_workload_metrics(
     duplicate_files = sum(len(g.get("files", [])) for g in groups)
     reclaimable_bytes = int(parsed_json.get("reclaimable_bytes", 0))
 
-    # Calculate total bytes hashed
-    if corpus_manifest is not None and candidate_files == corpus_manifest.same_size_candidate_files:
-        # In exact candidate reduction, all candidates are read and hashed
-        # If all files are candidates (like C5), bytes_hashed = total_bytes
-        # Otherwise sum from duplicate groups + unique same-size files
-        bytes_hashed = sum(g.get("size", 0) * len(g.get("files", [])) for g in groups)
+    if candidate_bytes is not None:
+        bytes_hashed = candidate_bytes
+    elif corpus_path is not None and Path(corpus_path).is_dir():
+        bytes_hashed = compute_corpus_candidate_bytes(Path(corpus_path))
+    elif (
+        corpus_manifest is not None
+        and corpus_manifest.size_profile == "same_size_adversarial"
+        and candidate_files == corpus_manifest.same_size_candidate_files == corpus_manifest.file_count
+    ):
+        bytes_hashed = corpus_manifest.total_bytes
     else:
+        # Fallback when candidate files are identical to duplicate files
         bytes_hashed = sum(g.get("size", 0) * len(g.get("files", [])) for g in groups)
 
     return BaselineWorkloadMetrics(
@@ -368,6 +382,7 @@ class CorpusComparisonResult:
     corpus_id: str
     corpus_manifest_sha256: str
     scale: float
+    seed: int
     baseline_a_interpreter: BaselineMeasurement
     baseline_b_native: BaselineMeasurement
     direct_json_match: bool
@@ -569,6 +584,9 @@ class BenchmarkHarness:
         manifest_file = corpus_path / MANIFEST_FILENAME
         manifest_sha256 = hashlib.sha256(manifest_file.read_bytes()).hexdigest()
 
+        # Compute total bytes of all candidate files before temporary manifest isolation
+        candidate_bytes = compute_corpus_candidate_bytes(corpus_path)
+
         # 2. Prepare native binary if not provided
         bin_path = native_binary_path or (self.build_dir / "dupe")
         build_time_ms: Optional[float] = None
@@ -629,7 +647,12 @@ class BenchmarkHarness:
             interp_digest = compute_result_digest(interp_json)
             norm_interp_json = normalize_dupe_output_paths(interp_json, corpus_path)
             norm_interp_digest = compute_result_digest(norm_interp_json)
-            interp_metrics = extract_workload_metrics(interp_json, corpus_manifest=manifest)
+            interp_metrics = extract_workload_metrics(
+                interp_json,
+                corpus_manifest=manifest,
+                corpus_path=corpus_path,
+                candidate_bytes=candidate_bytes,
+            )
 
             meas_a = BaselineMeasurement(
                 baseline_id="Baseline_A_Interpreter",
@@ -686,7 +709,12 @@ class BenchmarkHarness:
             native_digest = compute_result_digest(native_json)
             norm_native_json = normalize_dupe_output_paths(native_json, corpus_path)
             norm_native_digest = compute_result_digest(norm_native_json)
-            native_metrics = extract_workload_metrics(native_json, corpus_manifest=manifest)
+            native_metrics = extract_workload_metrics(
+                native_json,
+                corpus_manifest=manifest,
+                corpus_path=corpus_path,
+                candidate_bytes=candidate_bytes,
+            )
 
             meas_b = BaselineMeasurement(
                 baseline_id="Baseline_B_Native",
@@ -749,6 +777,7 @@ class BenchmarkHarness:
                 corpus_id=manifest.corpus_id,
                 corpus_manifest_sha256=manifest_sha256,
                 scale=manifest.scale,
+                seed=manifest.seed,
                 baseline_a_interpreter=meas_a,
                 baseline_b_native=meas_b,
                 direct_json_match=direct_match,

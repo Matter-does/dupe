@@ -231,6 +231,26 @@ def compute_oracle_result(corpus_root: Path) -> dict[str, Any]:
     }
 
 
+def compute_corpus_candidate_bytes(corpus_root: Path) -> int:
+    """Compute total bytes of all candidate files (files whose size matches at least one other file).
+
+    Per dupe duplicate-detection pipeline:
+    1. discover files
+    2. metadata (size)
+    3. group by size; size groups with >= 2 files become hash candidates
+    4. every candidate file is hashed
+    5. hash results are grouped into duplicate groups
+
+    Therefore, bytes_hashed is the sum of sizes of ALL candidates that undergo hashing,
+    including unique candidates whose size happened to match another file.
+    """
+    files = discover_corpus_files(corpus_root)
+    by_size: dict[int, list[Path]] = {}
+    for path in files:
+        by_size.setdefault(path.stat().st_size, []).append(path)
+    return sum(p.stat().st_size for p in files if len(by_size[p.stat().st_size]) >= 2)
+
+
 def format_deterministic_json(oracle_result: dict[str, Any]) -> str:
     """Format oracle result into the exact compact deterministic JSON string
     emitted by dupe (zero whitespace around separators)."""

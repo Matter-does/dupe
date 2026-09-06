@@ -352,9 +352,9 @@ Every generated corpus must output a machine-readable JSON manifest alongside th
 T005 establishes three distinct baselines on `macos-15` (arm64):
 1. **Baseline A — J2 Interpreter Baseline:**
    ```bash
-   j2 run --allow-fs src/main.j2 <corpus_path> --json
+   j2 --allow-fs src/main.j2 <corpus_path> --json
    ```
-   *Note:* Uses explicit `j2 run` to guarantee interpreted serial execution.
+   *Note:* Uses verified `j2 --allow-fs` invocation (in J2 0.1.0, `j2 run FILE ...` drops trailing arguments).
 2. **Baseline B — Compiled Native Baseline:**
    ```bash
    j2 build src/main.j2 -o build/dupe

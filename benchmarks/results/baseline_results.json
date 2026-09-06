@@ -121,7 +121,7 @@
         "metrics": {
           "files_scanned": 500,
           "candidate_files": 122,
-          "bytes_hashed": 108485,
+          "bytes_hashed": 509640,
           "duplicate_groups": 10,
           "duplicate_files": 25,
           "reclaimable_bytes": 65492
@@ -160,7 +160,7 @@
         "metrics": {
           "files_scanned": 500,
           "candidate_files": 122,
-          "bytes_hashed": 108485,
+          "bytes_hashed": 509640,
           "duplicate_groups": 10,
           "duplicate_files": 25,
           "reclaimable_bytes": 65492
@@ -179,8 +179,9 @@
       "files_per_sec_native": 187.29,
       "candidates_per_sec_interpreter": 46.49,
       "candidates_per_sec_native": 45.7,
-      "mb_per_sec_interpreter": 0.04,
-      "mb_per_sec_native": 0.04
+      "mb_per_sec_interpreter": 0.19,
+      "mb_per_sec_native": 0.18,
+      "seed": 12345
     },
     {
       "corpus_id": "C2",
@@ -274,7 +275,8 @@
       "candidates_per_sec_interpreter": 109.25,
       "candidates_per_sec_native": 134.49,
       "mb_per_sec_interpreter": 8.31,
-      "mb_per_sec_native": 10.23
+      "mb_per_sec_native": 10.23,
+      "seed": 12345
     },
     {
       "corpus_id": "C4",
@@ -368,7 +370,8 @@
       "candidates_per_sec_interpreter": 287.61,
       "candidates_per_sec_native": 324.77,
       "mb_per_sec_interpreter": 27.88,
-      "mb_per_sec_native": 31.48
+      "mb_per_sec_native": 31.48,
+      "seed": 12345
     },
     {
       "corpus_id": "C5",
@@ -403,7 +406,7 @@
         "metrics": {
           "files_scanned": 200,
           "candidate_files": 200,
-          "bytes_hashed": 3145680,
+          "bytes_hashed": 10485600,
           "duplicate_groups": 23,
           "duplicate_files": 60,
           "reclaimable_bytes": 1939836
@@ -442,7 +445,7 @@
         "metrics": {
           "files_scanned": 200,
           "candidate_files": 200,
-          "bytes_hashed": 3145680,
+          "bytes_hashed": 10485600,
           "duplicate_groups": 23,
           "duplicate_files": 60,
           "reclaimable_bytes": 1939836
@@ -461,8 +464,9 @@
       "files_per_sec_native": 455.94,
       "candidates_per_sec_interpreter": 421.51,
       "candidates_per_sec_native": 455.94,
-      "mb_per_sec_interpreter": 6.32,
-      "mb_per_sec_native": 6.84
+      "mb_per_sec_interpreter": 21.08,
+      "mb_per_sec_native": 22.8,
+      "seed": 12345
     },
     {
       "corpus_id": "C6",
@@ -556,7 +560,8 @@
       "candidates_per_sec_interpreter": 126.42,
       "candidates_per_sec_native": 139.71,
       "mb_per_sec_interpreter": 9.62,
-      "mb_per_sec_native": 10.63
+      "mb_per_sec_native": 10.63,
+      "seed": 12345
     },
     {
       "corpus_id": "C7",
@@ -650,21 +655,35 @@
       "candidates_per_sec_interpreter": 123.76,
       "candidates_per_sec_native": 133.38,
       "mb_per_sec_interpreter": 9.41,
-      "mb_per_sec_native": 10.15
+      "mb_per_sec_native": 10.15,
+      "seed": 12345
     }
   ],
   "compiler_inspection": {
-    "dupe_main_emission_sample": "\nuse j2_runtime::prelude::*;\nuse j2_runtime::value::{J2Value, J2Func, J2FuncClause};\nuse j2_runtime::error::{J2Err, J2ErrKind, J2Result};\nuse j2_runtime::flow::J2Flow;\n#[allow(unused_imports)]\nuse j2_runtime::convert::*;\nuse std::cell::RefCell;\nuse std::collections::HashMap;\nuse std::rc::Rc;\n\n#[derive(Clone)]\nstruct Env {\n    table: HashMap<String, (J2Value, bool)>,\n    /// Names actually *declared* in this scope (vs inherited from GLOBALS /\n    /// builtins, which are copied into `table`). A binding shadows an\n    /// inherited name freely; only re-binding a name already in `locals` is\n    /// subject to the constant-reassignment rule. This lets a function-local\n    /// `x = \u2026` shadow a same-named top-level constant.\n    locals: std::collections::HashSet<String>,\n}\n\ntype EnvRef = Rc<RefCell<Env>>;\n\nthread_local! {\n    /// Global registry of user-defined top-level bindings (funcs + globals).\n    /// Function bodies seed their fresh envs from this so recursion and\n    /// cross-function calls work without lexical capture.\n    static GLOBALS: RefCell<HashMap<String, (J2Value, bool)>> = RefCell::new(HashMap::new());\n    /// Carries the value of a `give` (early return) while the GiveSi",
-    "pure_control_emission_sample": "\nuse j2_runtime::prelude::*;\nuse j2_runtime::value::{J2Value, J2Func, J2FuncClause};\nuse j2_runtime::error::{J2Err, J2ErrKind, J2Result};\nuse j2_runtime::flow::J2Flow;\n#[allow(unused_imports)]\nuse j2_runtime::convert::*;\nuse std::cell::RefCell;\nuse std::collections::HashMap;\nuse std::rc::Rc;\n\n#[derive(Clone)]\nstruct Env {\n    table: HashMap<String, (J2Value, bool)>,\n    /// Names actually *declared* in this scope (vs inherited from GLOBALS /\n    /// builtins, which are copied into `table`). A binding shadows an\n    /// inherited name freely; only re-binding a name already in `locals` is\n    /// subject to the constant-reassignment rule. This lets a function-local\n    /// `x = \u2026` shadow a same-named top-level constant.\n    locals: std::collections::HashSet<String>,\n}\n\ntype EnvRef = Rc<RefCell<Env>>;\n\nthread_local! {\n    /// Global registry of user-defined top-level bindings (funcs + globals).\n    /// Function bodies seed their fresh envs from this so recursion and\n    /// cross-function calls work without lexical capture.\n    static GLOBALS: RefCell<HashMap<String, (J2Value, bool)>> = RefCell::new(HashMap::new());\n    /// Carries the value of a `give` (early return) while the GiveSi",
-    "pure_control_has_parallel_constructs": true,
-    "dupe_main_has_parallel_constructs": true
+    "dupe_main": {
+      "source_name": "src/main.j2",
+      "has_parallel_constructs": false,
+      "matched_constructs": [],
+      "evidence_excerpts": [],
+      "emission_sample": "use j2_runtime::prelude::*;\nuse j2_runtime::value::{J2Value, J2Func, J2FuncClause};\nuse j2_runtime::error::{J2Err, J2ErrKind, J2Result};\nuse j2_runtime::flow::J2Flow;\n#[allow(unused_imports)]\nuse j2_runtime::convert::*;\nuse std::cell::RefCell;\nuse std::collections::HashMap;\nuse std::rc::Rc;\n\n#[derive(Clone)]\nstruct Env {\n    table: HashMap<String, (J2Value, bool)>,\n    locals: std::collections::HashSet<String>,\n}\n\ntype EnvRef = Rc<RefCell<Env>>;\n\nthread_local! {\n    static GLOBALS: RefCell<HashMap<String, (J2Value, bool)>> = RefCell::new(HashMap::new());",
+      "note": "Compiler emission reflects structural backend source; multi-core execution requires runtime verification."
+    },
+    "pure_control": {
+      "source_name": "benchmarks/controls/pure_control.j2",
+      "has_parallel_constructs": false,
+      "matched_constructs": [],
+      "evidence_excerpts": [],
+      "emission_sample": "use j2_runtime::prelude::*;\nuse j2_runtime::value::{J2Value, J2Func, J2FuncClause};\nuse j2_runtime::error::{J2Err, J2ErrKind, J2Result};\nuse j2_runtime::flow::J2Flow;\n#[allow(unused_imports)]\nuse j2_runtime::convert::*;\nuse std::cell::RefCell;\nuse std::collections::HashMap;\nuse std::rc::Rc;\n\n#[derive(Clone)]\nstruct Env {\n    table: HashMap<String, (J2Value, bool)>,\n    locals: std::collections::HashSet<String>,\n}\n\ntype EnvRef = Rc<RefCell<Env>>;\n\nthread_local! {\n    static GLOBALS: RefCell<HashMap<String, (J2Value, bool)>> = RefCell::new(HashMap::new());",
+      "note": "Compiler emission reflects structural backend source; multi-core execution requires runtime verification."
+    }
   },
   "summary_conclusions": [
     "Interpreter baseline (Baseline A) and native binary baseline (Baseline B) successfully established on macOS Apple Silicon.",
     "Bit-for-bit JSON equivalence between interpreter and native execution holds across all measured standard corpora.",
     "Computed JSON digests strictly match T004 manifest expected_result_digest, verifying algorithm soundness and determinism.",
     "Baseline C pure J2 control (2,000,000 element integer reduction) successfully executes with verified ground-truth output (2000001000000).",
-    "CRITICAL SCIENTIFIC DISTINCTION: Native binary speedup over interpreter reflects unboxed native CPU execution and absence of interpreter dispatch overhead. Native-vs-interpreter speed difference is NOT in itself proof of automatic parallelism."
+    "CRITICAL SCIENTIFIC DISTINCTION: Native binary speedup over interpreter reflects unboxed native CPU execution and absence of interpreter dispatch overhead. Native-vs-interpreter speed difference is NOT in itself proof of automatic parallelism.",
+    "Compiler backend inspection of `j2 emit-native` shows sequential lowering with thread-local storage (`thread_local! static GLOBALS`); no multi-core primitives (such as rayon, par_iter, or thread::spawn) were detected."
   ],
   "unresolved_limitations": [
     "Internal stage timing (T_discovery, T_hash, T_group) remains deferred pending verified J2 timing runtime API.",
