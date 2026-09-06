@@ -49,6 +49,7 @@ from benchmarks.harness import (
     calculate_timing_statistics,
     collect_platform_provenance,
     extract_workload_metrics,
+    normalize_dupe_output_paths,
 )
 from benchmarks.run_baselines import format_markdown_report
 
@@ -141,6 +142,49 @@ class TestBenchmarkHarness(unittest.TestCase):
 
         self.assertEqual(dig_a, dig_b)
         self.assertNotEqual(dig_a, dig_c)
+
+    def test_normalize_dupe_output_paths(self) -> None:
+        """Verify normalization of absolute or cwd-prefixed paths to POSIX paths relative to corpus root."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            corpus_root = Path(tmp_dir) / "test_corpus"
+            corpus_root.mkdir(parents=True, exist_ok=True)
+            f1 = corpus_root / "dir_00" / "file_01.dat"
+            f2 = corpus_root / "dir_01" / "file_02.dat"
+
+            sample_json = {
+                "files_scanned": 10,
+                "hash_candidates": 2,
+                "duplicate_groups": [
+                    {
+                        "hash": "abcd1234ef",
+                        "size": 1024,
+                        "files": [str(f1), str(f2)],
+                        "reclaimable_bytes": 1024,
+                    }
+                ],
+                "reclaimable_bytes": 1024,
+            }
+
+            normalized = normalize_dupe_output_paths(sample_json, corpus_root)
+            norm_files = normalized["duplicate_groups"][0]["files"]
+            self.assertEqual(norm_files, ["dir_00/file_01.dat", "dir_01/file_02.dat"])
+
+            # Verify that relative paths also normalize cleanly
+            sample_rel_json = {
+                "files_scanned": 10,
+                "hash_candidates": 2,
+                "duplicate_groups": [
+                    {
+                        "hash": "abcd1234ef",
+                        "size": 1024,
+                        "files": ["dir_00/file_01.dat", "dir_01/file_02.dat"],
+                        "reclaimable_bytes": 1024,
+                    }
+                ],
+                "reclaimable_bytes": 1024,
+            }
+            normalized_rel = normalize_dupe_output_paths(sample_rel_json, corpus_root)
+            self.assertEqual(normalized_rel["duplicate_groups"][0]["files"], ["dir_00/file_01.dat", "dir_01/file_02.dat"])
 
     def test_corpus_verification_preflight(self) -> None:
         """Verify harness pre-flight corpus verification detects valid and tampered trees."""

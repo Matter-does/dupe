@@ -91,40 +91,6 @@ jobs:
           set -euo pipefail
           python3 tests/test_benchmark_harness.py -v
 
-      - name: Probe J2 CLI argv behavior
-        shell: bash
-        run: |
-          set +e
-          echo "=== 1. J2 CLI Help ==="
-          j2 --help
-          echo "=== 2. J2 run Help ==="
-          j2 run --help
-          echo "=== 3. Probe proc.argv() ==="
-          printf 'print("ARGV:", proc.argv())\n' > "$RUNNER_TEMP/probe_argv.j2"
-          echo "Test A: j2 run --allow-fs probe_argv.j2 foo bar"
-          j2 run --allow-fs "$RUNNER_TEMP/probe_argv.j2" foo bar
-          echo "Test B: j2 --allow-fs run probe_argv.j2 foo bar"
-          j2 --allow-fs run "$RUNNER_TEMP/probe_argv.j2" foo bar
-          echo "Test C: j2 --allow-fs probe_argv.j2 foo bar"
-          j2 --allow-fs "$RUNNER_TEMP/probe_argv.j2" foo bar
-          echo "=== 4. Test main.j2 execution ==="
-          mkdir -p "$RUNNER_TEMP/testdir"
-          echo "hello" > "$RUNNER_TEMP/testdir/file1.txt"
-          echo "4a: j2 run --allow-fs src/main.j2 $RUNNER_TEMP/testdir --json"
-          j2 run --allow-fs src/main.j2 "$RUNNER_TEMP/testdir" --json
-          echo "4b: j2 --allow-fs run src/main.j2 $RUNNER_TEMP/testdir --json"
-          j2 --allow-fs run src/main.j2 "$RUNNER_TEMP/testdir" --json
-          echo "4c: j2 --allow-fs src/main.j2 $RUNNER_TEMP/testdir --json"
-          j2 --allow-fs src/main.j2 "$RUNNER_TEMP/testdir" --json
-          echo "=== 5. Test C1 mini generation and direct execution ==="
-          python3 benchmarks/generator/generate.py --corpus C1 --scale 0.01 --out-dir "$RUNNER_TEMP/c1_probe"
-          echo "5a. Interpreter execution:"
-          time j2 --allow-fs src/main.j2 "$RUNNER_TEMP/c1_probe" --json
-          echo "5b. Native build and execution:"
-          mkdir -p build
-          j2 build src/main.j2 -o build/dupe
-          time J2_ALLOW_FS=1 ./build/dupe "$RUNNER_TEMP/c1_probe" --json
-
       - name: Run baseline benchmarks (Baseline A, Baseline B, Baseline C)
         shell: bash
         run: |

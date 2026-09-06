@@ -312,6 +312,37 @@ def extract_workload_metrics(
     )
 
 
+def normalize_dupe_output_paths(
+    dupe_json: dict[str, Any], corpus_root: Path
+) -> dict[str, Any]:
+    """Normalize file paths in dupe JSON output to POSIX paths relative to corpus_root.
+
+    This matches the reference oracle representation used to compute
+    manifest.expected_result_digest, allowing deterministic digest comparison
+    independent of absolute working directory prefixes.
+    """
+    resolved_root = corpus_root.resolve()
+    normalized = dict(dupe_json)
+    normalized_groups = []
+    for group in dupe_json.get("duplicate_groups", []):
+        g = dict(group)
+        norm_files = []
+        for f in group.get("files", []):
+            p = Path(f).resolve()
+            try:
+                rel = p.relative_to(resolved_root).as_posix()
+            except ValueError:
+                try:
+                    rel = (corpus_root / f).resolve().relative_to(resolved_root).as_posix()
+                except Exception:
+                    rel = Path(f).as_posix()
+            norm_files.append(rel)
+        g["files"] = norm_files
+        normalized_groups.append(g)
+    normalized["duplicate_groups"] = normalized_groups
+    return normalized
+
+
 @dataclass
 class BaselineMeasurement:
     """Full benchmark measurement for a single baseline execution leg."""
@@ -587,6 +618,8 @@ class BenchmarkHarness:
                 f"returncode: {interp_last_res.returncode if interp_last_res else 'none'}"
             ) from exc
         interp_digest = compute_result_digest(interp_json)
+        norm_interp_json = normalize_dupe_output_paths(interp_json, corpus_path)
+        norm_interp_digest = compute_result_digest(norm_interp_json)
         interp_metrics = extract_workload_metrics(interp_json, corpus_manifest=manifest)
 
         meas_a = BaselineMeasurement(
@@ -596,7 +629,7 @@ class BenchmarkHarness:
             environment_vars={},
             timing=interp_timing,
             metrics=interp_metrics,
-            output_digest=interp_digest,
+            output_digest=norm_interp_digest,
             success=True,
         )
 
@@ -642,6 +675,8 @@ class BenchmarkHarness:
                 f"returncode: {native_last_res.returncode if native_last_res else 'none'}"
             ) from exc
         native_digest = compute_result_digest(native_json)
+        norm_native_json = normalize_dupe_output_paths(native_json, corpus_path)
+        norm_native_digest = compute_result_digest(norm_native_json)
         native_metrics = extract_workload_metrics(native_json, corpus_manifest=manifest)
 
         meas_b = BaselineMeasurement(
@@ -651,7 +686,7 @@ class BenchmarkHarness:
             environment_vars=native_env,
             timing=native_timing,
             metrics=native_metrics,
-            output_digest=native_digest,
+            output_digest=norm_native_digest,
             build_time_ms=build_time_ms,
             success=True,
         )
@@ -662,8 +697,8 @@ class BenchmarkHarness:
             or format_deterministic_json(interp_json) == format_deterministic_json(native_json)
         )
         digest_matches = (
-            interp_digest == manifest.expected_result_digest
-            and native_digest == manifest.expected_result_digest
+            norm_interp_digest == manifest.expected_result_digest
+            and norm_native_digest == manifest.expected_result_digest
         )
 
         if not direct_match:
@@ -675,7 +710,7 @@ class BenchmarkHarness:
         if not digest_matches:
             raise ValueError(
                 f"Soundness violation on {corpus_path.name}: "
-                f"Actual digest {native_digest} does not match expected {manifest.expected_result_digest}!"
+                f"Actual normalized digest {norm_native_digest} does not match expected {manifest.expected_result_digest}!"
             )
 
         # 6. Derived throughput rates (using median wall time in seconds)
@@ -710,7 +745,7 @@ class BenchmarkHarness:
             direct_json_match=direct_match,
             digest_matches_manifest=digest_matches,
             expected_digest=manifest.expected_result_digest,
-            actual_digest=native_digest,
+            actual_digest=norm_native_digest,
             native_speedup_factor=speedup,
             files_per_sec_interpreter=files_sec_a,
             files_per_sec_native=files_sec_b,
