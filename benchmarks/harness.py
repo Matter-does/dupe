@@ -575,182 +575,194 @@ class BenchmarkHarness:
         if not bin_path.is_file():
             build_time_ms, _ = self.build_native_binary(self.dupe_source, bin_path)
 
-        # 3. Baseline A: Interpreter (`j2 --allow-fs src/main.j2 <corpus> --json`)
-        interp_cmd = [
-            self.j2_bin,
-            "--allow-fs",
-            str(self.dupe_source),
-            str(corpus_path),
-            "--json",
-        ]
+        # Temporarily isolate manifest.json outside the benchmarked directory so dupe measures
+        # strictly the corpus payload as defined by the reference oracle (which excludes manifest.json)
+        manifest_temp = corpus_path.parent / f".{corpus_path.name}_{MANIFEST_FILENAME}.tmp"
+        manifest_isolated = False
+        if manifest_file.is_file():
+            shutil.move(str(manifest_file), str(manifest_temp))
+            manifest_isolated = True
 
-        for w_i in range(warmup_runs):
-            w_res = execute_command_with_timing(interp_cmd, timeout_s=self.timeout_s)
-            if w_res.returncode != 0:
-                raise RuntimeError(
-                    f"Baseline A (interpreter) warmup run {w_i+1}/{warmup_runs} failed on {corpus_path.name} "
-                    f"(code {w_res.returncode}, time {w_res.wall_time_ms:.1f}ms):\n{w_res.stderr or w_res.error}"
-                )
-
-        interp_times: list[float] = []
-        interp_last_res: Optional[RunExecutionResult] = None
-        for m_i in range(measured_runs):
-            res = execute_command_with_timing(interp_cmd, timeout_s=self.timeout_s)
-            if res.returncode != 0:
-                raise RuntimeError(
-                    f"Baseline A (interpreter) measured run {m_i+1}/{measured_runs} failed on {corpus_path.name} "
-                    f"(code {res.returncode}, time {res.wall_time_ms:.1f}ms):\n{res.stderr or res.error}"
-                )
-            interp_times.append(res.wall_time_ms)
-            interp_last_res = res
-
-        interp_timing = calculate_timing_statistics(interp_times, warmup_runs=warmup_runs)
-        interp_json_str = interp_last_res.stdout.strip() if interp_last_res else ""
         try:
-            interp_json = json.loads(interp_json_str)
-        except json.JSONDecodeError as exc:
-            raise ValueError(
-                f"Baseline A (interpreter) returned invalid JSON on {corpus_path.name}:\n"
-                f"cmd: {interp_cmd}\n"
-                f"duration_ms: {interp_last_res.wall_time_ms if interp_last_res else 'none'}\n"
-                f"stdout: {repr(interp_last_res.stdout if interp_last_res else '')}\n"
-                f"stderr: {repr(interp_last_res.stderr if interp_last_res else '')}\n"
-                f"returncode: {interp_last_res.returncode if interp_last_res else 'none'}"
-            ) from exc
-        interp_digest = compute_result_digest(interp_json)
-        norm_interp_json = normalize_dupe_output_paths(interp_json, corpus_path)
-        norm_interp_digest = compute_result_digest(norm_interp_json)
-        interp_metrics = extract_workload_metrics(interp_json, corpus_manifest=manifest)
+            # 3. Baseline A: Interpreter (`j2 --allow-fs src/main.j2 <corpus> --json`)
+            interp_cmd = [
+                self.j2_bin,
+                "--allow-fs",
+                str(self.dupe_source),
+                str(corpus_path),
+                "--json",
+            ]
 
-        meas_a = BaselineMeasurement(
-            baseline_id="Baseline_A_Interpreter",
-            baseline_name="J2 Interpreter (j2 --allow-fs)",
-            command_line=interp_cmd,
-            environment_vars={},
-            timing=interp_timing,
-            metrics=interp_metrics,
-            output_digest=norm_interp_digest,
-            success=True,
-        )
+            for w_i in range(warmup_runs):
+                w_res = execute_command_with_timing(interp_cmd, timeout_s=self.timeout_s)
+                if w_res.returncode != 0:
+                    raise RuntimeError(
+                        f"Baseline A (interpreter) warmup run {w_i+1}/{warmup_runs} failed on {corpus_path.name} "
+                        f"(code {w_res.returncode}, time {w_res.wall_time_ms:.1f}ms):\n{w_res.stderr or w_res.error}"
+                    )
 
-        # 4. Baseline B: Compiled Native (`J2_ALLOW_FS=1 ./build/dupe <corpus> --json`)
-        native_cmd = [str(bin_path), str(corpus_path), "--json"]
-        native_env = {"J2_ALLOW_FS": "1"}
+            interp_times: list[float] = []
+            interp_last_res: Optional[RunExecutionResult] = None
+            for m_i in range(measured_runs):
+                res = execute_command_with_timing(interp_cmd, timeout_s=self.timeout_s)
+                if res.returncode != 0:
+                    raise RuntimeError(
+                        f"Baseline A (interpreter) measured run {m_i+1}/{measured_runs} failed on {corpus_path.name} "
+                        f"(code {res.returncode}, time {res.wall_time_ms:.1f}ms):\n{res.stderr or res.error}"
+                    )
+                interp_times.append(res.wall_time_ms)
+                interp_last_res = res
 
-        for w_i in range(warmup_runs):
-            w_res = execute_command_with_timing(
-                native_cmd, env=native_env, timeout_s=self.timeout_s
+            interp_timing = calculate_timing_statistics(interp_times, warmup_runs=warmup_runs)
+            interp_json_str = interp_last_res.stdout.strip() if interp_last_res else ""
+            try:
+                interp_json = json.loads(interp_json_str)
+            except json.JSONDecodeError as exc:
+                raise ValueError(
+                    f"Baseline A (interpreter) returned invalid JSON on {corpus_path.name}:\n"
+                    f"cmd: {interp_cmd}\n"
+                    f"duration_ms: {interp_last_res.wall_time_ms if interp_last_res else 'none'}\n"
+                    f"stdout: {repr(interp_last_res.stdout if interp_last_res else '')}\n"
+                    f"stderr: {repr(interp_last_res.stderr if interp_last_res else '')}\n"
+                    f"returncode: {interp_last_res.returncode if interp_last_res else 'none'}"
+                ) from exc
+            interp_digest = compute_result_digest(interp_json)
+            norm_interp_json = normalize_dupe_output_paths(interp_json, corpus_path)
+            norm_interp_digest = compute_result_digest(norm_interp_json)
+            interp_metrics = extract_workload_metrics(interp_json, corpus_manifest=manifest)
+
+            meas_a = BaselineMeasurement(
+                baseline_id="Baseline_A_Interpreter",
+                baseline_name="J2 Interpreter (j2 --allow-fs)",
+                command_line=interp_cmd,
+                environment_vars={},
+                timing=interp_timing,
+                metrics=interp_metrics,
+                output_digest=norm_interp_digest,
+                success=True,
             )
-            if w_res.returncode != 0:
-                raise RuntimeError(
-                    f"Baseline B (native) warmup run {w_i+1}/{warmup_runs} failed on {corpus_path.name} "
-                    f"(code {w_res.returncode}, time {w_res.wall_time_ms:.1f}ms):\n{w_res.stderr or w_res.error}"
+
+            # 4. Baseline B: Compiled Native (`J2_ALLOW_FS=1 ./build/dupe <corpus> --json`)
+            native_cmd = [str(bin_path), str(corpus_path), "--json"]
+            native_env = {"J2_ALLOW_FS": "1"}
+
+            for w_i in range(warmup_runs):
+                w_res = execute_command_with_timing(
+                    native_cmd, env=native_env, timeout_s=self.timeout_s
+                )
+                if w_res.returncode != 0:
+                    raise RuntimeError(
+                        f"Baseline B (native) warmup run {w_i+1}/{warmup_runs} failed on {corpus_path.name} "
+                        f"(code {w_res.returncode}, time {w_res.wall_time_ms:.1f}ms):\n{w_res.stderr or w_res.error}"
+                    )
+
+            native_times: list[float] = []
+            native_last_res: Optional[RunExecutionResult] = None
+            for m_i in range(measured_runs):
+                res = execute_command_with_timing(
+                    native_cmd, env=native_env, timeout_s=self.timeout_s
+                )
+                if res.returncode != 0:
+                    raise RuntimeError(
+                        f"Baseline B (native) measured run {m_i+1}/{measured_runs} failed on {corpus_path.name} "
+                        f"(code {res.returncode}, time {res.wall_time_ms:.1f}ms):\n{res.stderr or res.error}"
+                    )
+                native_times.append(res.wall_time_ms)
+                native_last_res = res
+
+            native_timing = calculate_timing_statistics(native_times, warmup_runs=warmup_runs)
+            native_json_str = native_last_res.stdout.strip() if native_last_res else ""
+            try:
+                native_json = json.loads(native_json_str)
+            except json.JSONDecodeError as exc:
+                raise ValueError(
+                    f"Baseline B (native) returned invalid JSON on {corpus_path.name}:\n"
+                    f"cmd: {native_cmd}\n"
+                    f"duration_ms: {native_last_res.wall_time_ms if native_last_res else 'none'}\n"
+                    f"stdout: {repr(native_last_res.stdout if native_last_res else '')}\n"
+                    f"stderr: {repr(native_last_res.stderr if native_last_res else '')}\n"
+                    f"returncode: {native_last_res.returncode if native_last_res else 'none'}"
+                ) from exc
+            native_digest = compute_result_digest(native_json)
+            norm_native_json = normalize_dupe_output_paths(native_json, corpus_path)
+            norm_native_digest = compute_result_digest(norm_native_json)
+            native_metrics = extract_workload_metrics(native_json, corpus_manifest=manifest)
+
+            meas_b = BaselineMeasurement(
+                baseline_id="Baseline_B_Native",
+                baseline_name="J2 Compiled Native Binary (J2_ALLOW_FS=1 ./build/dupe)",
+                command_line=native_cmd,
+                environment_vars=native_env,
+                timing=native_timing,
+                metrics=native_metrics,
+                output_digest=norm_native_digest,
+                build_time_ms=build_time_ms,
+                success=True,
+            )
+
+            # 5. Output equivalence and manifest digest verification
+            direct_match = (
+                interp_json_str == native_json_str
+                or format_deterministic_json(interp_json) == format_deterministic_json(native_json)
+            )
+            digest_matches = (
+                norm_interp_digest == manifest.expected_result_digest
+                and norm_native_digest == manifest.expected_result_digest
+            )
+
+            if not direct_match:
+                raise ValueError(
+                    f"Determinism violation on {corpus_path.name}: "
+                    f"Baseline A output != Baseline B output!\n"
+                    f"Interp digest: {interp_digest}\nNative digest: {native_digest}"
+                )
+            if not digest_matches:
+                raise ValueError(
+                    f"Soundness violation on {corpus_path.name}: "
+                    f"Actual normalized digest {norm_native_digest} does not match expected {manifest.expected_result_digest}!"
                 )
 
-        native_times: list[float] = []
-        native_last_res: Optional[RunExecutionResult] = None
-        for m_i in range(measured_runs):
-            res = execute_command_with_timing(
-                native_cmd, env=native_env, timeout_s=self.timeout_s
+            # 6. Derived throughput rates (using median wall time in seconds)
+            sec_a = interp_timing.median_ms / 1000.0
+            sec_b = native_timing.median_ms / 1000.0
+
+            files_sec_a = round(interp_metrics.files_scanned / sec_a, 2) if sec_a > 0 else 0.0
+            files_sec_b = round(native_metrics.files_scanned / sec_b, 2) if sec_b > 0 else 0.0
+
+            cand_sec_a = round(interp_metrics.candidate_files / sec_a, 2) if sec_a > 0 else 0.0
+            cand_sec_b = round(native_metrics.candidate_files / sec_b, 2) if sec_b > 0 else 0.0
+
+            mb_sec_a = (
+                round((interp_metrics.bytes_hashed / (1024 * 1024)) / sec_a, 2)
+                if sec_a > 0
+                else 0.0
             )
-            if res.returncode != 0:
-                raise RuntimeError(
-                    f"Baseline B (native) measured run {m_i+1}/{measured_runs} failed on {corpus_path.name} "
-                    f"(code {res.returncode}, time {res.wall_time_ms:.1f}ms):\n{res.stderr or res.error}"
-                )
-            native_times.append(res.wall_time_ms)
-            native_last_res = res
-
-        native_timing = calculate_timing_statistics(native_times, warmup_runs=warmup_runs)
-        native_json_str = native_last_res.stdout.strip() if native_last_res else ""
-        try:
-            native_json = json.loads(native_json_str)
-        except json.JSONDecodeError as exc:
-            raise ValueError(
-                f"Baseline B (native) returned invalid JSON on {corpus_path.name}:\n"
-                f"cmd: {native_cmd}\n"
-                f"duration_ms: {native_last_res.wall_time_ms if native_last_res else 'none'}\n"
-                f"stdout: {repr(native_last_res.stdout if native_last_res else '')}\n"
-                f"stderr: {repr(native_last_res.stderr if native_last_res else '')}\n"
-                f"returncode: {native_last_res.returncode if native_last_res else 'none'}"
-            ) from exc
-        native_digest = compute_result_digest(native_json)
-        norm_native_json = normalize_dupe_output_paths(native_json, corpus_path)
-        norm_native_digest = compute_result_digest(norm_native_json)
-        native_metrics = extract_workload_metrics(native_json, corpus_manifest=manifest)
-
-        meas_b = BaselineMeasurement(
-            baseline_id="Baseline_B_Native",
-            baseline_name="J2 Compiled Native Binary (J2_ALLOW_FS=1 ./build/dupe)",
-            command_line=native_cmd,
-            environment_vars=native_env,
-            timing=native_timing,
-            metrics=native_metrics,
-            output_digest=norm_native_digest,
-            build_time_ms=build_time_ms,
-            success=True,
-        )
-
-        # 5. Output equivalence and manifest digest verification
-        direct_match = (
-            interp_json_str == native_json_str
-            or format_deterministic_json(interp_json) == format_deterministic_json(native_json)
-        )
-        digest_matches = (
-            norm_interp_digest == manifest.expected_result_digest
-            and norm_native_digest == manifest.expected_result_digest
-        )
-
-        if not direct_match:
-            raise ValueError(
-                f"Determinism violation on {corpus_path.name}: "
-                f"Baseline A output != Baseline B output!\n"
-                f"Interp digest: {interp_digest}\nNative digest: {native_digest}"
-            )
-        if not digest_matches:
-            raise ValueError(
-                f"Soundness violation on {corpus_path.name}: "
-                f"Actual normalized digest {norm_native_digest} does not match expected {manifest.expected_result_digest}!"
+            mb_sec_b = (
+                round((native_metrics.bytes_hashed / (1024 * 1024)) / sec_b, 2)
+                if sec_b > 0
+                else 0.0
             )
 
-        # 6. Derived throughput rates (using median wall time in seconds)
-        sec_a = interp_timing.median_ms / 1000.0
-        sec_b = native_timing.median_ms / 1000.0
+            speedup = round(sec_a / sec_b, 4) if sec_b > 0 else 0.0
 
-        files_sec_a = round(interp_metrics.files_scanned / sec_a, 2) if sec_a > 0 else 0.0
-        files_sec_b = round(native_metrics.files_scanned / sec_b, 2) if sec_b > 0 else 0.0
-
-        cand_sec_a = round(interp_metrics.candidate_files / sec_a, 2) if sec_a > 0 else 0.0
-        cand_sec_b = round(native_metrics.candidate_files / sec_b, 2) if sec_b > 0 else 0.0
-
-        mb_sec_a = (
-            round((interp_metrics.bytes_hashed / (1024 * 1024)) / sec_a, 2)
-            if sec_a > 0
-            else 0.0
-        )
-        mb_sec_b = (
-            round((native_metrics.bytes_hashed / (1024 * 1024)) / sec_b, 2)
-            if sec_b > 0
-            else 0.0
-        )
-
-        speedup = round(sec_a / sec_b, 4) if sec_b > 0 else 0.0
-
-        return CorpusComparisonResult(
-            corpus_id=manifest.corpus_id,
-            corpus_manifest_sha256=manifest_sha256,
-            scale=manifest.scale,
-            baseline_a_interpreter=meas_a,
-            baseline_b_native=meas_b,
-            direct_json_match=direct_match,
-            digest_matches_manifest=digest_matches,
-            expected_digest=manifest.expected_result_digest,
-            actual_digest=norm_native_digest,
-            native_speedup_factor=speedup,
-            files_per_sec_interpreter=files_sec_a,
-            files_per_sec_native=files_sec_b,
-            candidates_per_sec_interpreter=cand_sec_a,
-            candidates_per_sec_native=cand_sec_b,
-            mb_per_sec_interpreter=mb_sec_a,
-            mb_per_sec_native=mb_sec_b,
-        )
+            return CorpusComparisonResult(
+                corpus_id=manifest.corpus_id,
+                corpus_manifest_sha256=manifest_sha256,
+                scale=manifest.scale,
+                baseline_a_interpreter=meas_a,
+                baseline_b_native=meas_b,
+                direct_json_match=direct_match,
+                digest_matches_manifest=digest_matches,
+                expected_digest=manifest.expected_result_digest,
+                actual_digest=norm_native_digest,
+                native_speedup_factor=speedup,
+                files_per_sec_interpreter=files_sec_a,
+                files_per_sec_native=files_sec_b,
+                candidates_per_sec_interpreter=cand_sec_a,
+                candidates_per_sec_native=cand_sec_b,
+                mb_per_sec_interpreter=mb_sec_a,
+                mb_per_sec_native=mb_sec_b,
+            )
+        finally:
+            if manifest_isolated and manifest_temp.is_file():
+                shutil.move(str(manifest_temp), str(manifest_file))
