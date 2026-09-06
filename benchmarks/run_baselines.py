@@ -191,8 +191,8 @@ def main() -> None:
     parser.add_argument(
         "--scale",
         type=float,
-        default=0.1,
-        help="Scale factor for generated corpora (default: 0.1 for CI budget; 1.0 for full standard)",
+        default=0.01,
+        help="Scale factor for generated corpora (default: 0.01 for CI budget; 1.0 for full standard)",
     )
     parser.add_argument(
         "--runs",

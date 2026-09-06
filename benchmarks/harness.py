@@ -553,16 +553,22 @@ class BenchmarkHarness:
             "--json",
         ]
 
-        for _ in range(warmup_runs):
-            execute_command_with_timing(interp_cmd, timeout_s=self.timeout_s)
+        for w_i in range(warmup_runs):
+            w_res = execute_command_with_timing(interp_cmd, timeout_s=self.timeout_s)
+            if w_res.returncode != 0:
+                raise RuntimeError(
+                    f"Baseline A (interpreter) warmup run {w_i+1}/{warmup_runs} failed on {corpus_path.name} "
+                    f"(code {w_res.returncode}, time {w_res.wall_time_ms:.1f}ms):\n{w_res.stderr or w_res.error}"
+                )
 
         interp_times: list[float] = []
         interp_last_res: Optional[RunExecutionResult] = None
-        for _ in range(measured_runs):
+        for m_i in range(measured_runs):
             res = execute_command_with_timing(interp_cmd, timeout_s=self.timeout_s)
             if res.returncode != 0:
                 raise RuntimeError(
-                    f"Baseline A (interpreter) run failed on {corpus_path.name}:\n{res.stderr}"
+                    f"Baseline A (interpreter) measured run {m_i+1}/{measured_runs} failed on {corpus_path.name} "
+                    f"(code {res.returncode}, time {res.wall_time_ms:.1f}ms):\n{res.stderr or res.error}"
                 )
             interp_times.append(res.wall_time_ms)
             interp_last_res = res
@@ -575,8 +581,9 @@ class BenchmarkHarness:
             raise ValueError(
                 f"Baseline A (interpreter) returned invalid JSON on {corpus_path.name}:\n"
                 f"cmd: {interp_cmd}\n"
-                f"stdout:\n{interp_last_res.stdout if interp_last_res else ''}\n"
-                f"stderr:\n{interp_last_res.stderr if interp_last_res else ''}\n"
+                f"duration_ms: {interp_last_res.wall_time_ms if interp_last_res else 'none'}\n"
+                f"stdout: {repr(interp_last_res.stdout if interp_last_res else '')}\n"
+                f"stderr: {repr(interp_last_res.stderr if interp_last_res else '')}\n"
                 f"returncode: {interp_last_res.returncode if interp_last_res else 'none'}"
             ) from exc
         interp_digest = compute_result_digest(interp_json)
@@ -597,20 +604,26 @@ class BenchmarkHarness:
         native_cmd = [str(bin_path), str(corpus_path), "--json"]
         native_env = {"J2_ALLOW_FS": "1"}
 
-        for _ in range(warmup_runs):
-            execute_command_with_timing(
+        for w_i in range(warmup_runs):
+            w_res = execute_command_with_timing(
                 native_cmd, env=native_env, timeout_s=self.timeout_s
             )
+            if w_res.returncode != 0:
+                raise RuntimeError(
+                    f"Baseline B (native) warmup run {w_i+1}/{warmup_runs} failed on {corpus_path.name} "
+                    f"(code {w_res.returncode}, time {w_res.wall_time_ms:.1f}ms):\n{w_res.stderr or w_res.error}"
+                )
 
         native_times: list[float] = []
         native_last_res: Optional[RunExecutionResult] = None
-        for _ in range(measured_runs):
+        for m_i in range(measured_runs):
             res = execute_command_with_timing(
                 native_cmd, env=native_env, timeout_s=self.timeout_s
             )
             if res.returncode != 0:
                 raise RuntimeError(
-                    f"Baseline B (native) run failed on {corpus_path.name}:\n{res.stderr}"
+                    f"Baseline B (native) measured run {m_i+1}/{measured_runs} failed on {corpus_path.name} "
+                    f"(code {res.returncode}, time {res.wall_time_ms:.1f}ms):\n{res.stderr or res.error}"
                 )
             native_times.append(res.wall_time_ms)
             native_last_res = res
@@ -623,8 +636,9 @@ class BenchmarkHarness:
             raise ValueError(
                 f"Baseline B (native) returned invalid JSON on {corpus_path.name}:\n"
                 f"cmd: {native_cmd}\n"
-                f"stdout:\n{native_last_res.stdout if native_last_res else ''}\n"
-                f"stderr:\n{native_last_res.stderr if native_last_res else ''}\n"
+                f"duration_ms: {native_last_res.wall_time_ms if native_last_res else 'none'}\n"
+                f"stdout: {repr(native_last_res.stdout if native_last_res else '')}\n"
+                f"stderr: {repr(native_last_res.stderr if native_last_res else '')}\n"
                 f"returncode: {native_last_res.returncode if native_last_res else 'none'}"
             ) from exc
         native_digest = compute_result_digest(native_json)

@@ -116,12 +116,20 @@ jobs:
           j2 --allow-fs run src/main.j2 "$RUNNER_TEMP/testdir" --json
           echo "4c: j2 --allow-fs src/main.j2 $RUNNER_TEMP/testdir --json"
           j2 --allow-fs src/main.j2 "$RUNNER_TEMP/testdir" --json
+          echo "=== 5. Test C1 mini generation and direct execution ==="
+          python3 benchmarks/generator/generate.py --corpus C1 --scale 0.01 --out-dir "$RUNNER_TEMP/c1_probe"
+          echo "5a. Interpreter execution:"
+          time j2 --allow-fs src/main.j2 "$RUNNER_TEMP/c1_probe" --json
+          echo "5b. Native build and execution:"
+          mkdir -p build
+          j2 build src/main.j2 -o build/dupe
+          time J2_ALLOW_FS=1 ./build/dupe "$RUNNER_TEMP/c1_probe" --json
 
       - name: Run baseline benchmarks (Baseline A, Baseline B, Baseline C)
         shell: bash
         run: |
           set -euo pipefail
-          scale="${{ github.event.inputs.scale || '0.1' }}"
+          scale="${{ github.event.inputs.scale || '0.01' }}"
           runs="${{ github.event.inputs.runs || '3' }}"
           echo "Running benchmarks with scale=$scale, runs=$runs..."
           python3 benchmarks/run_baselines.py \
