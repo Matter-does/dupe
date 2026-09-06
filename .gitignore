@@ -8,3 +8,5 @@ coverage/
 __pycache__/
 *.py[cod]
 tests/regressions/failures/
+benchmarks/corpora/
+corpora/

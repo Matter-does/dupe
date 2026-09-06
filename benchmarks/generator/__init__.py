@@ -1,0 +1,61 @@
+"""dupe benchmark corpus generator module."""
+
+from .manifest import (
+    MANIFEST_FILENAME,
+    Manifest,
+    compute_oracle_result,
+    compute_result_digest,
+    discover_corpus_files,
+    format_deterministic_json,
+    validate_manifest,
+)
+from .profiles import (
+    C1_PROFILE,
+    C2_PROFILE,
+    C3_PROFILE,
+    C4_PROFILE,
+    C5_PROFILE,
+    C6_PROFILE,
+    C7_PROFILE,
+    CI_STORAGE_CEILING_BYTES,
+    CacheState,
+    CollisionDensity,
+    CorpusProfile,
+    DirectoryShape,
+    NAMED_PROFILES,
+    SimilarityProfile,
+    SizeProfile,
+)
+from .generate import (
+    check_disk_space,
+    generate_corpus,
+    get_generator_version,
+)
+
+__all__ = [
+    "CorpusProfile",
+    "NAMED_PROFILES",
+    "SizeProfile",
+    "DirectoryShape",
+    "SimilarityProfile",
+    "CacheState",
+    "CollisionDensity",
+    "CI_STORAGE_CEILING_BYTES",
+    "C1_PROFILE",
+    "C2_PROFILE",
+    "C3_PROFILE",
+    "C4_PROFILE",
+    "C5_PROFILE",
+    "C6_PROFILE",
+    "C7_PROFILE",
+    "Manifest",
+    "MANIFEST_FILENAME",
+    "compute_oracle_result",
+    "format_deterministic_json",
+    "compute_result_digest",
+    "discover_corpus_files",
+    "validate_manifest",
+    "generate_corpus",
+    "check_disk_space",
+    "get_generator_version",
+]
