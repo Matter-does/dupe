@@ -18,6 +18,26 @@
 - [x] Strict offline self-tests with ground-truth value assertions running locally on dev machines and in CI on `ubuntu-latest` (F9, F10).
 - [x] Hard subprocess timeouts (60s) and workflow timeouts (15m) preventing hangs on symlink loops or deep recursions (F6).
 
+## Evidence
+
+GitHub Actions run [`34018671137`](https://github.com/Matter-does/dupe/actions/runs/34018671137):
+- **Offline job (Ubuntu)** (job `101447082243`, 6s): PASS (strict assertions across 13 seed cases and 4 regression fixtures, multi-seed fuzzer determinism, faithful >4KB failure reproduction).
+- **Differential job (macOS 15 Apple Silicon arm64, J2 0.1.0)** (job `101447099395`, 1m48s): PASS
+  - J2 exact version assertion (`j2 0.1.0`): PASS
+  - `j2 fmt` format check on `src/*.j2`: PASS
+  - Genuine native compilation (`j2 build src/main.j2 -o build/dupe`): PASS
+  - Native binary sandbox negative control (capability denied without `J2_ALLOW_FS=1`): PASS
+  - Seed corpus (13 cases): PASS (exact direct match `interpreter == native == oracle`)
+  - Retained regression corpus (4 fixtures): PASS (exact direct match `interpreter == native == oracle`)
+  - Fuzzer batch (5 seeds): PASS (exact direct match `interpreter == native == oracle`)
+  - Repeat-run byte-identity determinism test: PASS
+  - Trailing-slash root handling: PASS
+  - Interpreter and native missing-root errors: PASS
+  - Interpreter and native file-as-root errors: PASS
+  - Interpreter and native unreadable directory permission errors: PASS
+  - Interpreter and native unreadable candidate file permission errors: PASS
+  - Filesystem tree immutability across all executions: PASS
+
 ## Review findings and resolutions (F1–F14)
 
 1. **F1 (Critical — Native gate)**: Replaced no-op `J_FORCE_NATIVE` with genuine native compilation (`j2 build src/main.j2 -o build/dupe`) and verified `J2_ALLOW_FS=1` runtime capability grant.

@@ -28,5 +28,11 @@
 - [x] Filesystem immutability verified across all test executions.
 - [x] Safety/error behavior for invalid roots and unreadable files verified.
 
+## Verification evidence
+- CI run `34018671137` (job `101447099395` macOS 15 arm64 / J2 0.1.0 [1m48s], job `101447082243` Ubuntu offline [6s]): PASS
+- CI run `34018559525` (Phase 3 MVP genuine native build / `J2_ALLOW_FS=1`): PASS
+- CI run `34018559466` (J2 CI toolchain smoke tests): PASS
+- Local Python offline self-tests: PASS
+
 ## Next task
 T003 — Competitive and technical research consolidation (from `agent/tasks/T003-research.md`).

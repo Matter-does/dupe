@@ -24,21 +24,24 @@ not_done:
 
 verification:
   local_offline_selftests: pass (multi-seed reproducibility, faithful >4KB failure preservation, 13 seed cases strict assertions, 4 regression fixtures strict assertions)
-  interpreter_oracle_match: pass
+  ci_phase4_correctness: pass (run 34018671137, macOS 15 Apple Silicon arm64 job 101447099395 [1m48s], Ubuntu offline job 101447082243 [6s])
+  ci_phase3_mvp_native: pass (run 34018559525, macOS 15 arm64, 1m40s)
+  ci_j2_toolchain: pass (run 34018559466, macOS 15 arm64, 1m18s)
+  interpreter_oracle_match: pass (strict direct match require_direct_match=True across all 13 seed cases, 4 regression fixtures, 5 fuzzer seeds)
   native_oracle_match: pass
   interpreter_native_match: pass
-  soundness_byte_identity: pass
+  repeat_run_determinism: pass
+  soundness_byte_identity: pass (pairwise read_bytes byte identity across all group files)
   filesystem_immutability: pass (hash, mtime_ns, mode)
-  safety_invalid_roots: pass
-  native_negative_control: pass (denied without J2_ALLOW_FS=1)
+  safety_invalid_roots: pass (missing root, file as root)
+  safety_unreadable_permissions: pass (unreadable subdirectory, unreadable duplicate candidate)
+  native_negative_control: pass (capability denied without J2_ALLOW_FS=1)
 
 pending_verification:
-  ci_run_phase4_hardened: push to origin and observe CI run
+  none_for_t002: all Phase 4 correctness gates fully verified
 
 next_action:
-  - push hardened Phase 4 changes to origin main
-  - observe CI workflow run on GitHub Actions
-  - verify Phase 4 Correctness workflow succeeds
-  - proceed to T003
+  - execute T003 (consolidate competitive and technical research into docs/RESEARCH.md)
+  - prepare corpus specification for T004
 
 last_agent: Antigravity

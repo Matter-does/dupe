@@ -86,7 +86,7 @@ See `docs/HACKATHON.md` and `docs/AGENT-HARNESS.md`.
 
 ```text
 Phase 3  MVP                              COMPLETE / FROZEN
-Phase 4  Differential correctness        IN PROGRESS
+Phase 4  Differential correctness        COMPLETE / FROZEN
 Phase 5  Performance / J2 research       NEXT
 Phase 6  Product surface                 LATER
 Final    Demo + documentation            LATER
