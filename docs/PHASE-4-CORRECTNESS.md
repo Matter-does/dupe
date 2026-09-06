@@ -20,22 +20,23 @@
 
 ## Evidence
 
-GitHub Actions run [`34018671137`](https://github.com/Matter-does/dupe/actions/runs/34018671137):
-- **Offline job (Ubuntu)** (job `101447082243`, 6s): PASS (strict assertions across 13 seed cases and 4 regression fixtures, multi-seed fuzzer determinism, faithful >4KB failure reproduction).
-- **Differential job (macOS 15 Apple Silicon arm64, J2 0.1.0)** (job `101447099395`, 1m48s): PASS
+GitHub Actions run [`34019865197`](https://github.com/Matter-does/dupe/actions/runs/34019865197):
+- **Offline job (Ubuntu)** (job `101450325863`, 7s): PASS (strict ground-truth assertions across 13 seed cases and 4 regression fixtures, multi-seed fuzzer determinism, faithful >4KB failure reproduction, symlink cycle handling).
+- **Differential job (macOS 15 Apple Silicon arm64, J2 0.1.0)** (job `101450344313`, 1m8s): PASS
   - J2 exact version assertion (`j2 0.1.0`): PASS
   - `j2 fmt` format check on `src/*.j2`: PASS
   - Genuine native compilation (`j2 build src/main.j2 -o build/dupe`): PASS
   - Native binary sandbox negative control (capability denied without `J2_ALLOW_FS=1`): PASS
   - Seed corpus (13 cases): PASS (exact direct match `interpreter == native == oracle`)
-  - Retained regression corpus (4 fixtures): PASS (exact direct match `interpreter == native == oracle`)
+  - Retained regression corpus (4 fixtures with sanitized names and schema checks): PASS
   - Fuzzer batch (5 seeds): PASS (exact direct match `interpreter == native == oracle`)
-  - Repeat-run byte-identity determinism test: PASS
-  - Trailing-slash root handling: PASS
+  - Repeat-run byte-identity determinism test across multiple trees: PASS
+  - Trailing-slash raw argv root handling and literal `//` concatenation contract: PASS
   - Interpreter and native missing-root errors: PASS
   - Interpreter and native file-as-root errors: PASS
   - Interpreter and native unreadable directory permission errors: PASS
   - Interpreter and native unreadable candidate file permission errors: PASS
+  - Symlink-cycle bounded termination test (bounded to 10s): PASS
   - Filesystem tree immutability across all executions: PASS
 
 ## Review findings and resolutions (F1–F14)

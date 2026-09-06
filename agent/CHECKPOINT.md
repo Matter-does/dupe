@@ -31,15 +31,17 @@ not_done:
   - T006 automatic-parallelism experiment
 
 verification:
-  local_offline_selftests: pass (multi-seed reproducibility, faithful >4KB failure preservation, 13 seed cases strict assertions, 4 regression fixtures strict assertions)
-  ci_phase4_correctness: pass (run 34018671137, macOS 15 Apple Silicon arm64 job 101447099395 [1m48s], Ubuntu offline job 101447082243 [6s])
-  ci_phase3_mvp_native: pass (run 34018559525, macOS 15 arm64, 1m40s)
-  ci_j2_toolchain: pass (run 34018559466, macOS 15 arm64, 1m18s)
+  local_offline_selftests: pass (multi-seed reproducibility, faithful >4KB failure preservation, 13 seed cases strict assertions, 4 regression fixtures strict assertions, offline symlink cycle test)
+  ci_phase4_correctness: pass (run 34019865197, macOS 15 Apple Silicon arm64 job 101450344313 [1m8s], Ubuntu offline job 101450325863 [7s])
+  ci_phase3_mvp_native: pass (run 34019865207, macOS 15 arm64, 1m44s)
+  ci_j2_toolchain: pass (run 34019865243, macOS 15 arm64, 1m21s)
   interpreter_oracle_match: pass (strict direct match require_direct_match=True across all 13 seed cases, 4 regression fixtures, 5 fuzzer seeds)
   native_oracle_match: pass
   interpreter_native_match: pass
-  repeat_run_determinism: pass
-  soundness_byte_identity: pass (pairwise read_bytes byte identity across all group files)
+  repeat_run_determinism: pass (verified on single-dir and nested-dir trees)
+  trailing_slash_handling: pass (raw argv and literal // contract verified)
+  symlink_cycle_bounded_termination: pass (bounded within 10s on POSIX)
+  soundness_byte_identity: pass (pairwise read_bytes byte identity across all group files and within-group path uniqueness)
   filesystem_immutability: pass (hash, mtime_ns, mode)
   safety_invalid_roots: pass (missing root, file as root)
   safety_unreadable_permissions: pass (unreadable subdirectory, unreadable duplicate candidate)

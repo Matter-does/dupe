@@ -29,9 +29,9 @@
 - [x] Safety/error behavior for invalid roots and unreadable files verified.
 
 ## Verification evidence
-- CI run `34018671137` (job `101447099395` macOS 15 arm64 / J2 0.1.0 [1m48s], job `101447082243` Ubuntu offline [6s]): PASS
-- CI run `34018559525` (Phase 3 MVP genuine native build / `J2_ALLOW_FS=1`): PASS
-- CI run `34018559466` (J2 CI toolchain smoke tests): PASS
+- CI run `34019865197` (job `101450344313` macOS 15 arm64 / J2 0.1.0 [1m8s], job `101450325863` Ubuntu offline [7s]): PASS
+- CI run `34019865207` (Phase 3 MVP genuine native build / `J2_ALLOW_FS=1`): PASS
+- CI run `34019865243` (J2 CI toolchain smoke tests): PASS
 - Local Python offline self-tests: PASS
 
 ## Next task
