@@ -1,7 +1,7 @@
 # Checkpoint
 
 task: T001
-status: in_progress
+status: complete
 
 completed:
   - AGENTS.md
@@ -10,23 +10,23 @@ completed:
   - docs/RESEARCH.md
   - docs/DECISIONS.md
   - docs/HACKATHON.md
+  - docs/AGENT-HARNESS.md
   - agent/CURRENT_TASK.md
-
-remaining:
   - agent/HANDOFF.md
   - agent/TODO.md
-  - task definitions
-  - harness specification
-  - README update
-  - final repository review
+  - task definitions T002-T006
+  - README product/workflow update
 
 verification:
-  repository_source_unchanged: pending
-  task_files_present: pending
-  readme_updated: pending
-  git_review: pending
+  repository_source_unchanged: pass by change scope review
+  task_files_present: pass
+  readme_updated: pass
+  git_review: pending final remote inspection
+  phase4_status: carried forward to T002
 
 next_action:
-  - create durable task queue and harness specification
+  - execute T002
+  - inspect latest Phase 4 CI result
+  - complete remaining Phase 4 correctness gates
 
 last_agent: ChatGPT
