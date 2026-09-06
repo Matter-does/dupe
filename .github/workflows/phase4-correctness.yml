@@ -60,3 +60,10 @@ jobs:
         run: |
           set -euo pipefail
           python3 tests/phase4_differential.py
+
+      - name: Preserve failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase4-failure-reports
+          path: tests/regressions/failures/

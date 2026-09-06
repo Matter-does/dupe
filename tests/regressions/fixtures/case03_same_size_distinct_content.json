@@ -1,0 +1,11 @@
+{
+  "name": "case03_same_size_distinct_content",
+  "description": "Deterministic regression: four files with identical size (10 bytes), two duplicates and two unique",
+  "seed": null,
+  "manifest": {
+    "file1.bin": "30313233343536373839",
+    "file2.bin": "30313233343536373839",
+    "file3.bin": "6162636465666768696a",
+    "file4.bin": "6b6c6d6e6f7071727374"
+  }
+}

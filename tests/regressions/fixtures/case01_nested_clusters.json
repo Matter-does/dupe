@@ -1,0 +1,12 @@
+{
+  "name": "case01_nested_clusters",
+  "description": "Deterministic regression: identical duplicate clusters separated across nested subdirectories",
+  "seed": null,
+  "manifest": {
+    "sub1/a.txt": "616c706861",
+    "sub2/deeper/a_copy.txt": "616c706861",
+    "sub1/b_copy.txt": "62657461",
+    "sub2/b.txt": "62657461",
+    "unique.txt": "756e69717565"
+  }
+}

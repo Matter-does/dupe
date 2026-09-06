@@ -1,0 +1,13 @@
+{
+  "name": "case02_size_boundary_zero",
+  "description": "Deterministic regression: multiple zero-byte files in different directories and 1-byte duplicates",
+  "seed": null,
+  "manifest": {
+    "empty1.dat": "",
+    "nested/empty2.dat": "",
+    "nested/deep/empty3.dat": "",
+    "one_a.dat": "78",
+    "one_b.dat": "78",
+    "one_diff.dat": "79"
+  }
+}

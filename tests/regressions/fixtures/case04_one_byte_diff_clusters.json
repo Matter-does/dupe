@@ -1,0 +1,11 @@
+{
+  "name": "case04_one_byte_diff_clusters",
+  "description": "Deterministic regression: two clusters differing by one byte in the final position",
+  "seed": null,
+  "manifest": {
+    "c1_copy1.bin": "6964656e746963616c2d7072656669782d41",
+    "c1_copy2.bin": "6964656e746963616c2d7072656669782d41",
+    "c2_copy1.bin": "6964656e746963616c2d7072656669782d42",
+    "c2_copy2.bin": "6964656e746963616c2d7072656669782d42"
+  }
+}

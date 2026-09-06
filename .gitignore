@@ -5,3 +5,6 @@
 build/
 dist/
 coverage/
+__pycache__/
+*.py[cod]
+tests/regressions/failures/
