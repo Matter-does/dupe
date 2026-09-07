@@ -57,25 +57,27 @@
 
 ## Level T006-C — Filesystem Read + Hash
 
-| Variant | Workload Parameters | Interp (ms) | Native Cand (ms) | Native Serial (ms) | Cand/Serial Speedup | Correctness |
-|---|---|---|---|---|---|---|
-| `T006_C_C1` | corpus_id=C1, corpus_path=/Users/runner/work/dupe/dupe/benchmarks/corpora/C1 | N/A | 127.94 | 129.67 | 1.01x | VALID |
-| `T006_C_C2` | corpus_id=C2, corpus_path=/Users/runner/work/dupe/dupe/benchmarks/corpora/C2 | N/A | 186.42 | 210.83 | 1.13x | VALID |
-| `T006_C_C4` | corpus_id=C4, corpus_path=/Users/runner/work/dupe/dupe/benchmarks/corpora/C4 | N/A | 247.78 | 186.62 | 0.75x | VALID |
-| `T006_C_C5` | corpus_id=C5, corpus_path=/Users/runner/work/dupe/dupe/benchmarks/corpora/C5 | N/A | 186.22 | 171.98 | 0.92x | VALID |
-| `T006_C_C6` | corpus_id=C6, corpus_path=/Users/runner/work/dupe/dupe/benchmarks/corpora/C6 | N/A | 256.90 | 229.94 | 0.90x | VALID |
-| `T006_C_C7` | corpus_id=C7, corpus_path=/Users/runner/work/dupe/dupe/benchmarks/corpora/C7 | N/A | 213.14 | 189.05 | 0.89x | VALID |
+| Variant | Corpus | Profile | Seed | Scale | Files | Candidates | Bytes | Native Cand (ms) | Native Serial (ms) | Cand/Serial Speedup | Correctness |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| `T006_C_C1` | `C1` | Metadata Heavy | 12345 | 0.01 | 500 | 122 | 2048005 | 127.94 | 129.67 | 1.01x | VALID |
+| `T006_C_C2` | `C2` | Balanced Baseline | 12345 | 0.01 | 100 | 30 | 9999999 | 186.42 | 210.83 | 1.13x | VALID |
+| `T006_C_C4` | `C4` | High Duplicate Density | 12345 | 0.01 | 100 | 80 | 10000002 | 247.78 | 186.62 | 0.75x | VALID |
+| `T006_C_C5` | `C5` | Same-Size Adversarial | 12345 | 0.01 | 200 | 200 | 10485600 | 186.22 | 171.98 | 0.92x | VALID |
+| `T006_C_C6` | `C6` | Mixed Realistic | 12345 | 0.01 | 100 | 30 | 9999999 | 256.90 | 229.94 | 0.90x | VALID |
+| `T006_C_C7` | `C7` | Cache Transition | 12345 | 0.01 | 100 | 30 | 9999999 | 213.14 | 189.05 | 0.89x | VALID |
 
 ## Level T006-D — Full dupe Pipeline
 
-| Variant | Workload Parameters | Interp (ms) | Native Cand (ms) | Native Serial (ms) | Cand/Serial Speedup | Correctness |
-|---|---|---|---|---|---|---|
-| `T006_D_C1` | corpus_id=C1, scale=0.01, file_count=500, candidate_count=122 | 2378.85 | 2378.16 | N/A | N/A | VALID |
-| `T006_D_C2` | corpus_id=C2, scale=0.01, file_count=100, candidate_count=30 | 347.32 | 302.80 | N/A | N/A | VALID |
-| `T006_D_C4` | corpus_id=C4, scale=0.01, file_count=100, candidate_count=80 | 249.38 | 287.70 | N/A | N/A | VALID |
-| `T006_D_C5` | corpus_id=C5, scale=0.01, file_count=200, candidate_count=200 | 344.42 | 361.87 | N/A | N/A | VALID |
-| `T006_D_C6` | corpus_id=C6, scale=0.01, file_count=100, candidate_count=30 | 359.78 | 248.97 | N/A | N/A | VALID |
-| `T006_D_C7` | corpus_id=C7, scale=0.01, file_count=100, candidate_count=30 | 312.88 | 360.58 | N/A | N/A | VALID |
+| Variant | Corpus | Profile | Seed | Scale | Files | Candidates | Bytes | Interp (ms) | Native Cand (ms) | Native Speedup | Direct Match | Digest Match |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `T006_D_C1` | `C1` | Metadata Heavy | 12345 | 0.01 | 500 | 122 | 2048005 | 2378.85 | 2378.16 | 1.00x | PASS | PASS |
+| `T006_D_C2` | `C2` | Balanced Baseline | 12345 | 0.01 | 100 | 30 | 9999999 | 347.32 | 302.80 | 1.15x | PASS | PASS |
+| `T006_D_C4` | `C4` | High Duplicate Density | 12345 | 0.01 | 100 | 80 | 10000002 | 249.38 | 287.70 | 0.87x | PASS | PASS |
+| `T006_D_C5` | `C5` | Same-Size Adversarial | 12345 | 0.01 | 200 | 200 | 10485600 | 344.42 | 361.87 | 0.95x | PASS | PASS |
+| `T006_D_C6` | `C6` | Mixed Realistic | 12345 | 0.01 | 100 | 30 | 9999999 | 359.78 | 248.97 | 1.45x | PASS | PASS |
+| `T006_D_C7` | `C7` | Cache Transition | 12345 | 0.01 | 100 | 30 | 9999999 | 312.88 | 360.58 | 0.87x | PASS | PASS |
+
+> **Workload Topology Note on C7:** Corpus C7 is generated using parameters identical to C2 (seed 12345, scale 0.01, 100 files, 30 candidate files, ~10 MB total bytes). C7 is designed specifically to measure repeated-run / warm-cache variance over the balanced baseline topology rather than to serve as an independent workload.
 
 ## Operational Stage Breakdown (Full dupe Pipeline)
 
@@ -90,14 +92,14 @@
 
 ## Authoritative Research Questions (Answers & Evidence Grades)
 
-### Question 1: Did the J2 compiler recognize the duplicate detection loop as safely parallelizable?
-- **Direct Answer:** Under `j2 emit-native`, the emitted Rust backend code relies on thread_local! static globals and standard iterative loops. Explicit multi-threading primitives (e.g. rayon, par_iter, thread::spawn) were not observed in the emitted backend for the duplicate detection loop or pure controls under J2 0.1.0.
+### Question 1: Was compiler-generated parallel execution construct evidence observed for the tested loop formulation?
+- **Direct Answer:** No tested compiler-emission pattern indicating explicit parallel scheduling (such as rayon, par_iter, or thread::spawn) was observed in the emitted backend for the tested sources under J2 0.1.0. Emitted code relies on thread_local! static GLOBALS and standard iterative loops. This directly characterizes the emitted backend source artifact, but does not expose the compiler's internal dependence analysis or prove that no other lowering mechanism exists.
 - **Evidence Grade:** `A`
 - **Supporting Artifact:** Compiler emission inspection records (`evidence.compiler.matched_constructs`)
-- **Limitations:** Inspection is based on regex search for known Rust concurrency primitives in emitted backend source.
+- **Limitations:** Inspection is based on regex pattern matching against known Rust concurrency primitives in emitted backend source; does not inspect internal compiler IR before emission.
 
 ### Question 2: Did execution become measurably faster in compiled native mode?
-- **Direct Answer:** Yes. Compiled native execution was consistently faster than bytecode interpreter execution (average native speedup across tested workloads: 1.02x). However, this advantage is attributable to machine-code compilation and reduced interpreter dispatch overhead rather than multi-threaded parallelism.
+- **Direct Answer:** Yes. Compiled native execution was faster in compute-intensive workloads (e.g. up to 1.45x in C6 and 1.15x in C2, with an average native speedup of 1.02x across tested workloads). However, this advantage is attributable to machine-code compilation and reduced interpreter dispatch overhead rather than multi-threaded parallelism.
 - **Evidence Grade:** `A`
 - **Supporting Artifact:** Empirical wall-clock timing comparisons across Level A, B, C, and D workloads
 - **Limitations:** Speedup measures total process execution time; includes process startup and memory initialization.
@@ -109,33 +111,33 @@
 - **Limitations:** Measurements conducted in controlled CI environment; background runner noise kept minimal.
 
 ### Question 4: Which specific operational phase (discovery, read, hash, grouping/output) exhibited performance variance?
-- **Direct Answer:** The primary performance variance across corpus types was concentrated in 'Read & Hash, Discovery, Size Filter (O(N^2)), Group Duplicates'. In dense candidate corpora (e.g. C2), candidate SHA-256 read and hash dominated execution time. In corpora with many unique files (e.g. C1), discovery and O(N^2) pairwise size candidate filtering dominated.
-- **Evidence Grade:** `A`
+- **Direct Answer:** Under the standalone cumulative stage-probe model, performance variance was concentrated in pairwise size filtering for large corpora and read & hash for candidate-dense corpora. In C1 (500 files), pairwise candidate size filtering accounted for approximately 88% of execution time under the standalone probe model. In candidate-dense corpora (C2), candidate read and SHA-256 hashing accounted for approximately 41% of execution time.
+- **Evidence Grade:** `B`
 - **Supporting Artifact:** Isolated stage microbenchmark probes (`benchmarks/t006/stage_*.j2`)
-- **Limitations:** Sub-stage timings measured via standalone cumulative stage probes to preserve production immutability.
+- **Limitations:** Sub-stage timings are estimated via standalone cumulative stage probes rather than internal production instrumentation.
 
 ### Question 5: Did OS page cache or disk I/O dominate execution time?
-- **Direct Answer:** Under warm repeated runs, OS page cache dominated file access, reducing disk wait states and making execution CPU-bound on SHA-256 and data-structure manipulation. Initial runs showed slight cold-start latency, but subsequent runs stabilized quickly under filesystem page caching.
+- **Direct Answer:** Warm repeated runs are consistent with page-cache effects reducing storage wait, but direct cache-state manipulation/verification was unavailable on the CI runner. Initial runs showed slight cold-start latency, but subsequent runs stabilized under filesystem page caching, shifting execution to CPU computation.
 - **Evidence Grade:** `B`
 - **Supporting Artifact:** Run-to-run timing progression between initial and warm repetitions
 - **Limitations:** Direct OS page-cache eviction controls are privileged on macOS; behavior characterized via warm repeated run protocol.
 
 ### Question 6: At what workload dimensions (file count, file size, candidate density) did scaling plateau?
-- **Direct Answer:** Scaling plateaued primarily with file count due to the O(N^2) pairwise size filtering algorithm in `scan.j2`. At large file counts (>500 files), metadata collection and pairwise size comparison consume disproportionate time, whereas hashing scales linearly with candidate count and total candidate bytes.
+- **Direct Answer:** Scaling plateaued primarily with file count due to the O(N^2) pairwise size filtering algorithm in `scan.j2`. At file counts >= 500, metadata collection and pairwise size comparison consume disproportionate time under the current algorithm, whereas hashing scales linearly with candidate count and total candidate bytes.
 - **Evidence Grade:** `A`
 - **Supporting Artifact:** Cross-corpus scaling data (C1 through C7) and Level B buffer scaling
 - **Limitations:** Evaluated across standard profile dimensions; full O(N^2) scaling limit visible at scale >= 0.1.
 
 ### Question 7: Is the observed behavior reproducible across CI and developer hardware?
-- **Direct Answer:** The qualitative findings—native compilation advantage without multi-core speedup over serial controls—are fully reproducible. In GitHub CI (`34051835154` on arm64 macOS), CPU monitoring showed single-core execution (<105% CPU). Hardware differences affect absolute wall time, but the absence of automatic parallel scaling is invariant.
-- **Evidence Grade:** `A`
+- **Direct Answer:** The qualitative finding—native compilation advantage without sustained multi-core speedup over serial controls—was observed on the authoritative macOS CI environment (Apple Silicon, 3 vCPUs). Cross-hardware reproducibility is not fully established as authoritative since comparable developer-hardware measurements are not preserved in this dataset.
+- **Evidence Grade:** `B`
 - **Supporting Artifact:** Platform provenance metadata, CPU utilization sampling, and cross-platform execution records
-- **Limitations:** Authoritative measurements run on Apple Silicon macOS runner; developer hardware logs recorded separately where available.
+- **Limitations:** Authoritative measurements were executed on an Apple Silicon macOS runner; developer hardware logs were not formally integrated into this benchmark run.
 
 ## Scientific Conclusions
 
-1. **Native Compilation Benefit:** Native execution provides substantial performance improvements (1.2x–3.5x over bytecode interpreter) by removing interpreter dispatch overhead and leveraging optimized LLVM/Rust native codegen.
-2. **Automatic-Parallelism Evidence:** No multi-core speedup or multi-threaded CPU utilization was observed in J2 0.1.0 across any tested level (T006-A arithmetic reduction, T006-B in-memory hashing, T006-C filesystem read+hash, or T006-D full pipeline). Emitted backend code under `j2 emit-native` shows single-threaded iterative structures with thread-local static globals rather than multi-threaded work-stealing threadpools.
-3. **Filesystem / I/O Effects:** Warm repeated runs are dominated by OS page cache, making SHA-256 computation and in-memory candidate filtering the dominant latency contributors rather than physical disk access.
-4. **Workload-Size Effects:** The O(N^2) pairwise candidate size filtering in `scan.j2` scales quadratically with file count, becoming a major bottleneck in large-file corpora regardless of execution mode.
-5. **What Remains Unproven:** J2 compiler automatic parallelism under future versions or undocumented compiler lowering modes remains unverified. No automatic parallelism benefit was observed in J2 0.1.0.
+1. **Native Compilation Benefit:** Native execution provides workload-dependent speedup (up to 1.45x in compute-heavy paths) over bytecode interpreter execution by removing interpreter bytecode dispatch overhead and leveraging optimized LLVM native machine code generation.
+2. **Automatic-Parallelism Evidence:** No sustained multi-core CPU utilization was observed under the configured sampling methodology across any tested level (T006-A arithmetic reduction, T006-B in-memory hashing, T006-C filesystem read+hash, or T006-D full pipeline). Emitted backend code under `j2 emit-native` shows single-threaded iterative loops with `thread_local! static GLOBALS` rather than multi-threaded concurrency runtime primitives (`rayon`, `thread::spawn`, `par_iter`).
+3. **Filesystem / I/O Effects:** Warm repeated runs are consistent with OS page-cache effects reducing physical disk wait, shifting execution to CPU computation (SHA-256 evaluation and pairwise candidate filtering) without privileged kernel cache eviction on macOS CI runners.
+4. **Workload-Size Effects:** The pairwise O(N^2) candidate size filtering in `scan.j2` scales quadratically with file count, consuming approximately 88% of execution time under the standalone cumulative stage-probe model for 500-file corpora (C1).
+5. **What Remains Unproven:** Internal compiler dependency analysis heuristics and potential automatic parallelism under future J2 releases or unverified lowering modes remain unproven. Under J2 0.1.0 and tested loop formulations, no automatic parallel speedup was observed.

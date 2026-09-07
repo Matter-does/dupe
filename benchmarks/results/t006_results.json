@@ -134,14 +134,14 @@
           "evidence_excerpts": [],
           "emission_sample": "\nuse j2_runtime::prelude::*;\nuse j2_runtime::value::{J2Value, J2Func, J2FuncClause};\nuse j2_runtime::error::{J2Err, J2ErrKind, J2Result};\nuse j2_runtime::flow::J2Flow;\n#[allow(unused_imports)]\nuse j2_runtime::convert::*;\nuse std::cell::RefCell;\nuse std::collections::HashMap;\nuse std::rc::Rc;\n\n#[derive(Clone)]\nstruct Env {\n    table: HashMap<String, (J2Value, bool)>,\n    /// Names actually *declared* in this scope (vs inherited from GLOBALS /\n    /// builtins, which are copied into `table`). A binding shadows an\n    /// inherited name freely; only re-binding a name already in `locals` is\n    /// subject to the constant-reassignment rule. This lets a function-local\n    /// `x = \u2026` shadow a same-named top-level constant.\n    locals: std::collections::HashSet<String>,\n}\n\ntype EnvRef = Rc<RefCell<Env>>;\n\nthread_local! {\n    /// Global registry of user-defined top-level bindings (funcs + globals).\n    /// Function bodies seed their fresh envs from this so recursion and\n    /// cross-function calls work without lexical capture.\n    static GLOBALS: RefCell<HashMap<String, (J2Value, bool)>> = RefCell::new(HashMap::new());\n    /// Carries the value of a `give` (early return) while the GiveSignal error",
           "analysis_method": "Regex search for multi-threaded runtime primitives in Rust emission",
-          "epistemic_note": "Compiler emission reflects structural backend source; multi-core execution requires runtime verification."
+          "epistemic_note": "Compiler emission sample (first 30 lines); reflects structural backend source. Inspection searches for explicit concurrency patterns (rayon, thread::spawn, par_iter, etc.). Absence of patterns indicates no explicit parallel runtime primitives in emitted backend, not proof of absence of all internal optimizations."
         },
         "cpu": {
           "max_cpu_percent": 0.0,
           "avg_cpu_percent": 0.0,
           "sample_count": 1,
           "multi_core_engaged": false,
-          "measurement_method": "Background periodic sample via ps/system API"
+          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core"
         },
         "profiler": {
           "profiler_used": "external wall time and ps sampling"
@@ -157,7 +157,8 @@
       "classification": "CATEGORY E",
       "limitations": [
         "Does not perform memory allocations or I/O; isolates arithmetic reduction only.",
-        "Serial control uses loop-carried accumulator dependency."
+        "Serial control uses loop-carried accumulator dependency.",
+        "Candidate vs serial control speedup is driven by builtin sum() reduction optimization in J2 runtime rather than multi-threaded automatic parallelism."
       ]
     },
     {
@@ -278,14 +279,14 @@
           "evidence_excerpts": [],
           "emission_sample": "\nuse j2_runtime::prelude::*;\nuse j2_runtime::value::{J2Value, J2Func, J2FuncClause};\nuse j2_runtime::error::{J2Err, J2ErrKind, J2Result};\nuse j2_runtime::flow::J2Flow;\n#[allow(unused_imports)]\nuse j2_runtime::convert::*;\nuse std::cell::RefCell;\nuse std::collections::HashMap;\nuse std::rc::Rc;\n\n#[derive(Clone)]\nstruct Env {\n    table: HashMap<String, (J2Value, bool)>,\n    /// Names actually *declared* in this scope (vs inherited from GLOBALS /\n    /// builtins, which are copied into `table`). A binding shadows an\n    /// inherited name freely; only re-binding a name already in `locals` is\n    /// subject to the constant-reassignment rule. This lets a function-local\n    /// `x = \u2026` shadow a same-named top-level constant.\n    locals: std::collections::HashSet<String>,\n}\n\ntype EnvRef = Rc<RefCell<Env>>;\n\nthread_local! {\n    /// Global registry of user-defined top-level bindings (funcs + globals).\n    /// Function bodies seed their fresh envs from this so recursion and\n    /// cross-function calls work without lexical capture.\n    static GLOBALS: RefCell<HashMap<String, (J2Value, bool)>> = RefCell::new(HashMap::new());\n    /// Carries the value of a `give` (early return) while the GiveSignal error",
           "analysis_method": "Regex search for multi-threaded runtime primitives in Rust emission",
-          "epistemic_note": "Compiler emission reflects structural backend source; multi-core execution requires runtime verification."
+          "epistemic_note": "Compiler emission sample (first 30 lines); reflects structural backend source. Inspection searches for explicit concurrency patterns (rayon, thread::spawn, par_iter, etc.). Absence of patterns indicates no explicit parallel runtime primitives in emitted backend, not proof of absence of all internal optimizations."
         },
         "cpu": {
           "max_cpu_percent": 0.0,
           "avg_cpu_percent": 0.0,
           "sample_count": 2,
           "multi_core_engaged": false,
-          "measurement_method": "Background periodic sample via ps/system API"
+          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core"
         },
         "profiler": {
           "profiler_used": "external wall time and ps sampling"
@@ -301,7 +302,8 @@
       "classification": "CATEGORY E",
       "limitations": [
         "Does not perform memory allocations or I/O; isolates arithmetic reduction only.",
-        "Serial control uses loop-carried accumulator dependency."
+        "Serial control uses loop-carried accumulator dependency.",
+        "Candidate vs serial control speedup is driven by builtin sum() reduction optimization in J2 runtime rather than multi-threaded automatic parallelism."
       ]
     },
     {
@@ -422,14 +424,14 @@
           "evidence_excerpts": [],
           "emission_sample": "\nuse j2_runtime::prelude::*;\nuse j2_runtime::value::{J2Value, J2Func, J2FuncClause};\nuse j2_runtime::error::{J2Err, J2ErrKind, J2Result};\nuse j2_runtime::flow::J2Flow;\n#[allow(unused_imports)]\nuse j2_runtime::convert::*;\nuse std::cell::RefCell;\nuse std::collections::HashMap;\nuse std::rc::Rc;\n\n#[derive(Clone)]\nstruct Env {\n    table: HashMap<String, (J2Value, bool)>,\n    /// Names actually *declared* in this scope (vs inherited from GLOBALS /\n    /// builtins, which are copied into `table`). A binding shadows an\n    /// inherited name freely; only re-binding a name already in `locals` is\n    /// subject to the constant-reassignment rule. This lets a function-local\n    /// `x = \u2026` shadow a same-named top-level constant.\n    locals: std::collections::HashSet<String>,\n}\n\ntype EnvRef = Rc<RefCell<Env>>;\n\nthread_local! {\n    /// Global registry of user-defined top-level bindings (funcs + globals).\n    /// Function bodies seed their fresh envs from this so recursion and\n    /// cross-function calls work without lexical capture.\n    static GLOBALS: RefCell<HashMap<String, (J2Value, bool)>> = RefCell::new(HashMap::new());\n    /// Carries the value of a `give` (early return) while the GiveSignal error",
           "analysis_method": "Regex search for multi-threaded runtime primitives in Rust emission",
-          "epistemic_note": "Compiler emission reflects structural backend source; multi-core execution requires runtime verification."
+          "epistemic_note": "Compiler emission sample (first 30 lines); reflects structural backend source. Inspection searches for explicit concurrency patterns (rayon, thread::spawn, par_iter, etc.). Absence of patterns indicates no explicit parallel runtime primitives in emitted backend, not proof of absence of all internal optimizations."
         },
         "cpu": {
           "max_cpu_percent": 0.0,
           "avg_cpu_percent": 0.0,
           "sample_count": 1,
           "multi_core_engaged": false,
-          "measurement_method": "Background periodic sample via ps/system API"
+          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core"
         },
         "profiler": {
           "profiler_used": "external wall time and ps sampling"
@@ -445,7 +447,8 @@
       "classification": "CATEGORY E",
       "limitations": [
         "Does not perform memory allocations or I/O; isolates arithmetic reduction only.",
-        "Serial control uses loop-carried accumulator dependency."
+        "Serial control uses loop-carried accumulator dependency.",
+        "Candidate vs serial control speedup is driven by builtin sum() reduction optimization in J2 runtime rather than multi-threaded automatic parallelism."
       ]
     },
     {
@@ -537,14 +540,14 @@
           "evidence_excerpts": [],
           "emission_sample": "\nuse j2_runtime::prelude::*;\nuse j2_runtime::value::{J2Value, J2Func, J2FuncClause};\nuse j2_runtime::error::{J2Err, J2ErrKind, J2Result};\nuse j2_runtime::flow::J2Flow;\n#[allow(unused_imports)]\nuse j2_runtime::convert::*;\nuse std::cell::RefCell;\nuse std::collections::HashMap;\nuse std::rc::Rc;\n\n#[derive(Clone)]\nstruct Env {\n    table: HashMap<String, (J2Value, bool)>,\n    /// Names actually *declared* in this scope (vs inherited from GLOBALS /\n    /// builtins, which are copied into `table`). A binding shadows an\n    /// inherited name freely; only re-binding a name already in `locals` is\n    /// subject to the constant-reassignment rule. This lets a function-local\n    /// `x = \u2026` shadow a same-named top-level constant.\n    locals: std::collections::HashSet<String>,\n}\n\ntype EnvRef = Rc<RefCell<Env>>;\n\nthread_local! {\n    /// Global registry of user-defined top-level bindings (funcs + globals).\n    /// Function bodies seed their fresh envs from this so recursion and\n    /// cross-function calls work without lexical capture.\n    static GLOBALS: RefCell<HashMap<String, (J2Value, bool)>> = RefCell::new(HashMap::new());\n    /// Carries the value of a `give` (early return) while the GiveSignal error",
           "analysis_method": "Regex search for multi-threaded runtime primitives in Rust emission",
-          "epistemic_note": "Compiler emission reflects structural backend source; multi-core execution requires runtime verification."
+          "epistemic_note": "Compiler emission sample (first 30 lines); reflects structural backend source. Inspection searches for explicit concurrency patterns (rayon, thread::spawn, par_iter, etc.). Absence of patterns indicates no explicit parallel runtime primitives in emitted backend, not proof of absence of all internal optimizations."
         },
         "cpu": {
           "max_cpu_percent": 0.0,
           "avg_cpu_percent": 0.0,
           "sample_count": 1,
           "multi_core_engaged": false,
-          "measurement_method": "Background periodic sample via ps/system API"
+          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core"
         },
         "profiler": {
           "in_memory_isolation": true,
@@ -559,7 +562,8 @@
       "evidence_grade": "A",
       "classification": "CATEGORY D",
       "limitations": [
-        "Pre-allocates buffers in memory; isolates hashing CPU compute from filesystem latency."
+        "Pre-allocates buffers in memory; isolates hashing CPU compute from filesystem latency.",
+        "No automatic parallel speedup was observed for the tested in-memory SHA-256 loop formulations under J2 0.1.0."
       ]
     },
     {
@@ -651,14 +655,14 @@
           "evidence_excerpts": [],
           "emission_sample": "\nuse j2_runtime::prelude::*;\nuse j2_runtime::value::{J2Value, J2Func, J2FuncClause};\nuse j2_runtime::error::{J2Err, J2ErrKind, J2Result};\nuse j2_runtime::flow::J2Flow;\n#[allow(unused_imports)]\nuse j2_runtime::convert::*;\nuse std::cell::RefCell;\nuse std::collections::HashMap;\nuse std::rc::Rc;\n\n#[derive(Clone)]\nstruct Env {\n    table: HashMap<String, (J2Value, bool)>,\n    /// Names actually *declared* in this scope (vs inherited from GLOBALS /\n    /// builtins, which are copied into `table`). A binding shadows an\n    /// inherited name freely; only re-binding a name already in `locals` is\n    /// subject to the constant-reassignment rule. This lets a function-local\n    /// `x = \u2026` shadow a same-named top-level constant.\n    locals: std::collections::HashSet<String>,\n}\n\ntype EnvRef = Rc<RefCell<Env>>;\n\nthread_local! {\n    /// Global registry of user-defined top-level bindings (funcs + globals).\n    /// Function bodies seed their fresh envs from this so recursion and\n    /// cross-function calls work without lexical capture.\n    static GLOBALS: RefCell<HashMap<String, (J2Value, bool)>> = RefCell::new(HashMap::new());\n    /// Carries the value of a `give` (early return) while the GiveSignal error",
           "analysis_method": "Regex search for multi-threaded runtime primitives in Rust emission",
-          "epistemic_note": "Compiler emission reflects structural backend source; multi-core execution requires runtime verification."
+          "epistemic_note": "Compiler emission sample (first 30 lines); reflects structural backend source. Inspection searches for explicit concurrency patterns (rayon, thread::spawn, par_iter, etc.). Absence of patterns indicates no explicit parallel runtime primitives in emitted backend, not proof of absence of all internal optimizations."
         },
         "cpu": {
           "max_cpu_percent": 0.0,
           "avg_cpu_percent": 0.0,
           "sample_count": 1,
           "multi_core_engaged": false,
-          "measurement_method": "Background periodic sample via ps/system API"
+          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core"
         },
         "profiler": {
           "in_memory_isolation": true,
@@ -673,7 +677,8 @@
       "evidence_grade": "C",
       "classification": "CATEGORY E",
       "limitations": [
-        "Pre-allocates buffers in memory; isolates hashing CPU compute from filesystem latency."
+        "Pre-allocates buffers in memory; isolates hashing CPU compute from filesystem latency.",
+        "No automatic parallel speedup was observed for the tested in-memory SHA-256 loop formulations under J2 0.1.0."
       ]
     },
     {
@@ -765,14 +770,14 @@
           "evidence_excerpts": [],
           "emission_sample": "\nuse j2_runtime::prelude::*;\nuse j2_runtime::value::{J2Value, J2Func, J2FuncClause};\nuse j2_runtime::error::{J2Err, J2ErrKind, J2Result};\nuse j2_runtime::flow::J2Flow;\n#[allow(unused_imports)]\nuse j2_runtime::convert::*;\nuse std::cell::RefCell;\nuse std::collections::HashMap;\nuse std::rc::Rc;\n\n#[derive(Clone)]\nstruct Env {\n    table: HashMap<String, (J2Value, bool)>,\n    /// Names actually *declared* in this scope (vs inherited from GLOBALS /\n    /// builtins, which are copied into `table`). A binding shadows an\n    /// inherited name freely; only re-binding a name already in `locals` is\n    /// subject to the constant-reassignment rule. This lets a function-local\n    /// `x = \u2026` shadow a same-named top-level constant.\n    locals: std::collections::HashSet<String>,\n}\n\ntype EnvRef = Rc<RefCell<Env>>;\n\nthread_local! {\n    /// Global registry of user-defined top-level bindings (funcs + globals).\n    /// Function bodies seed their fresh envs from this so recursion and\n    /// cross-function calls work without lexical capture.\n    static GLOBALS: RefCell<HashMap<String, (J2Value, bool)>> = RefCell::new(HashMap::new());\n    /// Carries the value of a `give` (early return) while the GiveSignal error",
           "analysis_method": "Regex search for multi-threaded runtime primitives in Rust emission",
-          "epistemic_note": "Compiler emission reflects structural backend source; multi-core execution requires runtime verification."
+          "epistemic_note": "Compiler emission sample (first 30 lines); reflects structural backend source. Inspection searches for explicit concurrency patterns (rayon, thread::spawn, par_iter, etc.). Absence of patterns indicates no explicit parallel runtime primitives in emitted backend, not proof of absence of all internal optimizations."
         },
         "cpu": {
           "max_cpu_percent": 0.0,
           "avg_cpu_percent": 0.0,
           "sample_count": 1,
           "multi_core_engaged": false,
-          "measurement_method": "Background periodic sample via ps/system API"
+          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core"
         },
         "profiler": {
           "in_memory_isolation": true,
@@ -787,7 +792,8 @@
       "evidence_grade": "A",
       "classification": "CATEGORY D",
       "limitations": [
-        "Pre-allocates buffers in memory; isolates hashing CPU compute from filesystem latency."
+        "Pre-allocates buffers in memory; isolates hashing CPU compute from filesystem latency.",
+        "No automatic parallel speedup was observed for the tested in-memory SHA-256 loop formulations under J2 0.1.0."
       ]
     },
     {
@@ -879,14 +885,14 @@
           "evidence_excerpts": [],
           "emission_sample": "\nuse j2_runtime::prelude::*;\nuse j2_runtime::value::{J2Value, J2Func, J2FuncClause};\nuse j2_runtime::error::{J2Err, J2ErrKind, J2Result};\nuse j2_runtime::flow::J2Flow;\n#[allow(unused_imports)]\nuse j2_runtime::convert::*;\nuse std::cell::RefCell;\nuse std::collections::HashMap;\nuse std::rc::Rc;\n\n#[derive(Clone)]\nstruct Env {\n    table: HashMap<String, (J2Value, bool)>,\n    /// Names actually *declared* in this scope (vs inherited from GLOBALS /\n    /// builtins, which are copied into `table`). A binding shadows an\n    /// inherited name freely; only re-binding a name already in `locals` is\n    /// subject to the constant-reassignment rule. This lets a function-local\n    /// `x = \u2026` shadow a same-named top-level constant.\n    locals: std::collections::HashSet<String>,\n}\n\ntype EnvRef = Rc<RefCell<Env>>;\n\nthread_local! {\n    /// Global registry of user-defined top-level bindings (funcs + globals).\n    /// Function bodies seed their fresh envs from this so recursion and\n    /// cross-function calls work without lexical capture.\n    static GLOBALS: RefCell<HashMap<String, (J2Value, bool)>> = RefCell::new(HashMap::new());\n    /// Carries the value of a `give` (early return) while the GiveSignal error",
           "analysis_method": "Regex search for multi-threaded runtime primitives in Rust emission",
-          "epistemic_note": "Compiler emission reflects structural backend source; multi-core execution requires runtime verification."
+          "epistemic_note": "Compiler emission sample (first 30 lines); reflects structural backend source. Inspection searches for explicit concurrency patterns (rayon, thread::spawn, par_iter, etc.). Absence of patterns indicates no explicit parallel runtime primitives in emitted backend, not proof of absence of all internal optimizations."
         },
         "cpu": {
           "max_cpu_percent": 0.0,
           "avg_cpu_percent": 0.0,
           "sample_count": 1,
           "multi_core_engaged": false,
-          "measurement_method": "Background periodic sample via ps/system API"
+          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core"
         },
         "profiler": {
           "in_memory_isolation": true,
@@ -901,7 +907,8 @@
       "evidence_grade": "A",
       "classification": "CATEGORY D",
       "limitations": [
-        "Pre-allocates buffers in memory; isolates hashing CPU compute from filesystem latency."
+        "Pre-allocates buffers in memory; isolates hashing CPU compute from filesystem latency.",
+        "No automatic parallel speedup was observed for the tested in-memory SHA-256 loop formulations under J2 0.1.0."
       ]
     },
     {
@@ -913,6 +920,13 @@
       "source_sha256": "f27fa75aba53edf6ffc9494259c17e82ce803615d50290ec5e22e2fa74bfe810",
       "workload_parameters": {
         "corpus_id": "C1",
+        "profile": "Metadata Heavy",
+        "seed": 12345,
+        "scale": 0.01,
+        "manifest_sha256": "b6591cea6e0ab3e9664a397f863403cbd8badb8423f6212f589687f2f70c5a83",
+        "file_count": 500,
+        "candidate_count": 122,
+        "total_bytes": 2048005,
         "corpus_path": "/Users/runner/work/dupe/dupe/benchmarks/corpora/C1"
       },
       "interpreter_measurement": null,
@@ -994,14 +1008,14 @@
           "evidence_excerpts": [],
           "emission_sample": "\nuse j2_runtime::prelude::*;\nuse j2_runtime::value::{J2Value, J2Func, J2FuncClause};\nuse j2_runtime::error::{J2Err, J2ErrKind, J2Result};\nuse j2_runtime::flow::J2Flow;\n#[allow(unused_imports)]\nuse j2_runtime::convert::*;\nuse std::cell::RefCell;\nuse std::collections::HashMap;\nuse std::rc::Rc;\n\n#[derive(Clone)]\nstruct Env {\n    table: HashMap<String, (J2Value, bool)>,\n    /// Names actually *declared* in this scope (vs inherited from GLOBALS /\n    /// builtins, which are copied into `table`). A binding shadows an\n    /// inherited name freely; only re-binding a name already in `locals` is\n    /// subject to the constant-reassignment rule. This lets a function-local\n    /// `x = \u2026` shadow a same-named top-level constant.\n    locals: std::collections::HashSet<String>,\n}\n\ntype EnvRef = Rc<RefCell<Env>>;\n\nthread_local! {\n    /// Global registry of user-defined top-level bindings (funcs + globals).\n    /// Function bodies seed their fresh envs from this so recursion and\n    /// cross-function calls work without lexical capture.\n    static GLOBALS: RefCell<HashMap<String, (J2Value, bool)>> = RefCell::new(HashMap::new());\n    /// Carries the value of a `give` (early return) while the GiveSignal error",
           "analysis_method": "Regex search for multi-threaded runtime primitives in Rust emission",
-          "epistemic_note": "Compiler emission reflects structural backend source; multi-core execution requires runtime verification."
+          "epistemic_note": "Compiler emission sample (first 30 lines); reflects structural backend source. Inspection searches for explicit concurrency patterns (rayon, thread::spawn, par_iter, etc.). Absence of patterns indicates no explicit parallel runtime primitives in emitted backend, not proof of absence of all internal optimizations."
         },
         "cpu": {
           "max_cpu_percent": 0.0,
           "avg_cpu_percent": 0.0,
           "sample_count": 1,
           "multi_core_engaged": false,
-          "measurement_method": "Background periodic sample via ps/system API"
+          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core"
         },
         "profiler": {
           "corpus_path": "/Users/runner/work/dupe/dupe/benchmarks/corpora/C1",
@@ -1017,7 +1031,8 @@
       "classification": "CATEGORY D",
       "limitations": [
         "Measures filesystem read + hash hot loop; excludes dupe size grouping.",
-        "Executed under warm-state repeated runs."
+        "Executed under warm-state repeated runs; consistent with page-cache effects reducing storage wait without privileged kernel cache eviction.",
+        "No sustained multi-core CPU utilization or measurable native serial-equivalent advantage was observed for the tested filesystem read+hash formulations."
       ]
     },
     {
@@ -1029,6 +1044,13 @@
       "source_sha256": "f27fa75aba53edf6ffc9494259c17e82ce803615d50290ec5e22e2fa74bfe810",
       "workload_parameters": {
         "corpus_id": "C2",
+        "profile": "Balanced Baseline",
+        "seed": 12345,
+        "scale": 0.01,
+        "manifest_sha256": "85fdcad5804599148d298642a8b945d812dc2b37803e498c8188fc8b9f36b0ec",
+        "file_count": 100,
+        "candidate_count": 30,
+        "total_bytes": 9999999,
         "corpus_path": "/Users/runner/work/dupe/dupe/benchmarks/corpora/C2"
       },
       "interpreter_measurement": null,
@@ -1110,14 +1132,14 @@
           "evidence_excerpts": [],
           "emission_sample": "\nuse j2_runtime::prelude::*;\nuse j2_runtime::value::{J2Value, J2Func, J2FuncClause};\nuse j2_runtime::error::{J2Err, J2ErrKind, J2Result};\nuse j2_runtime::flow::J2Flow;\n#[allow(unused_imports)]\nuse j2_runtime::convert::*;\nuse std::cell::RefCell;\nuse std::collections::HashMap;\nuse std::rc::Rc;\n\n#[derive(Clone)]\nstruct Env {\n    table: HashMap<String, (J2Value, bool)>,\n    /// Names actually *declared* in this scope (vs inherited from GLOBALS /\n    /// builtins, which are copied into `table`). A binding shadows an\n    /// inherited name freely; only re-binding a name already in `locals` is\n    /// subject to the constant-reassignment rule. This lets a function-local\n    /// `x = \u2026` shadow a same-named top-level constant.\n    locals: std::collections::HashSet<String>,\n}\n\ntype EnvRef = Rc<RefCell<Env>>;\n\nthread_local! {\n    /// Global registry of user-defined top-level bindings (funcs + globals).\n    /// Function bodies seed their fresh envs from this so recursion and\n    /// cross-function calls work without lexical capture.\n    static GLOBALS: RefCell<HashMap<String, (J2Value, bool)>> = RefCell::new(HashMap::new());\n    /// Carries the value of a `give` (early return) while the GiveSignal error",
           "analysis_method": "Regex search for multi-threaded runtime primitives in Rust emission",
-          "epistemic_note": "Compiler emission reflects structural backend source; multi-core execution requires runtime verification."
+          "epistemic_note": "Compiler emission sample (first 30 lines); reflects structural backend source. Inspection searches for explicit concurrency patterns (rayon, thread::spawn, par_iter, etc.). Absence of patterns indicates no explicit parallel runtime primitives in emitted backend, not proof of absence of all internal optimizations."
         },
         "cpu": {
           "max_cpu_percent": 0.0,
           "avg_cpu_percent": 0.0,
           "sample_count": 1,
           "multi_core_engaged": false,
-          "measurement_method": "Background periodic sample via ps/system API"
+          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core"
         },
         "profiler": {
           "corpus_path": "/Users/runner/work/dupe/dupe/benchmarks/corpora/C2",
@@ -1133,7 +1155,8 @@
       "classification": "CATEGORY E",
       "limitations": [
         "Measures filesystem read + hash hot loop; excludes dupe size grouping.",
-        "Executed under warm-state repeated runs."
+        "Executed under warm-state repeated runs; consistent with page-cache effects reducing storage wait without privileged kernel cache eviction.",
+        "No sustained multi-core CPU utilization or measurable native serial-equivalent advantage was observed for the tested filesystem read+hash formulations."
       ]
     },
     {
@@ -1145,6 +1168,13 @@
       "source_sha256": "f27fa75aba53edf6ffc9494259c17e82ce803615d50290ec5e22e2fa74bfe810",
       "workload_parameters": {
         "corpus_id": "C4",
+        "profile": "High Duplicate Density",
+        "seed": 12345,
+        "scale": 0.01,
+        "manifest_sha256": "90c5eb87eb069623e1f516a24aa7d9eb01d368d904c661bb3ad841ef93751717",
+        "file_count": 100,
+        "candidate_count": 80,
+        "total_bytes": 10000002,
         "corpus_path": "/Users/runner/work/dupe/dupe/benchmarks/corpora/C4"
       },
       "interpreter_measurement": null,
@@ -1226,14 +1256,14 @@
           "evidence_excerpts": [],
           "emission_sample": "\nuse j2_runtime::prelude::*;\nuse j2_runtime::value::{J2Value, J2Func, J2FuncClause};\nuse j2_runtime::error::{J2Err, J2ErrKind, J2Result};\nuse j2_runtime::flow::J2Flow;\n#[allow(unused_imports)]\nuse j2_runtime::convert::*;\nuse std::cell::RefCell;\nuse std::collections::HashMap;\nuse std::rc::Rc;\n\n#[derive(Clone)]\nstruct Env {\n    table: HashMap<String, (J2Value, bool)>,\n    /// Names actually *declared* in this scope (vs inherited from GLOBALS /\n    /// builtins, which are copied into `table`). A binding shadows an\n    /// inherited name freely; only re-binding a name already in `locals` is\n    /// subject to the constant-reassignment rule. This lets a function-local\n    /// `x = \u2026` shadow a same-named top-level constant.\n    locals: std::collections::HashSet<String>,\n}\n\ntype EnvRef = Rc<RefCell<Env>>;\n\nthread_local! {\n    /// Global registry of user-defined top-level bindings (funcs + globals).\n    /// Function bodies seed their fresh envs from this so recursion and\n    /// cross-function calls work without lexical capture.\n    static GLOBALS: RefCell<HashMap<String, (J2Value, bool)>> = RefCell::new(HashMap::new());\n    /// Carries the value of a `give` (early return) while the GiveSignal error",
           "analysis_method": "Regex search for multi-threaded runtime primitives in Rust emission",
-          "epistemic_note": "Compiler emission reflects structural backend source; multi-core execution requires runtime verification."
+          "epistemic_note": "Compiler emission sample (first 30 lines); reflects structural backend source. Inspection searches for explicit concurrency patterns (rayon, thread::spawn, par_iter, etc.). Absence of patterns indicates no explicit parallel runtime primitives in emitted backend, not proof of absence of all internal optimizations."
         },
         "cpu": {
           "max_cpu_percent": 26.6,
           "avg_cpu_percent": 8.9,
           "sample_count": 3,
           "multi_core_engaged": false,
-          "measurement_method": "Background periodic sample via ps/system API"
+          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core"
         },
         "profiler": {
           "corpus_path": "/Users/runner/work/dupe/dupe/benchmarks/corpora/C4",
@@ -1249,7 +1279,8 @@
       "classification": "CATEGORY D",
       "limitations": [
         "Measures filesystem read + hash hot loop; excludes dupe size grouping.",
-        "Executed under warm-state repeated runs."
+        "Executed under warm-state repeated runs; consistent with page-cache effects reducing storage wait without privileged kernel cache eviction.",
+        "No sustained multi-core CPU utilization or measurable native serial-equivalent advantage was observed for the tested filesystem read+hash formulations."
       ]
     },
     {
@@ -1261,6 +1292,13 @@
       "source_sha256": "f27fa75aba53edf6ffc9494259c17e82ce803615d50290ec5e22e2fa74bfe810",
       "workload_parameters": {
         "corpus_id": "C5",
+        "profile": "Same-Size Adversarial",
+        "seed": 12345,
+        "scale": 0.01,
+        "manifest_sha256": "ffff75dfe50ddc2c040d34208d08cb5f988a6d67b2cb705f15d911b34e555811",
+        "file_count": 200,
+        "candidate_count": 200,
+        "total_bytes": 10485600,
         "corpus_path": "/Users/runner/work/dupe/dupe/benchmarks/corpora/C5"
       },
       "interpreter_measurement": null,
@@ -1342,14 +1380,14 @@
           "evidence_excerpts": [],
           "emission_sample": "\nuse j2_runtime::prelude::*;\nuse j2_runtime::value::{J2Value, J2Func, J2FuncClause};\nuse j2_runtime::error::{J2Err, J2ErrKind, J2Result};\nuse j2_runtime::flow::J2Flow;\n#[allow(unused_imports)]\nuse j2_runtime::convert::*;\nuse std::cell::RefCell;\nuse std::collections::HashMap;\nuse std::rc::Rc;\n\n#[derive(Clone)]\nstruct Env {\n    table: HashMap<String, (J2Value, bool)>,\n    /// Names actually *declared* in this scope (vs inherited from GLOBALS /\n    /// builtins, which are copied into `table`). A binding shadows an\n    /// inherited name freely; only re-binding a name already in `locals` is\n    /// subject to the constant-reassignment rule. This lets a function-local\n    /// `x = \u2026` shadow a same-named top-level constant.\n    locals: std::collections::HashSet<String>,\n}\n\ntype EnvRef = Rc<RefCell<Env>>;\n\nthread_local! {\n    /// Global registry of user-defined top-level bindings (funcs + globals).\n    /// Function bodies seed their fresh envs from this so recursion and\n    /// cross-function calls work without lexical capture.\n    static GLOBALS: RefCell<HashMap<String, (J2Value, bool)>> = RefCell::new(HashMap::new());\n    /// Carries the value of a `give` (early return) while the GiveSignal error",
           "analysis_method": "Regex search for multi-threaded runtime primitives in Rust emission",
-          "epistemic_note": "Compiler emission reflects structural backend source; multi-core execution requires runtime verification."
+          "epistemic_note": "Compiler emission sample (first 30 lines); reflects structural backend source. Inspection searches for explicit concurrency patterns (rayon, thread::spawn, par_iter, etc.). Absence of patterns indicates no explicit parallel runtime primitives in emitted backend, not proof of absence of all internal optimizations."
         },
         "cpu": {
           "max_cpu_percent": 0.0,
           "avg_cpu_percent": 0.0,
           "sample_count": 1,
           "multi_core_engaged": false,
-          "measurement_method": "Background periodic sample via ps/system API"
+          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core"
         },
         "profiler": {
           "corpus_path": "/Users/runner/work/dupe/dupe/benchmarks/corpora/C5",
@@ -1365,7 +1403,8 @@
       "classification": "CATEGORY D",
       "limitations": [
         "Measures filesystem read + hash hot loop; excludes dupe size grouping.",
-        "Executed under warm-state repeated runs."
+        "Executed under warm-state repeated runs; consistent with page-cache effects reducing storage wait without privileged kernel cache eviction.",
+        "No sustained multi-core CPU utilization or measurable native serial-equivalent advantage was observed for the tested filesystem read+hash formulations."
       ]
     },
     {
@@ -1377,6 +1416,13 @@
       "source_sha256": "f27fa75aba53edf6ffc9494259c17e82ce803615d50290ec5e22e2fa74bfe810",
       "workload_parameters": {
         "corpus_id": "C6",
+        "profile": "Mixed Realistic",
+        "seed": 12345,
+        "scale": 0.01,
+        "manifest_sha256": "2c45255c646e0e010c2c31e9c9c8916d7d5d794cb1e403d1591fba3ef4ca0ba0",
+        "file_count": 100,
+        "candidate_count": 30,
+        "total_bytes": 9999999,
         "corpus_path": "/Users/runner/work/dupe/dupe/benchmarks/corpora/C6"
       },
       "interpreter_measurement": null,
@@ -1458,14 +1504,14 @@
           "evidence_excerpts": [],
           "emission_sample": "\nuse j2_runtime::prelude::*;\nuse j2_runtime::value::{J2Value, J2Func, J2FuncClause};\nuse j2_runtime::error::{J2Err, J2ErrKind, J2Result};\nuse j2_runtime::flow::J2Flow;\n#[allow(unused_imports)]\nuse j2_runtime::convert::*;\nuse std::cell::RefCell;\nuse std::collections::HashMap;\nuse std::rc::Rc;\n\n#[derive(Clone)]\nstruct Env {\n    table: HashMap<String, (J2Value, bool)>,\n    /// Names actually *declared* in this scope (vs inherited from GLOBALS /\n    /// builtins, which are copied into `table`). A binding shadows an\n    /// inherited name freely; only re-binding a name already in `locals` is\n    /// subject to the constant-reassignment rule. This lets a function-local\n    /// `x = \u2026` shadow a same-named top-level constant.\n    locals: std::collections::HashSet<String>,\n}\n\ntype EnvRef = Rc<RefCell<Env>>;\n\nthread_local! {\n    /// Global registry of user-defined top-level bindings (funcs + globals).\n    /// Function bodies seed their fresh envs from this so recursion and\n    /// cross-function calls work without lexical capture.\n    static GLOBALS: RefCell<HashMap<String, (J2Value, bool)>> = RefCell::new(HashMap::new());\n    /// Carries the value of a `give` (early return) while the GiveSignal error",
           "analysis_method": "Regex search for multi-threaded runtime primitives in Rust emission",
-          "epistemic_note": "Compiler emission reflects structural backend source; multi-core execution requires runtime verification."
+          "epistemic_note": "Compiler emission sample (first 30 lines); reflects structural backend source. Inspection searches for explicit concurrency patterns (rayon, thread::spawn, par_iter, etc.). Absence of patterns indicates no explicit parallel runtime primitives in emitted backend, not proof of absence of all internal optimizations."
         },
         "cpu": {
           "max_cpu_percent": 0.0,
           "avg_cpu_percent": 0.0,
           "sample_count": 1,
           "multi_core_engaged": false,
-          "measurement_method": "Background periodic sample via ps/system API"
+          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core"
         },
         "profiler": {
           "corpus_path": "/Users/runner/work/dupe/dupe/benchmarks/corpora/C6",
@@ -1481,7 +1527,8 @@
       "classification": "CATEGORY D",
       "limitations": [
         "Measures filesystem read + hash hot loop; excludes dupe size grouping.",
-        "Executed under warm-state repeated runs."
+        "Executed under warm-state repeated runs; consistent with page-cache effects reducing storage wait without privileged kernel cache eviction.",
+        "No sustained multi-core CPU utilization or measurable native serial-equivalent advantage was observed for the tested filesystem read+hash formulations."
       ]
     },
     {
@@ -1493,6 +1540,13 @@
       "source_sha256": "f27fa75aba53edf6ffc9494259c17e82ce803615d50290ec5e22e2fa74bfe810",
       "workload_parameters": {
         "corpus_id": "C7",
+        "profile": "Cache Transition",
+        "seed": 12345,
+        "scale": 0.01,
+        "manifest_sha256": "d61808f2ece0221f4277864f114c00ee5ce1a9b2bdaae8327918cae7dbeaa853",
+        "file_count": 100,
+        "candidate_count": 30,
+        "total_bytes": 9999999,
         "corpus_path": "/Users/runner/work/dupe/dupe/benchmarks/corpora/C7"
       },
       "interpreter_measurement": null,
@@ -1574,14 +1628,14 @@
           "evidence_excerpts": [],
           "emission_sample": "\nuse j2_runtime::prelude::*;\nuse j2_runtime::value::{J2Value, J2Func, J2FuncClause};\nuse j2_runtime::error::{J2Err, J2ErrKind, J2Result};\nuse j2_runtime::flow::J2Flow;\n#[allow(unused_imports)]\nuse j2_runtime::convert::*;\nuse std::cell::RefCell;\nuse std::collections::HashMap;\nuse std::rc::Rc;\n\n#[derive(Clone)]\nstruct Env {\n    table: HashMap<String, (J2Value, bool)>,\n    /// Names actually *declared* in this scope (vs inherited from GLOBALS /\n    /// builtins, which are copied into `table`). A binding shadows an\n    /// inherited name freely; only re-binding a name already in `locals` is\n    /// subject to the constant-reassignment rule. This lets a function-local\n    /// `x = \u2026` shadow a same-named top-level constant.\n    locals: std::collections::HashSet<String>,\n}\n\ntype EnvRef = Rc<RefCell<Env>>;\n\nthread_local! {\n    /// Global registry of user-defined top-level bindings (funcs + globals).\n    /// Function bodies seed their fresh envs from this so recursion and\n    /// cross-function calls work without lexical capture.\n    static GLOBALS: RefCell<HashMap<String, (J2Value, bool)>> = RefCell::new(HashMap::new());\n    /// Carries the value of a `give` (early return) while the GiveSignal error",
           "analysis_method": "Regex search for multi-threaded runtime primitives in Rust emission",
-          "epistemic_note": "Compiler emission reflects structural backend source; multi-core execution requires runtime verification."
+          "epistemic_note": "Compiler emission sample (first 30 lines); reflects structural backend source. Inspection searches for explicit concurrency patterns (rayon, thread::spawn, par_iter, etc.). Absence of patterns indicates no explicit parallel runtime primitives in emitted backend, not proof of absence of all internal optimizations."
         },
         "cpu": {
           "max_cpu_percent": 0.0,
           "avg_cpu_percent": 0.0,
           "sample_count": 3,
           "multi_core_engaged": false,
-          "measurement_method": "Background periodic sample via ps/system API"
+          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core"
         },
         "profiler": {
           "corpus_path": "/Users/runner/work/dupe/dupe/benchmarks/corpora/C7",
@@ -1597,7 +1651,8 @@
       "classification": "CATEGORY D",
       "limitations": [
         "Measures filesystem read + hash hot loop; excludes dupe size grouping.",
-        "Executed under warm-state repeated runs."
+        "Executed under warm-state repeated runs; consistent with page-cache effects reducing storage wait without privileged kernel cache eviction.",
+        "No sustained multi-core CPU utilization or measurable native serial-equivalent advantage was observed for the tested filesystem read+hash formulations."
       ]
     },
     {
@@ -1609,9 +1664,13 @@
       "source_sha256": "a8a59968debd346d7264863ca0a38818233ddfec2994ba50b01efb356fdde972",
       "workload_parameters": {
         "corpus_id": "C1",
+        "profile": "Metadata Heavy",
+        "seed": 12345,
         "scale": 0.01,
+        "manifest_sha256": "b6591cea6e0ab3e9664a397f863403cbd8badb8423f6212f589687f2f70c5a83",
         "file_count": 500,
-        "candidate_count": 122
+        "candidate_count": 122,
+        "total_bytes": 2048005
       },
       "interpreter_measurement": {
         "baseline_id": "Baseline_A_Interpreter",
@@ -1694,14 +1753,14 @@
           "evidence_excerpts": [],
           "emission_sample": "\nuse j2_runtime::prelude::*;\nuse j2_runtime::value::{J2Value, J2Func, J2FuncClause};\nuse j2_runtime::error::{J2Err, J2ErrKind, J2Result};\nuse j2_runtime::flow::J2Flow;\n#[allow(unused_imports)]\nuse j2_runtime::convert::*;\nuse std::cell::RefCell;\nuse std::collections::HashMap;\nuse std::rc::Rc;\n\n#[derive(Clone)]\nstruct Env {\n    table: HashMap<String, (J2Value, bool)>,\n    /// Names actually *declared* in this scope (vs inherited from GLOBALS /\n    /// builtins, which are copied into `table`). A binding shadows an\n    /// inherited name freely; only re-binding a name already in `locals` is\n    /// subject to the constant-reassignment rule. This lets a function-local\n    /// `x = \u2026` shadow a same-named top-level constant.\n    locals: std::collections::HashSet<String>,\n}\n\ntype EnvRef = Rc<RefCell<Env>>;\n\nthread_local! {\n    /// Global registry of user-defined top-level bindings (funcs + globals).\n    /// Function bodies seed their fresh envs from this so recursion and\n    /// cross-function calls work without lexical capture.\n    static GLOBALS: RefCell<HashMap<String, (J2Value, bool)>> = RefCell::new(HashMap::new());\n    /// Carries the value of a `give` (early return) while the GiveSignal error",
           "analysis_method": "Regex search for multi-threaded runtime primitives in Rust emission",
-          "epistemic_note": "Compiler emission reflects structural backend source; multi-core execution requires runtime verification."
+          "epistemic_note": "Compiler emission sample (first 30 lines); reflects structural backend source. Inspection searches for explicit concurrency patterns (rayon, thread::spawn, par_iter, etc.). Absence of patterns indicates no explicit parallel runtime primitives in emitted backend, not proof of absence of all internal optimizations."
         },
         "cpu": {
           "max_cpu_percent": 82.0,
           "avg_cpu_percent": 64.4,
           "sample_count": 24,
           "multi_core_engaged": false,
-          "measurement_method": "Background periodic sample via ps/system API"
+          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core"
         },
         "profiler": {
           "corpus_id": "C1",
@@ -1719,7 +1778,8 @@
       "classification": "CATEGORY D",
       "limitations": [
         "Full end-to-end dupe execution includes discovery, O(N^2) size filtering, hashing, and grouping.",
-        "Serial comparison is against interpreter Baseline A; source-level serial control not applied to production src/*.j2 per immutability policy."
+        "Serial comparison is against interpreter Baseline A; source-level serial control not applied to production src/*.j2 per immutability policy.",
+        "Native compilation provides workload-dependent speed differences, but these measurements alone do not establish automatic multi-core parallelism."
       ]
     },
     {
@@ -1731,9 +1791,13 @@
       "source_sha256": "a8a59968debd346d7264863ca0a38818233ddfec2994ba50b01efb356fdde972",
       "workload_parameters": {
         "corpus_id": "C2",
+        "profile": "Balanced Baseline",
+        "seed": 12345,
         "scale": 0.01,
+        "manifest_sha256": "85fdcad5804599148d298642a8b945d812dc2b37803e498c8188fc8b9f36b0ec",
         "file_count": 100,
-        "candidate_count": 30
+        "candidate_count": 30,
+        "total_bytes": 9999999
       },
       "interpreter_measurement": {
         "baseline_id": "Baseline_A_Interpreter",
@@ -1816,14 +1880,14 @@
           "evidence_excerpts": [],
           "emission_sample": "\nuse j2_runtime::prelude::*;\nuse j2_runtime::value::{J2Value, J2Func, J2FuncClause};\nuse j2_runtime::error::{J2Err, J2ErrKind, J2Result};\nuse j2_runtime::flow::J2Flow;\n#[allow(unused_imports)]\nuse j2_runtime::convert::*;\nuse std::cell::RefCell;\nuse std::collections::HashMap;\nuse std::rc::Rc;\n\n#[derive(Clone)]\nstruct Env {\n    table: HashMap<String, (J2Value, bool)>,\n    /// Names actually *declared* in this scope (vs inherited from GLOBALS /\n    /// builtins, which are copied into `table`). A binding shadows an\n    /// inherited name freely; only re-binding a name already in `locals` is\n    /// subject to the constant-reassignment rule. This lets a function-local\n    /// `x = \u2026` shadow a same-named top-level constant.\n    locals: std::collections::HashSet<String>,\n}\n\ntype EnvRef = Rc<RefCell<Env>>;\n\nthread_local! {\n    /// Global registry of user-defined top-level bindings (funcs + globals).\n    /// Function bodies seed their fresh envs from this so recursion and\n    /// cross-function calls work without lexical capture.\n    static GLOBALS: RefCell<HashMap<String, (J2Value, bool)>> = RefCell::new(HashMap::new());\n    /// Carries the value of a `give` (early return) while the GiveSignal error",
           "analysis_method": "Regex search for multi-threaded runtime primitives in Rust emission",
-          "epistemic_note": "Compiler emission reflects structural backend source; multi-core execution requires runtime verification."
+          "epistemic_note": "Compiler emission sample (first 30 lines); reflects structural backend source. Inspection searches for explicit concurrency patterns (rayon, thread::spawn, par_iter, etc.). Absence of patterns indicates no explicit parallel runtime primitives in emitted backend, not proof of absence of all internal optimizations."
         },
         "cpu": {
           "max_cpu_percent": 15.3,
           "avg_cpu_percent": 7.7,
           "sample_count": 2,
           "multi_core_engaged": false,
-          "measurement_method": "Background periodic sample via ps/system API"
+          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core"
         },
         "profiler": {
           "corpus_id": "C2",
@@ -1841,7 +1905,8 @@
       "classification": "CATEGORY C",
       "limitations": [
         "Full end-to-end dupe execution includes discovery, O(N^2) size filtering, hashing, and grouping.",
-        "Serial comparison is against interpreter Baseline A; source-level serial control not applied to production src/*.j2 per immutability policy."
+        "Serial comparison is against interpreter Baseline A; source-level serial control not applied to production src/*.j2 per immutability policy.",
+        "Native compilation provides workload-dependent speed differences, but these measurements alone do not establish automatic multi-core parallelism."
       ]
     },
     {
@@ -1853,9 +1918,13 @@
       "source_sha256": "a8a59968debd346d7264863ca0a38818233ddfec2994ba50b01efb356fdde972",
       "workload_parameters": {
         "corpus_id": "C4",
+        "profile": "High Duplicate Density",
+        "seed": 12345,
         "scale": 0.01,
+        "manifest_sha256": "90c5eb87eb069623e1f516a24aa7d9eb01d368d904c661bb3ad841ef93751717",
         "file_count": 100,
-        "candidate_count": 80
+        "candidate_count": 80,
+        "total_bytes": 10000002
       },
       "interpreter_measurement": {
         "baseline_id": "Baseline_A_Interpreter",
@@ -1938,14 +2007,14 @@
           "evidence_excerpts": [],
           "emission_sample": "\nuse j2_runtime::prelude::*;\nuse j2_runtime::value::{J2Value, J2Func, J2FuncClause};\nuse j2_runtime::error::{J2Err, J2ErrKind, J2Result};\nuse j2_runtime::flow::J2Flow;\n#[allow(unused_imports)]\nuse j2_runtime::convert::*;\nuse std::cell::RefCell;\nuse std::collections::HashMap;\nuse std::rc::Rc;\n\n#[derive(Clone)]\nstruct Env {\n    table: HashMap<String, (J2Value, bool)>,\n    /// Names actually *declared* in this scope (vs inherited from GLOBALS /\n    /// builtins, which are copied into `table`). A binding shadows an\n    /// inherited name freely; only re-binding a name already in `locals` is\n    /// subject to the constant-reassignment rule. This lets a function-local\n    /// `x = \u2026` shadow a same-named top-level constant.\n    locals: std::collections::HashSet<String>,\n}\n\ntype EnvRef = Rc<RefCell<Env>>;\n\nthread_local! {\n    /// Global registry of user-defined top-level bindings (funcs + globals).\n    /// Function bodies seed their fresh envs from this so recursion and\n    /// cross-function calls work without lexical capture.\n    static GLOBALS: RefCell<HashMap<String, (J2Value, bool)>> = RefCell::new(HashMap::new());\n    /// Carries the value of a `give` (early return) while the GiveSignal error",
           "analysis_method": "Regex search for multi-threaded runtime primitives in Rust emission",
-          "epistemic_note": "Compiler emission reflects structural backend source; multi-core execution requires runtime verification."
+          "epistemic_note": "Compiler emission sample (first 30 lines); reflects structural backend source. Inspection searches for explicit concurrency patterns (rayon, thread::spawn, par_iter, etc.). Absence of patterns indicates no explicit parallel runtime primitives in emitted backend, not proof of absence of all internal optimizations."
         },
         "cpu": {
           "max_cpu_percent": 0.0,
           "avg_cpu_percent": 0.0,
           "sample_count": 1,
           "multi_core_engaged": false,
-          "measurement_method": "Background periodic sample via ps/system API"
+          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core"
         },
         "profiler": {
           "corpus_id": "C4",
@@ -1963,7 +2032,8 @@
       "classification": "CATEGORY D",
       "limitations": [
         "Full end-to-end dupe execution includes discovery, O(N^2) size filtering, hashing, and grouping.",
-        "Serial comparison is against interpreter Baseline A; source-level serial control not applied to production src/*.j2 per immutability policy."
+        "Serial comparison is against interpreter Baseline A; source-level serial control not applied to production src/*.j2 per immutability policy.",
+        "Native compilation provides workload-dependent speed differences, but these measurements alone do not establish automatic multi-core parallelism."
       ]
     },
     {
@@ -1975,9 +2045,13 @@
       "source_sha256": "a8a59968debd346d7264863ca0a38818233ddfec2994ba50b01efb356fdde972",
       "workload_parameters": {
         "corpus_id": "C5",
+        "profile": "Same-Size Adversarial",
+        "seed": 12345,
         "scale": 0.01,
+        "manifest_sha256": "ffff75dfe50ddc2c040d34208d08cb5f988a6d67b2cb705f15d911b34e555811",
         "file_count": 200,
-        "candidate_count": 200
+        "candidate_count": 200,
+        "total_bytes": 10485600
       },
       "interpreter_measurement": {
         "baseline_id": "Baseline_A_Interpreter",
@@ -2060,14 +2134,14 @@
           "evidence_excerpts": [],
           "emission_sample": "\nuse j2_runtime::prelude::*;\nuse j2_runtime::value::{J2Value, J2Func, J2FuncClause};\nuse j2_runtime::error::{J2Err, J2ErrKind, J2Result};\nuse j2_runtime::flow::J2Flow;\n#[allow(unused_imports)]\nuse j2_runtime::convert::*;\nuse std::cell::RefCell;\nuse std::collections::HashMap;\nuse std::rc::Rc;\n\n#[derive(Clone)]\nstruct Env {\n    table: HashMap<String, (J2Value, bool)>,\n    /// Names actually *declared* in this scope (vs inherited from GLOBALS /\n    /// builtins, which are copied into `table`). A binding shadows an\n    /// inherited name freely; only re-binding a name already in `locals` is\n    /// subject to the constant-reassignment rule. This lets a function-local\n    /// `x = \u2026` shadow a same-named top-level constant.\n    locals: std::collections::HashSet<String>,\n}\n\ntype EnvRef = Rc<RefCell<Env>>;\n\nthread_local! {\n    /// Global registry of user-defined top-level bindings (funcs + globals).\n    /// Function bodies seed their fresh envs from this so recursion and\n    /// cross-function calls work without lexical capture.\n    static GLOBALS: RefCell<HashMap<String, (J2Value, bool)>> = RefCell::new(HashMap::new());\n    /// Carries the value of a `give` (early return) while the GiveSignal error",
           "analysis_method": "Regex search for multi-threaded runtime primitives in Rust emission",
-          "epistemic_note": "Compiler emission reflects structural backend source; multi-core execution requires runtime verification."
+          "epistemic_note": "Compiler emission sample (first 30 lines); reflects structural backend source. Inspection searches for explicit concurrency patterns (rayon, thread::spawn, par_iter, etc.). Absence of patterns indicates no explicit parallel runtime primitives in emitted backend, not proof of absence of all internal optimizations."
         },
         "cpu": {
           "max_cpu_percent": 68.2,
           "avg_cpu_percent": 41.8,
           "sample_count": 5,
           "multi_core_engaged": false,
-          "measurement_method": "Background periodic sample via ps/system API"
+          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core"
         },
         "profiler": {
           "corpus_id": "C5",
@@ -2085,7 +2159,8 @@
       "classification": "CATEGORY D",
       "limitations": [
         "Full end-to-end dupe execution includes discovery, O(N^2) size filtering, hashing, and grouping.",
-        "Serial comparison is against interpreter Baseline A; source-level serial control not applied to production src/*.j2 per immutability policy."
+        "Serial comparison is against interpreter Baseline A; source-level serial control not applied to production src/*.j2 per immutability policy.",
+        "Native compilation provides workload-dependent speed differences, but these measurements alone do not establish automatic multi-core parallelism."
       ]
     },
     {
@@ -2097,9 +2172,13 @@
       "source_sha256": "a8a59968debd346d7264863ca0a38818233ddfec2994ba50b01efb356fdde972",
       "workload_parameters": {
         "corpus_id": "C6",
+        "profile": "Mixed Realistic",
+        "seed": 12345,
         "scale": 0.01,
+        "manifest_sha256": "2c45255c646e0e010c2c31e9c9c8916d7d5d794cb1e403d1591fba3ef4ca0ba0",
         "file_count": 100,
-        "candidate_count": 30
+        "candidate_count": 30,
+        "total_bytes": 9999999
       },
       "interpreter_measurement": {
         "baseline_id": "Baseline_A_Interpreter",
@@ -2182,14 +2261,14 @@
           "evidence_excerpts": [],
           "emission_sample": "\nuse j2_runtime::prelude::*;\nuse j2_runtime::value::{J2Value, J2Func, J2FuncClause};\nuse j2_runtime::error::{J2Err, J2ErrKind, J2Result};\nuse j2_runtime::flow::J2Flow;\n#[allow(unused_imports)]\nuse j2_runtime::convert::*;\nuse std::cell::RefCell;\nuse std::collections::HashMap;\nuse std::rc::Rc;\n\n#[derive(Clone)]\nstruct Env {\n    table: HashMap<String, (J2Value, bool)>,\n    /// Names actually *declared* in this scope (vs inherited from GLOBALS /\n    /// builtins, which are copied into `table`). A binding shadows an\n    /// inherited name freely; only re-binding a name already in `locals` is\n    /// subject to the constant-reassignment rule. This lets a function-local\n    /// `x = \u2026` shadow a same-named top-level constant.\n    locals: std::collections::HashSet<String>,\n}\n\ntype EnvRef = Rc<RefCell<Env>>;\n\nthread_local! {\n    /// Global registry of user-defined top-level bindings (funcs + globals).\n    /// Function bodies seed their fresh envs from this so recursion and\n    /// cross-function calls work without lexical capture.\n    static GLOBALS: RefCell<HashMap<String, (J2Value, bool)>> = RefCell::new(HashMap::new());\n    /// Carries the value of a `give` (early return) while the GiveSignal error",
           "analysis_method": "Regex search for multi-threaded runtime primitives in Rust emission",
-          "epistemic_note": "Compiler emission reflects structural backend source; multi-core execution requires runtime verification."
+          "epistemic_note": "Compiler emission sample (first 30 lines); reflects structural backend source. Inspection searches for explicit concurrency patterns (rayon, thread::spawn, par_iter, etc.). Absence of patterns indicates no explicit parallel runtime primitives in emitted backend, not proof of absence of all internal optimizations."
         },
         "cpu": {
           "max_cpu_percent": 10.5,
           "avg_cpu_percent": 5.2,
           "sample_count": 2,
           "multi_core_engaged": false,
-          "measurement_method": "Background periodic sample via ps/system API"
+          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core"
         },
         "profiler": {
           "corpus_id": "C6",
@@ -2207,7 +2286,8 @@
       "classification": "CATEGORY C",
       "limitations": [
         "Full end-to-end dupe execution includes discovery, O(N^2) size filtering, hashing, and grouping.",
-        "Serial comparison is against interpreter Baseline A; source-level serial control not applied to production src/*.j2 per immutability policy."
+        "Serial comparison is against interpreter Baseline A; source-level serial control not applied to production src/*.j2 per immutability policy.",
+        "Native compilation provides workload-dependent speed differences, but these measurements alone do not establish automatic multi-core parallelism."
       ]
     },
     {
@@ -2219,9 +2299,13 @@
       "source_sha256": "a8a59968debd346d7264863ca0a38818233ddfec2994ba50b01efb356fdde972",
       "workload_parameters": {
         "corpus_id": "C7",
+        "profile": "Cache Transition",
+        "seed": 12345,
         "scale": 0.01,
+        "manifest_sha256": "d61808f2ece0221f4277864f114c00ee5ce1a9b2bdaae8327918cae7dbeaa853",
         "file_count": 100,
-        "candidate_count": 30
+        "candidate_count": 30,
+        "total_bytes": 9999999
       },
       "interpreter_measurement": {
         "baseline_id": "Baseline_A_Interpreter",
@@ -2304,14 +2388,14 @@
           "evidence_excerpts": [],
           "emission_sample": "\nuse j2_runtime::prelude::*;\nuse j2_runtime::value::{J2Value, J2Func, J2FuncClause};\nuse j2_runtime::error::{J2Err, J2ErrKind, J2Result};\nuse j2_runtime::flow::J2Flow;\n#[allow(unused_imports)]\nuse j2_runtime::convert::*;\nuse std::cell::RefCell;\nuse std::collections::HashMap;\nuse std::rc::Rc;\n\n#[derive(Clone)]\nstruct Env {\n    table: HashMap<String, (J2Value, bool)>,\n    /// Names actually *declared* in this scope (vs inherited from GLOBALS /\n    /// builtins, which are copied into `table`). A binding shadows an\n    /// inherited name freely; only re-binding a name already in `locals` is\n    /// subject to the constant-reassignment rule. This lets a function-local\n    /// `x = \u2026` shadow a same-named top-level constant.\n    locals: std::collections::HashSet<String>,\n}\n\ntype EnvRef = Rc<RefCell<Env>>;\n\nthread_local! {\n    /// Global registry of user-defined top-level bindings (funcs + globals).\n    /// Function bodies seed their fresh envs from this so recursion and\n    /// cross-function calls work without lexical capture.\n    static GLOBALS: RefCell<HashMap<String, (J2Value, bool)>> = RefCell::new(HashMap::new());\n    /// Carries the value of a `give` (early return) while the GiveSignal error",
           "analysis_method": "Regex search for multi-threaded runtime primitives in Rust emission",
-          "epistemic_note": "Compiler emission reflects structural backend source; multi-core execution requires runtime verification."
+          "epistemic_note": "Compiler emission sample (first 30 lines); reflects structural backend source. Inspection searches for explicit concurrency patterns (rayon, thread::spawn, par_iter, etc.). Absence of patterns indicates no explicit parallel runtime primitives in emitted backend, not proof of absence of all internal optimizations."
         },
         "cpu": {
           "max_cpu_percent": 0.0,
           "avg_cpu_percent": 0.0,
           "sample_count": 2,
           "multi_core_engaged": false,
-          "measurement_method": "Background periodic sample via ps/system API"
+          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core"
         },
         "profiler": {
           "corpus_id": "C7",
@@ -2329,7 +2413,8 @@
       "classification": "CATEGORY D",
       "limitations": [
         "Full end-to-end dupe execution includes discovery, O(N^2) size filtering, hashing, and grouping.",
-        "Serial comparison is against interpreter Baseline A; source-level serial control not applied to production src/*.j2 per immutability policy."
+        "Serial comparison is against interpreter Baseline A; source-level serial control not applied to production src/*.j2 per immutability policy.",
+        "Native compilation provides workload-dependent speed differences, but these measurements alone do not establish automatic multi-core parallelism."
       ]
     }
   ],
@@ -2345,7 +2430,7 @@
       "t_group_ms": 141.11,
       "t_total_ms": 2267.51,
       "dominant_stage": "Size Filter (O(N^2))",
-      "measurement_type": "MEASURED via isolated stage probes"
+      "measurement_type": "APPROXIMATION via standalone cumulative stage probes"
     },
     {
       "corpus_id": "C2",
@@ -2358,7 +2443,7 @@
       "t_group_ms": 5.14,
       "t_total_ms": 318.06,
       "dominant_stage": "Read & Hash",
-      "measurement_type": "MEASURED via isolated stage probes"
+      "measurement_type": "APPROXIMATION via standalone cumulative stage probes"
     },
     {
       "corpus_id": "C4",
@@ -2371,7 +2456,7 @@
       "t_group_ms": 11.29,
       "t_total_ms": 256.47,
       "dominant_stage": "Size Filter (O(N^2))",
-      "measurement_type": "MEASURED via isolated stage probes"
+      "measurement_type": "APPROXIMATION via standalone cumulative stage probes"
     },
     {
       "corpus_id": "C5",
@@ -2384,7 +2469,7 @@
       "t_group_ms": 136.33,
       "t_total_ms": 339.99,
       "dominant_stage": "Group Duplicates",
-      "measurement_type": "MEASURED via isolated stage probes"
+      "measurement_type": "APPROXIMATION via standalone cumulative stage probes"
     },
     {
       "corpus_id": "C6",
@@ -2397,7 +2482,7 @@
       "t_group_ms": 0.0,
       "t_total_ms": 339.18,
       "dominant_stage": "Discovery",
-      "measurement_type": "MEASURED via isolated stage probes"
+      "measurement_type": "APPROXIMATION via standalone cumulative stage probes"
     },
     {
       "corpus_id": "C7",
@@ -2410,22 +2495,22 @@
       "t_group_ms": 27.97,
       "t_total_ms": 337.0,
       "dominant_stage": "Size Filter (O(N^2))",
-      "measurement_type": "MEASURED via isolated stage probes"
+      "measurement_type": "APPROXIMATION via standalone cumulative stage probes"
     }
   ],
   "research_answers": [
     {
       "question_number": 1,
-      "question": "Did the J2 compiler recognize the duplicate detection loop as safely parallelizable?",
-      "answer": "Under `j2 emit-native`, the emitted Rust backend code relies on thread_local! static globals and standard iterative loops. Explicit multi-threading primitives (e.g. rayon, par_iter, thread::spawn) were not observed in the emitted backend for the duplicate detection loop or pure controls under J2 0.1.0.",
+      "question": "Was compiler-generated parallel execution construct evidence observed for the tested loop formulation?",
+      "answer": "No tested compiler-emission pattern indicating explicit parallel scheduling (such as rayon, par_iter, or thread::spawn) was observed in the emitted backend for the tested sources under J2 0.1.0. Emitted code relies on thread_local! static GLOBALS and standard iterative loops. This directly characterizes the emitted backend source artifact, but does not expose the compiler's internal dependence analysis or prove that no other lowering mechanism exists.",
       "evidence_grade": "A",
       "supporting_artifact": "Compiler emission inspection records (`evidence.compiler.matched_constructs`)",
-      "limitations": "Inspection is based on regex search for known Rust concurrency primitives in emitted backend source."
+      "limitations": "Inspection is based on regex pattern matching against known Rust concurrency primitives in emitted backend source; does not inspect internal compiler IR before emission."
     },
     {
       "question_number": 2,
       "question": "Did execution become measurably faster in compiled native mode?",
-      "answer": "Yes. Compiled native execution was consistently faster than bytecode interpreter execution (average native speedup across tested workloads: 1.02x). However, this advantage is attributable to machine-code compilation and reduced interpreter dispatch overhead rather than multi-threaded parallelism.",
+      "answer": "Yes. Compiled native execution was faster in compute-intensive workloads (e.g. up to 1.45x in C6 and 1.15x in C2, with an average native speedup of 1.02x across tested workloads). However, this advantage is attributable to machine-code compilation and reduced interpreter dispatch overhead rather than multi-threaded parallelism.",
       "evidence_grade": "A",
       "supporting_artifact": "Empirical wall-clock timing comparisons across Level A, B, C, and D workloads",
       "limitations": "Speedup measures total process execution time; includes process startup and memory initialization."
@@ -2441,15 +2526,15 @@
     {
       "question_number": 4,
       "question": "Which specific operational phase (discovery, read, hash, grouping/output) exhibited performance variance?",
-      "answer": "The primary performance variance across corpus types was concentrated in 'Read & Hash, Discovery, Size Filter (O(N^2)), Group Duplicates'. In dense candidate corpora (e.g. C2), candidate SHA-256 read and hash dominated execution time. In corpora with many unique files (e.g. C1), discovery and O(N^2) pairwise size candidate filtering dominated.",
-      "evidence_grade": "A",
+      "answer": "Under the standalone cumulative stage-probe model, performance variance was concentrated in pairwise size filtering for large corpora and read & hash for candidate-dense corpora. In C1 (500 files), pairwise candidate size filtering accounted for approximately 88% of execution time under the standalone probe model. In candidate-dense corpora (C2), candidate read and SHA-256 hashing accounted for approximately 41% of execution time.",
+      "evidence_grade": "B",
       "supporting_artifact": "Isolated stage microbenchmark probes (`benchmarks/t006/stage_*.j2`)",
-      "limitations": "Sub-stage timings measured via standalone cumulative stage probes to preserve production immutability."
+      "limitations": "Sub-stage timings are estimated via standalone cumulative stage probes rather than internal production instrumentation."
     },
     {
       "question_number": 5,
       "question": "Did OS page cache or disk I/O dominate execution time?",
-      "answer": "Under warm repeated runs, OS page cache dominated file access, reducing disk wait states and making execution CPU-bound on SHA-256 and data-structure manipulation. Initial runs showed slight cold-start latency, but subsequent runs stabilized quickly under filesystem page caching.",
+      "answer": "Warm repeated runs are consistent with page-cache effects reducing storage wait, but direct cache-state manipulation/verification was unavailable on the CI runner. Initial runs showed slight cold-start latency, but subsequent runs stabilized under filesystem page caching, shifting execution to CPU computation.",
       "evidence_grade": "B",
       "supporting_artifact": "Run-to-run timing progression between initial and warm repetitions",
       "limitations": "Direct OS page-cache eviction controls are privileged on macOS; behavior characterized via warm repeated run protocol."
@@ -2457,7 +2542,7 @@
     {
       "question_number": 6,
       "question": "At what workload dimensions (file count, file size, candidate density) did scaling plateau?",
-      "answer": "Scaling plateaued primarily with file count due to the O(N^2) pairwise size filtering algorithm in `scan.j2`. At large file counts (>500 files), metadata collection and pairwise size comparison consume disproportionate time, whereas hashing scales linearly with candidate count and total candidate bytes.",
+      "answer": "Scaling plateaued primarily with file count due to the O(N^2) pairwise size filtering algorithm in `scan.j2`. At file counts >= 500, metadata collection and pairwise size comparison consume disproportionate time under the current algorithm, whereas hashing scales linearly with candidate count and total candidate bytes.",
       "evidence_grade": "A",
       "supporting_artifact": "Cross-corpus scaling data (C1 through C7) and Level B buffer scaling",
       "limitations": "Evaluated across standard profile dimensions; full O(N^2) scaling limit visible at scale >= 0.1."
@@ -2465,18 +2550,18 @@
     {
       "question_number": 7,
       "question": "Is the observed behavior reproducible across CI and developer hardware?",
-      "answer": "The qualitative findings\u2014native compilation advantage without multi-core speedup over serial controls\u2014are fully reproducible. In GitHub CI (`34051835154` on arm64 macOS), CPU monitoring showed single-core execution (<105% CPU). Hardware differences affect absolute wall time, but the absence of automatic parallel scaling is invariant.",
-      "evidence_grade": "A",
+      "answer": "The qualitative finding\u2014native compilation advantage without sustained multi-core speedup over serial controls\u2014was observed on the authoritative macOS CI environment (Apple Silicon, 3 vCPUs). Cross-hardware reproducibility is not fully established as authoritative since comparable developer-hardware measurements are not preserved in this dataset.",
+      "evidence_grade": "B",
       "supporting_artifact": "Platform provenance metadata, CPU utilization sampling, and cross-platform execution records",
-      "limitations": "Authoritative measurements run on Apple Silicon macOS runner; developer hardware logs recorded separately where available."
+      "limitations": "Authoritative measurements were executed on an Apple Silicon macOS runner; developer hardware logs were not formally integrated into this benchmark run."
     }
   ],
   "overall_classification": "CATEGORY C",
   "headline_conclusions": [
     "Overall classification: CATEGORY C.",
-    "Native execution provides significant speedup over bytecode interpreter due to compiled machine code.",
-    "No automatic parallel scaling was observed over serial-equivalent controls in J2 0.1.0.",
-    "Emitted backend code under `j2 emit-native` shows single-threaded iterative loops without multi-threaded runtime primitives."
+    "Native execution provides workload-dependent speedup (up to 1.45x) over bytecode interpreter due to compiled machine code.",
+    "No sustained multi-core CPU utilization was observed under the configured sampling methodology across any tested level in J2 0.1.0.",
+    "Emitted backend code under j2 emit-native shows single-threaded iterative loops with \thread_local! static GLOBALS rather than multi-threaded concurrency runtime primitives."
   ],
   "unresolved_limitations": [
     "J2 0.1.0 compiler automatic parallelism lowering heuristics are opaque without internal compiler debug introspection.",

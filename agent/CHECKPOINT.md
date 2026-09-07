@@ -18,11 +18,11 @@ completed:
     - Level 5: Bit-for-bit result determinism and manifest digest verification
     - Scientific classification into Categories A–E with Evidence Grades A–E
   - Implemented top-level CLI runner (`benchmarks/run_t006.py`) generating publication-quality Markdown report (`benchmarks/results/t006_report.md`) and machine-readable schema (`benchmarks/results/t006_results.json`)
-  - Added dedicated unit test suite (`tests/test_t006_experiments.py`, 11/11 PASS)
+  - Added dedicated unit test suite (`tests/test_t006_experiments.py`, 14/14 PASS)
   - Implemented and executed dedicated GitHub Actions workflow (`.github/workflows/t006-automatic-parallelism.yml`) on `macos-15` (arm64 Apple Silicon, 3 vCPUs, 7.0 GB RAM, Run ID `34051835154`)
   - Verified 100% test and correctness pass across all 4 levels and all 6 standard corpora
   - Answered all 7 authoritative research questions with explicit Evidence Grades (A–E)
-  - Established scientific conclusion: Overall **CATEGORY C** (Native compilation effect only; no automatic multi-core parallelism observed in J2 0.1.0)
+  - Established scientific conclusion: Overall **CATEGORY C** (Native compilation effect only; no sustained multi-core automatic parallelism observed in J2 0.1.0 under tested workloads)
   - Synchronized verified CI results into repository artifacts
 
 not_done:
@@ -38,10 +38,10 @@ verification:
   t006_a_correctness: pass (100% VALID mathematical reduction match across 100K, 2M, 5M)
   t006_b_correctness: pass (100% VALID deterministic in-memory SHA-256 digests across all configs)
   t006_c_correctness: pass (100% VALID across C1, C2, C4, C5, C6, C7)
-  t006_d_correctness: pass (100% VALID direct JSON match and manifest expected_result_digest agreement across C1, C2, C4, C5, C6, C7)
-  cpu_monitoring: pass (verified single-core execution <105% CPU across all levels)
-  compiler_inspection: pass (single-threaded thread-local globals; zero concurrency primitives found)
-  t006_unit_tests: pass (11/11 tests in tests/test_t006_experiments.py)
+  t006_d_correctness: pass (100% VALID direct JSON match and manifest expected_result_digest agreement across C1, C2, C4, C5, C6, C7; seed 12345, scale 0.01)
+  cpu_monitoring: pass (verified no sustained multi-core utilization <105% CPU across all levels)
+  compiler_inspection: pass (single-threaded thread-local globals; zero concurrency primitives found in emitted backend)
+  t006_unit_tests: pass (14/14 tests in tests/test_t006_experiments.py)
   harness_offline_tests: pass (11/11 tests in tests/test_benchmark_harness.py)
   corpus_generator_tests: pass (14/14 tests in tests/test_benchmark_corpus.py)
   phase4_offline_tests: pass (tests/phase4_differential.py --offline)

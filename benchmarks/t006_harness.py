@@ -150,7 +150,7 @@ class StageBreakdownResult:
     t_group_ms: float
     t_total_ms: float
     dominant_stage: str
-    measurement_type: str = "MEASURED via isolated stage probes"
+    measurement_type: str = "APPROXIMATION via standalone cumulative stage probes"
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -232,7 +232,7 @@ def inspect_compiler_emission(source_path: Path, j2_bin: str = "j2") -> Compiler
         evidence_excerpts=evidence_excerpts,
         emission_sample=sample,
         analysis_method="Regex search for multi-threaded runtime primitives in Rust emission",
-        epistemic_note="Compiler emission reflects structural backend source; multi-core execution requires runtime verification.",
+        epistemic_note="Compiler emission sample (first 30 lines); reflects structural backend source. Inspection searches for explicit concurrency patterns (rayon, thread::spawn, par_iter, etc.). Absence of patterns indicates no explicit parallel runtime primitives in emitted backend, not proof of absence of all internal optimizations.",
     )
 
 
@@ -261,7 +261,7 @@ class CpuSampler:
                 avg_cpu_percent=0.0,
                 sample_count=0,
                 multi_core_engaged=False,
-                measurement_method="Process sampling (no samples captured)",
+                measurement_method="Process CPU sampling (no samples captured)",
             )
 
         max_cpu = round(max(self.samples), 1)
@@ -273,7 +273,7 @@ class CpuSampler:
             avg_cpu_percent=avg_cpu,
             sample_count=len(self.samples),
             multi_core_engaged=multi_core,
-            measurement_method="Background periodic sample via ps/system API",
+            measurement_method="Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
         )
 
     def _run(self) -> None:
@@ -557,6 +557,7 @@ class T006ExperimentHarness:
                     limitations=[
                         "Does not perform memory allocations or I/O; isolates arithmetic reduction only.",
                         "Serial control uses loop-carried accumulator dependency.",
+                        "Candidate vs serial control speedup is driven by builtin sum() reduction optimization in J2 runtime rather than multi-threaded automatic parallelism.",
                     ],
                 )
             )
@@ -676,6 +677,7 @@ class T006ExperimentHarness:
                     classification=classification,
                     limitations=[
                         "Pre-allocates buffers in memory; isolates hashing CPU compute from filesystem latency.",
+                        "No automatic parallel speedup was observed for the tested in-memory SHA-256 loop formulations under J2 0.1.0.",
                     ],
                 )
             )
@@ -704,6 +706,11 @@ class T006ExperimentHarness:
 
         for c_dir in corpora_dirs:
             cid = c_dir.name
+            manifest_file = c_dir / MANIFEST_FILENAME
+            manifest_data = json.loads(manifest_file.read_text(encoding="utf-8")) if manifest_file.is_file() else {}
+            m_text = manifest_file.read_text(encoding="utf-8") if manifest_file.is_file() else ""
+            m_sha = hashlib.sha256(m_text.encode("utf-8")).hexdigest() if m_text else ""
+            prof_name = NAMED_PROFILES[cid].name if cid in NAMED_PROFILES else cid
             native_env = {"J2_ALLOW_FS": "1"}
 
             # 1. Native candidate
@@ -780,7 +787,17 @@ class T006ExperimentHarness:
                     workload_level="C",
                     source_file=str(cand_src),
                     source_sha256=compiler_cand.source_sha256,
-                    workload_parameters={"corpus_id": cid, "corpus_path": str(c_dir)},
+                    workload_parameters={
+                        "corpus_id": cid,
+                        "profile": prof_name,
+                        "seed": int(manifest_data.get("seed", 12345)),
+                        "scale": float(manifest_data.get("scale", 0.01)),
+                        "manifest_sha256": m_sha,
+                        "file_count": int(manifest_data.get("file_count", 0)),
+                        "candidate_count": int(manifest_data.get("same_size_candidate_files", 0)),
+                        "total_bytes": int(manifest_data.get("total_bytes", 0)),
+                        "corpus_path": str(c_dir),
+                    },
                     interpreter_measurement=None,
                     native_candidate_measurement=meas_native,
                     native_serial_measurement=meas_serial,
@@ -792,7 +809,8 @@ class T006ExperimentHarness:
                     classification=classification,
                     limitations=[
                         "Measures filesystem read + hash hot loop; excludes dupe size grouping.",
-                        "Executed under warm-state repeated runs.",
+                        "Executed under warm-state repeated runs; consistent with page-cache effects reducing storage wait without privileged kernel cache eviction.",
+                        "No sustained multi-core CPU utilization or measurable native serial-equivalent advantage was observed for the tested filesystem read+hash formulations.",
                     ],
                 )
             )
@@ -907,6 +925,9 @@ class T006ExperimentHarness:
             cid = c_dir.name
             manifest_file = c_dir / MANIFEST_FILENAME
             manifest_data = json.loads(manifest_file.read_text(encoding="utf-8")) if manifest_file.is_file() else {}
+            m_text = manifest_file.read_text(encoding="utf-8") if manifest_file.is_file() else ""
+            m_sha = hashlib.sha256(m_text.encode("utf-8")).hexdigest() if m_text else ""
+            prof_name = NAMED_PROFILES[cid].name if cid in NAMED_PROFILES else cid
             scale = float(manifest_data.get("scale", 0.01))
             expected_digest = manifest_data.get("expected_result_digest", "")
 
@@ -1020,9 +1041,13 @@ class T006ExperimentHarness:
                         source_sha256=compiler_dupe.source_sha256,
                         workload_parameters={
                             "corpus_id": cid,
+                            "profile": prof_name,
+                            "seed": int(manifest_data.get("seed", 12345)),
                             "scale": scale,
-                            "file_count": manifest_data.get("file_count", 0),
-                            "candidate_count": manifest_data.get("same_size_candidate_files", 0),
+                            "manifest_sha256": m_sha,
+                            "file_count": int(manifest_data.get("file_count", 0)),
+                            "candidate_count": int(manifest_data.get("same_size_candidate_files", 0)),
+                            "total_bytes": int(manifest_data.get("total_bytes", 0)),
                         },
                         interpreter_measurement=meas_interp,
                         native_candidate_measurement=meas_native,
@@ -1036,6 +1061,7 @@ class T006ExperimentHarness:
                         limitations=[
                             "Full end-to-end dupe execution includes discovery, O(N^2) size filtering, hashing, and grouping.",
                             "Serial comparison is against interpreter Baseline A; source-level serial control not applied to production src/*.j2 per immutability policy.",
+                            "Native compilation provides workload-dependent speed differences, but these measurements alone do not establish automatic multi-core parallelism.",
                         ],
                     )
                 )

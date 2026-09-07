@@ -470,11 +470,11 @@ To separate native compilation benefits from genuine multi-core parallelism, can
 | **T006-D** | Full dupe Pipeline (C1–C7) | PASS | **CATEGORY C** (Grade A) | 0.87x–1.45x | N/A | NO (<105%) |
 
 ### 18.3 Key Empirical Conclusions
-1. **No Automatic Parallelism Observed (Category C):** Across all tested workloads (computational reductions, pure in-memory hashing, filesystem read+hash, and full end-to-end `dupe` scans), CPU utilization remained strictly bounded to single-core (<105%).
-2. **Native Compilation Advantage:** Native compiled binaries provide modest speedup over the bytecode interpreter (up to 1.36x–1.45x in compute-heavy workloads). This advantage stems entirely from avoiding interpreter bytecode dispatch and LLVM machine codegen optimization.
-3. **Compiler Backend Emission:** `j2 emit-native` produces sequential loops using thread-local static globals (`thread_local! static GLOBALS`). No multi-threaded runtime primitives (`rayon`, `par_iter`, `thread::spawn`) were found in the emitted backend for J2 0.1.0.
+1. **No Sustained Multi-Core Parallelism Observed (Category C):** Across all tested workloads (computational reductions, pure in-memory hashing, filesystem read+hash, and full end-to-end `dupe` scans), process CPU utilization sampling showed no sustained multi-core engagement (<105% process CPU on a 3-vCPU host).
+2. **Native Compilation Advantage:** Native compiled binaries provide modest speedup over the bytecode interpreter (up to 1.36x–1.45x in compute-heavy workloads). This advantage stems from avoiding interpreter bytecode dispatch and leveraging LLVM machine codegen optimization.
+3. **Compiler Backend Emission:** `j2 emit-native` produces sequential loops using thread-local static globals (`thread_local! static GLOBALS`). Explicit multi-threaded runtime primitives (`rayon`, `par_iter`, `thread::spawn`) were not observed in the emitted backend for J2 0.1.0.
 4. **Dominant Pipeline Bottlenecks:**
-   - In large-file corpora (e.g. C1 with 500 files), the pairwise $O(N^2)$ candidate size filter in `scan.j2` accounts for 87.7% of runtime (1,988 ms out of 2,267 ms).
-   - In candidate-dense corpora (e.g. C2), candidate read and SHA-256 hashing dominates (129 ms).
-   - Under warm repeated runs, OS page cache dominates file I/O, shifting execution to CPU bound.
+   - In large-file corpora (e.g. C1 with 500 files, seed 12345, scale 0.01), the pairwise $O(N^2)$ candidate size filter in `scan.j2` accounts for approximately 88% of execution time under the standalone cumulative stage-probe model (1,988 ms out of 2,267 ms).
+   - In candidate-dense corpora (e.g. C2), candidate read and SHA-256 hashing accounts for approximately 41% of probe time (129 ms).
+   - Warm-state repeated runs are consistent with OS page-cache effects reducing physical storage wait, shifting execution to CPU computation.
 

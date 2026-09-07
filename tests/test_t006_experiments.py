@@ -181,5 +181,54 @@ class TestT006SourceIsolation(unittest.TestCase):
         self.assertIn("t006_c_serial.j2", names)
 
 
+class TestT006ScientificReportingAndCorpusIdentity(unittest.TestCase):
+    """Ensure T006 reports maintain rigorous scientific wording and exact corpus provenance."""
+
+    def test_saved_results_corpus_provenance(self) -> None:
+        results_file = _REPO_ROOT / "benchmarks" / "results" / "t006_results.json"
+        self.assertTrue(results_file.is_file(), "t006_results.json must exist")
+        data = json.loads(results_file.read_text(encoding="utf-8"))
+
+        # Verify Level C and D variants have full corpus provenance
+        for exp in data.get("experiments", []):
+            if exp["workload_level"] in ("C", "D"):
+                params = exp["workload_parameters"]
+                self.assertIn("corpus_id", params)
+                self.assertIn("profile", params)
+                self.assertEqual(params.get("seed"), 12345, f"Variant {exp['variant_id']} must use seed 12345")
+                self.assertEqual(params.get("scale"), 0.01, f"Variant {exp['variant_id']} must use scale 0.01")
+                self.assertIn("manifest_sha256", params)
+                self.assertEqual(len(params["manifest_sha256"]), 64)
+                self.assertGreater(params.get("file_count", 0), 0)
+                self.assertGreater(params.get("candidate_count", 0), 0)
+                self.assertGreater(params.get("total_bytes", 0), 0)
+
+    def test_saved_report_forbidden_overclaims(self) -> None:
+        report_file = _REPO_ROOT / "benchmarks" / "results" / "t006_report.md"
+        self.assertTrue(report_file.is_file(), "t006_report.md must exist")
+        text = report_file.read_text(encoding="utf-8").lower()
+
+        forbidden_phrases = [
+            "strictly single-core",
+            "compiler definitely rejected",
+            "all workloads execute strictly on a single cpu core",
+        ]
+        for phrase in forbidden_phrases:
+            self.assertNotIn(phrase, text, f"Found forbidden overclaim '{phrase}' in t006_report.md")
+
+    def test_research_question_evidence_grades(self) -> None:
+        results_file = _REPO_ROOT / "benchmarks" / "results" / "t006_results.json"
+        data = json.loads(results_file.read_text(encoding="utf-8"))
+        rq_map = {q["question_number"]: q for q in data.get("research_answers", [])}
+
+        self.assertEqual(rq_map[1]["evidence_grade"], "A")
+        self.assertEqual(rq_map[2]["evidence_grade"], "A")
+        self.assertEqual(rq_map[3]["evidence_grade"], "A")
+        self.assertEqual(rq_map[4]["evidence_grade"], "B")  # Standalone stage probe approximation
+        self.assertEqual(rq_map[5]["evidence_grade"], "B")  # Warm repeated run page cache inference
+        self.assertEqual(rq_map[6]["evidence_grade"], "A")
+        self.assertEqual(rq_map[7]["evidence_grade"], "B")  # macOS CI only, dev hardware not authoritative
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -32,14 +32,14 @@ Overall Task Classification: **CATEGORY C** (Native compilation effect only; no 
 
 ## 3. Authoritative Answers to the 7 Research Questions
 
-1. **Did the J2 compiler recognize the duplicate detection loop as safely parallelizable?**
-   - *Answer:* Under `j2 emit-native`, the emitted Rust backend code relies on `thread_local! static GLOBALS` and standard sequential loops. Explicit multi-threading primitives (e.g. `rayon`, `par_iter`, `thread::spawn`) were not observed in the emitted backend for the duplicate detection loop or pure controls under J2 0.1.0.
+1. **Was compiler-generated parallel execution construct evidence observed for the tested loop formulation?**
+   - *Answer:* No tested compiler-emission pattern indicating explicit parallel scheduling (such as `rayon`, `par_iter`, or `thread::spawn`) was observed in the emitted backend for the tested sources under J2 0.1.0. Emitted code relies on `thread_local! static GLOBALS` and standard iterative loops. This directly characterizes the emitted backend source artifact, but does not expose the compiler's internal dependence analysis or prove that no other lowering mechanism exists.
    - *Evidence Grade:* **A**
    - *Supporting Artifact:* Compiler emission inspection records (`benchmarks/results/t006_results.json`)
-   - *Limitations:* Based on pattern search for standard concurrency primitives in emitted backend source.
+   - *Limitations:* Based on pattern search for standard concurrency primitives in emitted backend source; does not inspect internal compiler IR before emission.
 
 2. **Did execution become measurably faster in compiled native mode?**
-   - *Answer:* Yes. Compiled native execution was faster in compute-intensive workloads (average native speedup 1.02x across full pipeline, 1.36x on Baseline C), attributable to machine-code generation and eliminating interpreter dispatch rather than multi-threaded parallelism.
+   - *Answer:* Yes. Compiled native execution was faster in compute-intensive workloads (up to 1.45x in C6, 1.15x in C2, and 1.36x on Baseline C), attributable to machine-code generation and eliminating interpreter dispatch rather than multi-threaded parallelism.
    - *Evidence Grade:* **A**
    - *Supporting Artifact:* Empirical wall-clock timing comparisons across Level A, B, C, and D workloads
    - *Limitations:* Wall-clock timing includes process startup and memory initialization.
@@ -51,28 +51,28 @@ Overall Task Classification: **CATEGORY C** (Native compilation effect only; no 
    - *Limitations:* Conducted in controlled CI environment; background runner noise kept minimal.
 
 4. **Which specific operational phase (discovery, read, hash, grouping/output) exhibited performance variance?**
-   - *Answer:* Performance variance across corpus types was concentrated in **Size Filter ($O(N^2)$)** in large-file corpora (e.g. C1: 1,988.3 ms out of 2,267.5 ms total), and in **Read & Hash** in candidate-dense corpora (e.g. C2).
-   - *Evidence Grade:* **A**
+   - *Answer:* Under the standalone cumulative stage-probe model, performance variance across corpus types was concentrated in **Size Filter ($O(N^2)$)** in large-file corpora (e.g. C1: approximately 88% of total probe time, 1,988.3 ms out of 2,267.5 ms total), and in **Read & Hash** in candidate-dense corpora (e.g. C2: approximately 41% of probe time).
+   - *Evidence Grade:* **B**
    - *Supporting Artifact:* Standalone stage microbenchmark probes (`benchmarks/t006/stage_*.j2`)
-   - *Limitations:* Sub-stage timings measured via cumulative standalone probes to preserve production immutability.
+   - *Limitations:* Sub-stage timings estimated via standalone cumulative stage probes rather than internal production instrumentation.
 
 5. **Did OS page cache or disk I/O dominate execution time?**
-   - *Answer:* Under warm repeated runs, OS page cache dominated file access, reducing disk wait states and making execution CPU-bound on SHA-256 and data-structure manipulation.
+   - *Answer:* Warm repeated runs are consistent with page-cache effects reducing storage wait, but direct cache-state manipulation/verification was unavailable on the CI runner. Subsequent runs stabilized under filesystem page caching, shifting execution to CPU computation.
    - *Evidence Grade:* **B**
    - *Supporting Artifact:* Run-to-run timing progression between initial and warm repetitions
    - *Limitations:* Direct OS page-cache eviction controls are privileged on macOS; characterized via warm repeated run protocol.
 
 6. **At what workload dimensions (file count, file size, candidate density) did scaling plateau?**
-   - *Answer:* Scaling plateaued primarily with file count due to the $O(N^2)$ pairwise size filtering algorithm in `scan.j2`. At 500 files (C1), size filtering consumed 87.7% of total execution time.
+   - *Answer:* Scaling plateaued primarily with file count due to the $O(N^2)$ pairwise size filtering algorithm in `scan.j2`. At 500 files (C1), size filtering consumed approximately 88% of execution time under the standalone probe model.
    - *Evidence Grade:* **A**
    - *Supporting Artifact:* Cross-corpus scaling data (C1 through C7) and stage breakdown measurements
    - *Limitations:* Evaluated across standard profile dimensions at scale 0.01.
 
 7. **Is the observed behavior reproducible across CI and developer hardware?**
-   - *Answer:* Yes. The qualitative findings—native compilation advantage without multi-core speedup over serial controls—are fully reproducible. In GitHub CI (`34051835154` on arm64 macOS), CPU monitoring showed single-core execution (<105% CPU). Hardware differences affect absolute wall time, but the absence of automatic parallel scaling is invariant.
-   - *Evidence Grade:* **A**
+   - *Answer:* The qualitative finding—native compilation advantage without sustained multi-core speedup over serial controls—was observed on the authoritative macOS CI environment (Apple Silicon, 3 vCPUs). Cross-hardware reproducibility is not fully established as authoritative since comparable developer-hardware measurements are not preserved in this dataset.
+   - *Evidence Grade:* **B**
    - *Supporting Artifact:* Platform provenance metadata, CPU utilization sampling, and cross-platform execution records
-   - *Limitations:* Authoritative measurements run on Apple Silicon macOS runner; developer hardware logs recorded separately where available.
+   - *Limitations:* Authoritative measurements run on Apple Silicon macOS runner; developer hardware logs not formally integrated into this benchmark run.
 
 ---
 

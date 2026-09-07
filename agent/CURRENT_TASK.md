@@ -33,25 +33,26 @@
 - **Correctness:** 100% VALID (Deterministic 64-char hexadecimal SHA-256 digests)
 - **Candidate vs Serial-Equivalent Speedup:** 0.59x to 1.09x (average 0.84x; candidate is not faster than serial chained control)
 - **Multi-Core Engaged:** NO (<105% CPU)
-- **Scientific Finding:** In-memory hashing is strictly single-threaded in J2 0.1.0; independent buffer hashing does not trigger parallel task scheduling.
+- **Scientific Finding:** No automatic parallel speedup was observed for the tested in-memory SHA-256 loop formulations under J2 0.1.0; independent buffer hashing did not trigger parallel task scheduling.
 
 ### Level T006-C: Filesystem Read + Hash
-- **Workload:** Direct `fs.read_bytes(path)` + `hash.sha256(bytes)` on real corpus trees (C1, C2, C4, C5, C6, C7)
+- **Workload:** Direct `fs.read_bytes(path)` + `hash.sha256(bytes)` on real corpus trees (C1, C2, C4, C5, C6, C7; seed 12345, scale 0.01)
 - **Correctness:** 100% VALID across all corpora
 - **Candidate vs Serial-Equivalent Speedup:** 0.75x to 1.13x (average 0.93x)
 - **Multi-Core Engaged:** NO (<105% CPU)
-- **Scientific Finding:** Independent per-file read and hashing executes sequentially in J2 0.1.0; no concurrent I/O or hashing speedup observed.
+- **Scientific Finding:** No sustained multi-core CPU utilization or measurable native serial-equivalent advantage was observed for the tested filesystem read+hash formulations.
 
 ### Level T006-D: Full dupe Pipeline
-- **Workload:** Production `dupe` end-to-end execution on standard corpora suite (C1, C2, C4, C5, C6, C7)
+- **Workload:** Production `dupe` end-to-end execution on standard corpora suite (C1, C2, C4, C5, C6, C7; fixed seed 12345, scale 0.01, preserving exact T005 corpus identities)
 - **Correctness:** 100% VALID (100% bit-for-bit direct JSON match and 100% manifest expected_result_digest agreement)
 - **Native vs Interpreter Speedup:** 0.87x to 1.45x (median 1.01x)
 - **Multi-Core Engaged:** NO (<105% CPU)
+- **Scientific Finding:** Native compilation provides workload-dependent speed differences (up to 1.45x), but no sustained multi-core CPU utilization was observed.
 
 ### Operational Stage Breakdowns
-Isolated via standalone cumulative microbenchmark probes (`benchmarks/t006/stage_*.j2`) preserving production `src/*.j2` immutability:
-- **C1 (500 files, 122 candidates):** Discovery 89.6 ms, Size Filter **1,988.3 ms**, Read & Hash 48.4 ms, Grouping 141.1 ms (Dominant: **Size Filter O(N^2)**)
-- **C2 (100 files, 30 candidates):** Discovery 105.6 ms, Size Filter 78.1 ms, Read & Hash **129.3 ms**, Grouping 5.1 ms (Dominant: **Read & Hash**)
+Estimated via standalone cumulative microbenchmark probes (`benchmarks/t006/stage_*.j2`) preserving production `src/*.j2` immutability:
+- **C1 (500 files, 122 candidates):** Discovery 89.6 ms, Size Filter **1,988.3 ms** (~88% of total probe time), Read & Hash 48.4 ms, Grouping 141.1 ms (Dominant: **Size Filter O(N^2)**)
+- **C2 (100 files, 30 candidates):** Discovery 105.6 ms, Size Filter 78.1 ms, Read & Hash **129.3 ms** (~41% of total probe time), Grouping 5.1 ms (Dominant: **Read & Hash**)
 - **C4 (100 files, 80 candidates):** Discovery 64.4 ms, Size Filter **115.7 ms**, Read & Hash 65.0 ms, Grouping 11.3 ms (Dominant: **Size Filter O(N^2)**)
 - **C5 (200 files, 200 candidates):** Discovery 127.3 ms, Size Filter 52.3 ms, Read & Hash 24.0 ms, Grouping **136.3 ms** (Dominant: **Group Duplicates**)
 
