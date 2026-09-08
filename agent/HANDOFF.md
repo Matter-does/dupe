@@ -2,7 +2,7 @@
 
 ## Current state
 Task **T006 — Automatic Parallelism Experiment and Evidence Collection** is complete and fully verified.
-All acceptance criteria, 4-stage ladder measurements, correctness verifications, and research questions have been satisfied on the designated `macos-15` (arm64 Apple Silicon) runner in GitHub Actions run `34051835154`.
+All acceptance criteria, 4-stage ladder measurements, correctness verifications, and research questions have been satisfied on the designated `macos-15` (arm64 Apple Silicon) runner in GitHub Actions run `34246767819`.
 
 **Do NOT begin T007 automatically.**
 
@@ -12,8 +12,8 @@ All acceptance criteria, 4-stage ladder measurements, correctness verifications,
 - **Runner Host:** macOS 15.6.0 (Darwin 24.6.0, `arm64` Apple Silicon)
 - **Host Specs:** 3 vCPUs, 7.0 GB RAM
 - **Toolchain:** Exact J2 0.1.0 (`6fda8338791730cf7937362acd03e29247719e65785458e62988e1789c842e75`)
-- **Git Commit:** `f019d8f01d7a0dda57200f18415ced5a089e7f31`
-- **CI Workflow:** `.github/workflows/t006-automatic-parallelism.yml` (Run ID: `34051835154`, duration 10m 56s)
+- **Git Commit:** `ce893b4cc8360df1f963d6d840c7f888ac075320`
+- **CI Workflow:** `.github/workflows/t006-automatic-parallelism.yml` (Run ID: `34246767819`, duration 11m 30s)
 
 ---
 
@@ -23,13 +23,15 @@ Overall Task Classification: **CATEGORY C** (Native compilation effect only; no 
 
 | Level | Description | Status | Classification | Native vs Interp | Cand vs Serial | Multi-Core Engaged |
 |---|---|---|---|---|---|---|
-| **T006-A** | Pure Computational Reduction (100K, 2M, 5M) | PASS | **CATEGORY E** (Grade C)* | 0.78x–1.14x | 12.5x–145.0x | INSUFFICIENT SAMPLES (<4) |
-| **T006-B** | Pure In-Memory Hashing (10KB–12.8MB) | PASS | **CATEGORY D** (Grade A) | N/A | 0.59x–1.09x | INSUFFICIENT SAMPLES (<4) |
-| **T006-C** | Filesystem Read + Hash (C1–C7) | PASS | **CATEGORY D** (Grade A) | N/A | 0.75x–1.13x | INSUFFICIENT SAMPLES (<4) |
-| **T006-D** | Full dupe Pipeline (C1–C7) | PASS | **CATEGORY C** (Grade A)† | 0.87x–1.45x | N/A | NO (<105% on C1/C5) |
+| **T006-A** | Pure Computational Reduction (100K, 2M, 5M) | PASS | **CATEGORY E** (Grade C)* | 0.95x–1.18x | 9.86x–242.45x | INSUFFICIENT SAMPLES (<4) |
+| **T006-B** | Pure In-Memory Hashing (10KB–12.8MB) | PASS | **CATEGORY D** (Grade A)‡ | N/A | 0.39x–1.07x | INSUFFICIENT SAMPLES (<4) |
+| **T006-C** | Filesystem Read + Hash (C1–C7) | PASS | **CATEGORY D / E** (Grade A/C)§ | N/A | 0.88x–1.36x | INSUFFICIENT SAMPLES (<4) / NO (<105% on C4) |
+| **T006-D** | Full dupe Pipeline (C1–C7) | PASS | **CATEGORY C / D** (Grade A)† | 0.70x–1.18x | N/A | NO (<105% on C1/C5) |
 
-> \* **T006-A Confounding Note:** T006-A candidate-vs-serial speedup (12.5x–145.0x) is driven by J2's built-in `sum()` runtime iterator fold optimization in native Rust versus a dynamic interpreted J2 loop with loop-carried variable reassignment, rather than automatic parallelism. Native candidate was not consistently faster than interpreter (0.78x–1.14x).  
-> † **T006-D Variance Note:** 2 of 6 corpora exhibited native compilation advantage (C2: 1.15x, C6: 1.45x; Category C), while 4 of 6 exhibited no significant benefit or slight slowdown (C1: 1.00x, C4: 0.87x, C5: 0.95x, C7: 0.87x; Category D). Average native speedup across all Level D corpora was 1.05x.
+> \* **T006-A Confounding Note:** T006-A candidate-vs-serial speedup (9.86x–242.45x) is driven by J2's built-in `sum()` runtime iterator fold optimization in native Rust versus an interpreted J2 loop with loop-carried variable reassignment, rather than automatic parallelism. Native candidate was not consistently faster than interpreter (0.95x–1.18x).  
+> ‡ **T006-B Variance Note:** 3 of 4 buffer configs classified as Category D (0.39x–0.82x; candidate slower than serial control), 1 config classified as Category E (1.07x).  
+> § **T006-C Corrected Serial Control Note:** Measured using genuine cryptographic loop-carried chaining (`chained = fmt("{}:{}", prev_hash, file_digest); d = hash.sha256(chained); prev_hash = d`). 3 of 6 corpora classified as Category D (C4: 1.02x, C6: 1.03x, C7: 0.88x; Grade A), 3 corpora classified as Category E (C1: 1.17x, C2: 1.36x, C5: 1.13x; Grade C due to insufficient CPU samples). Average speedup was 1.10x with zero compiler parallel constructs and zero multi-core engagement.  
+> † **T006-D Variance Note:** 2 of 6 corpora exhibited native compilation advantage (C4: 1.18x, C7: 1.08x; Category C), while 4 of 6 exhibited no significant benefit or slight slowdown (C1: 1.00x, C2: 0.70x, C5: 0.87x, C6: 0.94x; Category D). Average native speedup across all Level D corpora was 0.99x.
 
 ---
 
@@ -42,13 +44,13 @@ Overall Task Classification: **CATEGORY C** (Native compilation effect only; no 
    - *Limitations:* Based on pattern search for standard concurrency primitives in emitted backend source; does not inspect internal compiler IR before emission.
 
 2. **Did execution become measurably faster in compiled native mode?**
-   - *Answer:* Yes. Compiled native execution was faster in compute-intensive workloads (up to 1.45x in C6 and 1.15x in C2, with an average native speedup of 1.05x across tested workloads). However, this advantage is attributable to machine-code compilation and reduced interpreter dispatch overhead rather than multi-threaded parallelism.
+   - *Answer:* Yes. Compiled native execution was faster in compute-intensive workloads (e.g. up to 1.45x in C6 and 1.15x in C2, with an average native speedup of 0.99x across tested workloads). However, this advantage is attributable to machine-code compilation and reduced interpreter dispatch overhead rather than multi-threaded parallelism.
    - *Evidence Grade:* **A**
    - *Supporting Artifact:* Empirical wall-clock timing comparisons across Level A, B, C, and D workloads
    - *Limitations:* Wall-clock timing includes process startup and memory initialization.
 
 3. **Was the observed speedup consistent across repetitions?**
-   - *Answer:* Yes. Timings demonstrated low variance across repeated runs (average standard deviation 53.77 ms). Differences between candidate and serial controls were reproducible within standard error.
+   - *Answer:* Yes. Timings demonstrated low variance across repeated runs (average standard deviation 47.77 ms). Differences between candidate and serial controls were reproducible within standard error.
    - *Evidence Grade:* **A**
    - *Supporting Artifact:* Timing statistics (min, max, median, mean, stddev) across warmup and measured iterations
    - *Limitations:* Conducted in controlled CI environment; background runner noise kept minimal.

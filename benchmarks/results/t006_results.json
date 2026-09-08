@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "task_id": "T006-automatic-parallelism",
-  "timestamp_utc": "2026-09-06T18:39:30.706172+00:00",
+  "timestamp_utc": "2026-09-08T15:56:40.242879+00:00",
   "provenance": {
     "system": "Darwin",
     "release": "24.6.0",
@@ -9,11 +9,11 @@
     "cpu_count": 3,
     "ram_bytes": 7516192768,
     "ram_gb": 7.0,
-    "runner_id": "34051835154",
-    "git_commit": "f019d8f01d7a0dda57200f18415ced5a089e7f31",
+    "runner_id": "34246767819",
+    "git_commit": "ce893b4cc8360df1f963d6d840c7f888ac075320",
     "j2_version": "j2 0.1.0",
     "j2_path": "/Users/runner/.j2/bin/j2",
-    "timestamp_utc": "2026-09-06T18:30:22Z"
+    "timestamp_utc": "2026-09-08T15:46:56Z"
   },
   "experiments": [
     {
@@ -25,7 +25,11 @@
       "source_sha256": "bccb22c84d49c2c711b382be3e5c3d2447bbb5a6239ed47f0ecf83a9b8857a66",
       "workload_parameters": {
         "n": 100000,
-        "ground_truth": "5000050000"
+        "ground_truth": "5000050000",
+        "candidate_source_sha256": "bccb22c84d49c2c711b382be3e5c3d2447bbb5a6239ed47f0ecf83a9b8857a66",
+        "serial_source_sha256": "b9a0b7694c49d7b57732d2f2f4d753da1b10272d92fbd0e475f4355e1a6c76e8",
+        "git_commit": "ce893b4cc8360df1f963d6d840c7f888ac075320",
+        "timestamp": "2026-09-08T15:47:09Z"
       },
       "interpreter_measurement": {
         "baseline_id": "Baseline_A_Interpreter",
@@ -41,18 +45,18 @@
           "iterations": 5,
           "warmup_runs": 2,
           "raw_wall_time_ms": [
-            110.3732,
-            32.6297,
-            79.4827,
-            106.2352,
-            56.3803
+            74.5486,
+            95.4197,
+            110.685,
+            42.6592,
+            87.9532
           ],
-          "median_ms": 79.4827,
-          "mean_ms": 77.0202,
-          "min_ms": 32.6297,
-          "max_ms": 110.3732,
-          "stddev_ms": 33.0474,
-          "variance_ms": 1092.1328
+          "median_ms": 87.9532,
+          "mean_ms": 82.2531,
+          "min_ms": 42.6592,
+          "max_ms": 110.685,
+          "stddev_ms": 25.6966,
+          "variance_ms": 660.3145
         },
         "metrics": null,
         "output_digest": "93ca4840c1c776888bd6f4746bbf15ab05f9af45fc80a2e30ddeea641922d7b6",
@@ -72,18 +76,18 @@
           "iterations": 5,
           "warmup_runs": 2,
           "raw_wall_time_ms": [
-            55.2297,
-            56.282,
-            69.682,
-            121.3428,
-            91.9507
+            39.8683,
+            101.4882,
+            130.3516,
+            92.3079,
+            62.384
           ],
-          "median_ms": 69.682,
-          "mean_ms": 78.8974,
-          "min_ms": 55.2297,
-          "max_ms": 121.3428,
-          "stddev_ms": 27.9667,
-          "variance_ms": 782.1344
+          "median_ms": 92.3079,
+          "mean_ms": 85.28,
+          "min_ms": 39.8683,
+          "max_ms": 130.3516,
+          "stddev_ms": 35.107,
+          "variance_ms": 1232.4998
         },
         "metrics": null,
         "output_digest": "93ca4840c1c776888bd6f4746bbf15ab05f9af45fc80a2e30ddeea641922d7b6",
@@ -103,18 +107,18 @@
           "iterations": 5,
           "warmup_runs": 2,
           "raw_wall_time_ms": [
-            875.9605,
-            864.6073,
-            871.0152,
-            887.5696,
-            851.7029
+            928.7648,
+            917.867,
+            908.119,
+            874.8046,
+            910.5322
           ],
-          "median_ms": 871.0152,
-          "mean_ms": 870.1711,
-          "min_ms": 851.7029,
-          "max_ms": 887.5696,
-          "stddev_ms": 13.3132,
-          "variance_ms": 177.2418
+          "median_ms": 910.5322,
+          "mean_ms": 908.0175,
+          "min_ms": 874.8046,
+          "max_ms": 928.7648,
+          "stddev_ms": 20.2293,
+          "variance_ms": 409.223
         },
         "metrics": null,
         "output_digest": "93ca4840c1c776888bd6f4746bbf15ab05f9af45fc80a2e30ddeea641922d7b6",
@@ -122,8 +126,8 @@
         "success": true,
         "error_message": null
       },
-      "speedup_native_over_interpreter": 1.1406,
-      "speedup_candidate_over_serial": 12.4999,
+      "speedup_native_over_interpreter": 0.9528,
+      "speedup_candidate_over_serial": 9.8641,
       "correctness_verified": true,
       "evidence": {
         "compiler": {
@@ -144,7 +148,7 @@
           "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
           "cpu_measurement_valid": false,
           "invalid_reason": "insufficient_samples (1 < 4 samples collected; duration too short for periodic sampling)",
-          "measurement_duration_ms": 69.682
+          "measurement_duration_ms": 10.77
         },
         "profiler": {
           "profiler_used": "external wall time and ps sampling"
@@ -162,7 +166,11 @@
         "Does not perform memory allocations or I/O; isolates arithmetic reduction only.",
         "Serial control uses loop-carried accumulator dependency.",
         "Candidate vs serial control speedup is driven by builtin sum() reduction optimization in J2 runtime rather than multi-threaded automatic parallelism."
-      ]
+      ],
+      "candidate_source_sha256": "bccb22c84d49c2c711b382be3e5c3d2447bbb5a6239ed47f0ecf83a9b8857a66",
+      "serial_source_sha256": "b9a0b7694c49d7b57732d2f2f4d753da1b10272d92fbd0e475f4355e1a6c76e8",
+      "git_commit": "ce893b4cc8360df1f963d6d840c7f888ac075320",
+      "timestamp": "2026-09-08T15:47:09Z"
     },
     {
       "experiment_id": "T006-A",
@@ -173,7 +181,11 @@
       "source_sha256": "bccb22c84d49c2c711b382be3e5c3d2447bbb5a6239ed47f0ecf83a9b8857a66",
       "workload_parameters": {
         "n": 2000000,
-        "ground_truth": "2000001000000"
+        "ground_truth": "2000001000000",
+        "candidate_source_sha256": "bccb22c84d49c2c711b382be3e5c3d2447bbb5a6239ed47f0ecf83a9b8857a66",
+        "serial_source_sha256": "b9a0b7694c49d7b57732d2f2f4d753da1b10272d92fbd0e475f4355e1a6c76e8",
+        "git_commit": "ce893b4cc8360df1f963d6d840c7f888ac075320",
+        "timestamp": "2026-09-08T15:49:12Z"
       },
       "interpreter_measurement": {
         "baseline_id": "Baseline_A_Interpreter",
@@ -189,18 +201,18 @@
           "iterations": 5,
           "warmup_runs": 2,
           "raw_wall_time_ms": [
-            106.2745,
-            74.06,
-            92.441,
-            97.2769,
-            122.132
+            83.6768,
+            103.196,
+            88.6771,
+            113.3152,
+            146.8942
           ],
-          "median_ms": 97.2769,
-          "mean_ms": 98.4369,
-          "min_ms": 74.06,
-          "max_ms": 122.132,
-          "stddev_ms": 17.7089,
-          "variance_ms": 313.6044
+          "median_ms": 103.196,
+          "mean_ms": 107.1519,
+          "min_ms": 83.6768,
+          "max_ms": 146.8942,
+          "stddev_ms": 25.1271,
+          "variance_ms": 631.3719
         },
         "metrics": null,
         "output_digest": "f27bfbc48d6227ddea033588357a188d8d241d0b7879c78c4b361f644458b549",
@@ -220,18 +232,18 @@
           "iterations": 5,
           "warmup_runs": 2,
           "raw_wall_time_ms": [
-            64.3847,
-            124.0373,
-            173.9788,
-            97.792,
-            178.1373
+            75.2613,
+            65.778,
+            131.5513,
+            114.1733,
+            102.8364
           ],
-          "median_ms": 124.0373,
-          "mean_ms": 127.666,
-          "min_ms": 64.3847,
-          "max_ms": 178.1373,
-          "stddev_ms": 48.9958,
-          "variance_ms": 2400.5931
+          "median_ms": 102.8364,
+          "mean_ms": 97.9201,
+          "min_ms": 65.778,
+          "max_ms": 131.5513,
+          "stddev_ms": 27.2302,
+          "variance_ms": 741.4814
         },
         "metrics": null,
         "output_digest": "f27bfbc48d6227ddea033588357a188d8d241d0b7879c78c4b361f644458b549",
@@ -251,18 +263,18 @@
           "iterations": 5,
           "warmup_runs": 2,
           "raw_wall_time_ms": [
-            17982.4302,
-            17543.6633,
-            16900.3598,
-            20395.8891,
-            18656.9964
+            18001.3487,
+            16764.6,
+            17731.9627,
+            17017.0085,
+            17845.7733
           ],
-          "median_ms": 17982.4302,
-          "mean_ms": 18295.8678,
-          "min_ms": 16900.3598,
-          "max_ms": 20395.8891,
-          "stddev_ms": 1337.1612,
-          "variance_ms": 1788000.1386
+          "median_ms": 17731.9627,
+          "mean_ms": 17472.1387,
+          "min_ms": 16764.6,
+          "max_ms": 18001.3487,
+          "stddev_ms": 546.564,
+          "variance_ms": 298732.2478
         },
         "metrics": null,
         "output_digest": "f27bfbc48d6227ddea033588357a188d8d241d0b7879c78c4b361f644458b549",
@@ -270,156 +282,8 @@
         "success": true,
         "error_message": null
       },
-      "speedup_native_over_interpreter": 0.7843,
-      "speedup_candidate_over_serial": 144.976,
-      "correctness_verified": true,
-      "evidence": {
-        "compiler": {
-          "source_name": "t006_a_candidate.j2",
-          "source_sha256": "bccb22c84d49c2c711b382be3e5c3d2447bbb5a6239ed47f0ecf83a9b8857a66",
-          "has_parallel_constructs": false,
-          "matched_constructs": [],
-          "evidence_excerpts": [],
-          "emission_sample": "\nuse j2_runtime::prelude::*;\nuse j2_runtime::value::{J2Value, J2Func, J2FuncClause};\nuse j2_runtime::error::{J2Err, J2ErrKind, J2Result};\nuse j2_runtime::flow::J2Flow;\n#[allow(unused_imports)]\nuse j2_runtime::convert::*;\nuse std::cell::RefCell;\nuse std::collections::HashMap;\nuse std::rc::Rc;\n\n#[derive(Clone)]\nstruct Env {\n    table: HashMap<String, (J2Value, bool)>,\n    /// Names actually *declared* in this scope (vs inherited from GLOBALS /\n    /// builtins, which are copied into `table`). A binding shadows an\n    /// inherited name freely; only re-binding a name already in `locals` is\n    /// subject to the constant-reassignment rule. This lets a function-local\n    /// `x = \u2026` shadow a same-named top-level constant.\n    locals: std::collections::HashSet<String>,\n}\n\ntype EnvRef = Rc<RefCell<Env>>;\n\nthread_local! {\n    /// Global registry of user-defined top-level bindings (funcs + globals).\n    /// Function bodies seed their fresh envs from this so recursion and\n    /// cross-function calls work without lexical capture.\n    static GLOBALS: RefCell<HashMap<String, (J2Value, bool)>> = RefCell::new(HashMap::new());\n    /// Carries the value of a `give` (early return) while the GiveSignal error",
-          "analysis_method": "Regex search for multi-threaded runtime primitives in Rust emission",
-          "epistemic_note": "Compiler emission sample (first 30 lines); reflects structural backend source. Inspection searches for explicit concurrency patterns (rayon, thread::spawn, par_iter, etc.). Absence of patterns indicates no explicit parallel runtime primitives in emitted backend, not proof of absence of all internal optimizations."
-        },
-        "cpu": {
-          "max_cpu_percent": 0.0,
-          "avg_cpu_percent": 0.0,
-          "sample_count": 2,
-          "multi_core_engaged": false,
-          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
-          "cpu_measurement_valid": false,
-          "invalid_reason": "insufficient_samples (2 < 4 samples collected; duration too short for periodic sampling)",
-          "measurement_duration_ms": 124.0373
-        },
-        "profiler": {
-          "profiler_used": "external wall time and ps sampling"
-        },
-        "determinism": {
-          "ground_truth": "2000001000000",
-          "interp_match": true,
-          "native_match": true,
-          "serial_match": true
-        }
-      },
-      "evidence_grade": "C",
-      "classification": "CATEGORY E",
-      "limitations": [
-        "Does not perform memory allocations or I/O; isolates arithmetic reduction only.",
-        "Serial control uses loop-carried accumulator dependency.",
-        "Candidate vs serial control speedup is driven by builtin sum() reduction optimization in J2 runtime rather than multi-threaded automatic parallelism."
-      ]
-    },
-    {
-      "experiment_id": "T006-A",
-      "variant_id": "T006_A_N_5000000",
-      "workload_name": "Pure Computational Reduction (N=5,000,000)",
-      "workload_level": "A",
-      "source_file": "/Users/runner/work/dupe/dupe/benchmarks/t006/t006_a_candidate.j2",
-      "source_sha256": "bccb22c84d49c2c711b382be3e5c3d2447bbb5a6239ed47f0ecf83a9b8857a66",
-      "workload_parameters": {
-        "n": 5000000,
-        "ground_truth": "12500002500000"
-      },
-      "interpreter_measurement": {
-        "baseline_id": "Baseline_A_Interpreter",
-        "baseline_name": "J2 Interpreter (j2 --allow-all)",
-        "command_line": [
-          "j2",
-          "--allow-all",
-          "/Users/runner/work/dupe/dupe/benchmarks/t006/t006_a_candidate.j2",
-          "5000000"
-        ],
-        "environment_vars": {},
-        "timing": {
-          "iterations": 5,
-          "warmup_runs": 2,
-          "raw_wall_time_ms": [
-            200.8237,
-            254.2501,
-            249.774,
-            237.936,
-            281.6717
-          ],
-          "median_ms": 249.774,
-          "mean_ms": 244.8911,
-          "min_ms": 200.8237,
-          "max_ms": 281.6717,
-          "stddev_ms": 29.3877,
-          "variance_ms": 863.6381
-        },
-        "metrics": null,
-        "output_digest": "7dec0de2eb8e2118126b45268b676f7bb5876564d3985407efbb19d59df55b5b",
-        "build_time_ms": null,
-        "success": true,
-        "error_message": null
-      },
-      "native_candidate_measurement": {
-        "baseline_id": "Baseline_B_Native_Candidate",
-        "baseline_name": "Compiled Native Candidate (j2 build)",
-        "command_line": [
-          "/Users/runner/work/dupe/dupe/build/t006_a_candidate",
-          "5000000"
-        ],
-        "environment_vars": {},
-        "timing": {
-          "iterations": 5,
-          "warmup_runs": 2,
-          "raw_wall_time_ms": [
-            171.0915,
-            294.8199,
-            279.0092,
-            259.6301,
-            178.9998
-          ],
-          "median_ms": 259.6301,
-          "mean_ms": 236.7101,
-          "min_ms": 171.0915,
-          "max_ms": 294.8199,
-          "stddev_ms": 57.7225,
-          "variance_ms": 3331.8903
-        },
-        "metrics": null,
-        "output_digest": "7dec0de2eb8e2118126b45268b676f7bb5876564d3985407efbb19d59df55b5b",
-        "build_time_ms": null,
-        "success": true,
-        "error_message": null
-      },
-      "native_serial_measurement": {
-        "baseline_id": "Baseline_B_Native_Serial",
-        "baseline_name": "Compiled Native Serial-Equivalent",
-        "command_line": [
-          "/Users/runner/work/dupe/dupe/build/t006_a_serial",
-          "5000000"
-        ],
-        "environment_vars": {},
-        "timing": {
-          "iterations": 5,
-          "warmup_runs": 2,
-          "raw_wall_time_ms": [
-            38124.6263,
-            35153.7056,
-            36404.87,
-            34699.5561,
-            34075.0303
-          ],
-          "median_ms": 35153.7056,
-          "mean_ms": 35691.5577,
-          "min_ms": 34075.0303,
-          "max_ms": 38124.6263,
-          "stddev_ms": 1605.8604,
-          "variance_ms": 2578787.6324
-        },
-        "metrics": null,
-        "output_digest": "7dec0de2eb8e2118126b45268b676f7bb5876564d3985407efbb19d59df55b5b",
-        "build_time_ms": null,
-        "success": true,
-        "error_message": null
-      },
-      "speedup_native_over_interpreter": 0.962,
-      "speedup_candidate_over_serial": 135.3992,
+      "speedup_native_over_interpreter": 1.0035,
+      "speedup_candidate_over_serial": 172.4289,
       "correctness_verified": true,
       "evidence": {
         "compiler": {
@@ -440,7 +304,163 @@
           "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
           "cpu_measurement_valid": false,
           "invalid_reason": "insufficient_samples (1 < 4 samples collected; duration too short for periodic sampling)",
-          "measurement_duration_ms": 259.6301
+          "measurement_duration_ms": 75.2
+        },
+        "profiler": {
+          "profiler_used": "external wall time and ps sampling"
+        },
+        "determinism": {
+          "ground_truth": "2000001000000",
+          "interp_match": true,
+          "native_match": true,
+          "serial_match": true
+        }
+      },
+      "evidence_grade": "C",
+      "classification": "CATEGORY E",
+      "limitations": [
+        "Does not perform memory allocations or I/O; isolates arithmetic reduction only.",
+        "Serial control uses loop-carried accumulator dependency.",
+        "Candidate vs serial control speedup is driven by builtin sum() reduction optimization in J2 runtime rather than multi-threaded automatic parallelism."
+      ],
+      "candidate_source_sha256": "bccb22c84d49c2c711b382be3e5c3d2447bbb5a6239ed47f0ecf83a9b8857a66",
+      "serial_source_sha256": "b9a0b7694c49d7b57732d2f2f4d753da1b10272d92fbd0e475f4355e1a6c76e8",
+      "git_commit": "ce893b4cc8360df1f963d6d840c7f888ac075320",
+      "timestamp": "2026-09-08T15:49:12Z"
+    },
+    {
+      "experiment_id": "T006-A",
+      "variant_id": "T006_A_N_5000000",
+      "workload_name": "Pure Computational Reduction (N=5,000,000)",
+      "workload_level": "A",
+      "source_file": "/Users/runner/work/dupe/dupe/benchmarks/t006/t006_a_candidate.j2",
+      "source_sha256": "bccb22c84d49c2c711b382be3e5c3d2447bbb5a6239ed47f0ecf83a9b8857a66",
+      "workload_parameters": {
+        "n": 5000000,
+        "ground_truth": "12500002500000",
+        "candidate_source_sha256": "bccb22c84d49c2c711b382be3e5c3d2447bbb5a6239ed47f0ecf83a9b8857a66",
+        "serial_source_sha256": "b9a0b7694c49d7b57732d2f2f4d753da1b10272d92fbd0e475f4355e1a6c76e8",
+        "git_commit": "ce893b4cc8360df1f963d6d840c7f888ac075320",
+        "timestamp": "2026-09-08T15:54:17Z"
+      },
+      "interpreter_measurement": {
+        "baseline_id": "Baseline_A_Interpreter",
+        "baseline_name": "J2 Interpreter (j2 --allow-all)",
+        "command_line": [
+          "j2",
+          "--allow-all",
+          "/Users/runner/work/dupe/dupe/benchmarks/t006/t006_a_candidate.j2",
+          "5000000"
+        ],
+        "environment_vars": {},
+        "timing": {
+          "iterations": 5,
+          "warmup_runs": 2,
+          "raw_wall_time_ms": [
+            204.3848,
+            163.9447,
+            278.2248,
+            266.7507,
+            205.4054
+          ],
+          "median_ms": 205.4054,
+          "mean_ms": 223.7421,
+          "min_ms": 163.9447,
+          "max_ms": 278.2248,
+          "stddev_ms": 47.7095,
+          "variance_ms": 2276.1944
+        },
+        "metrics": null,
+        "output_digest": "7dec0de2eb8e2118126b45268b676f7bb5876564d3985407efbb19d59df55b5b",
+        "build_time_ms": null,
+        "success": true,
+        "error_message": null
+      },
+      "native_candidate_measurement": {
+        "baseline_id": "Baseline_B_Native_Candidate",
+        "baseline_name": "Compiled Native Candidate (j2 build)",
+        "command_line": [
+          "/Users/runner/work/dupe/dupe/build/t006_a_candidate",
+          "5000000"
+        ],
+        "environment_vars": {},
+        "timing": {
+          "iterations": 5,
+          "warmup_runs": 2,
+          "raw_wall_time_ms": [
+            165.0233,
+            230.5946,
+            174.2621,
+            156.9608,
+            174.3958
+          ],
+          "median_ms": 174.2621,
+          "mean_ms": 180.2473,
+          "min_ms": 156.9608,
+          "max_ms": 230.5946,
+          "stddev_ms": 29.0643,
+          "variance_ms": 844.7355
+        },
+        "metrics": null,
+        "output_digest": "7dec0de2eb8e2118126b45268b676f7bb5876564d3985407efbb19d59df55b5b",
+        "build_time_ms": null,
+        "success": true,
+        "error_message": null
+      },
+      "native_serial_measurement": {
+        "baseline_id": "Baseline_B_Native_Serial",
+        "baseline_name": "Compiled Native Serial-Equivalent",
+        "command_line": [
+          "/Users/runner/work/dupe/dupe/build/t006_a_serial",
+          "5000000"
+        ],
+        "environment_vars": {},
+        "timing": {
+          "iterations": 5,
+          "warmup_runs": 2,
+          "raw_wall_time_ms": [
+            47461.5627,
+            42249.2286,
+            42785.3162,
+            38933.4397,
+            36353.7034
+          ],
+          "median_ms": 42249.2286,
+          "mean_ms": 41556.6501,
+          "min_ms": 36353.7034,
+          "max_ms": 47461.5627,
+          "stddev_ms": 4207.4091,
+          "variance_ms": 17702291.5516
+        },
+        "metrics": null,
+        "output_digest": "7dec0de2eb8e2118126b45268b676f7bb5876564d3985407efbb19d59df55b5b",
+        "build_time_ms": null,
+        "success": true,
+        "error_message": null
+      },
+      "speedup_native_over_interpreter": 1.1787,
+      "speedup_candidate_over_serial": 242.4465,
+      "correctness_verified": true,
+      "evidence": {
+        "compiler": {
+          "source_name": "t006_a_candidate.j2",
+          "source_sha256": "bccb22c84d49c2c711b382be3e5c3d2447bbb5a6239ed47f0ecf83a9b8857a66",
+          "has_parallel_constructs": false,
+          "matched_constructs": [],
+          "evidence_excerpts": [],
+          "emission_sample": "\nuse j2_runtime::prelude::*;\nuse j2_runtime::value::{J2Value, J2Func, J2FuncClause};\nuse j2_runtime::error::{J2Err, J2ErrKind, J2Result};\nuse j2_runtime::flow::J2Flow;\n#[allow(unused_imports)]\nuse j2_runtime::convert::*;\nuse std::cell::RefCell;\nuse std::collections::HashMap;\nuse std::rc::Rc;\n\n#[derive(Clone)]\nstruct Env {\n    table: HashMap<String, (J2Value, bool)>,\n    /// Names actually *declared* in this scope (vs inherited from GLOBALS /\n    /// builtins, which are copied into `table`). A binding shadows an\n    /// inherited name freely; only re-binding a name already in `locals` is\n    /// subject to the constant-reassignment rule. This lets a function-local\n    /// `x = \u2026` shadow a same-named top-level constant.\n    locals: std::collections::HashSet<String>,\n}\n\ntype EnvRef = Rc<RefCell<Env>>;\n\nthread_local! {\n    /// Global registry of user-defined top-level bindings (funcs + globals).\n    /// Function bodies seed their fresh envs from this so recursion and\n    /// cross-function calls work without lexical capture.\n    static GLOBALS: RefCell<HashMap<String, (J2Value, bool)>> = RefCell::new(HashMap::new());\n    /// Carries the value of a `give` (early return) while the GiveSignal error",
+          "analysis_method": "Regex search for multi-threaded runtime primitives in Rust emission",
+          "epistemic_note": "Compiler emission sample (first 30 lines); reflects structural backend source. Inspection searches for explicit concurrency patterns (rayon, thread::spawn, par_iter, etc.). Absence of patterns indicates no explicit parallel runtime primitives in emitted backend, not proof of absence of all internal optimizations."
+        },
+        "cpu": {
+          "max_cpu_percent": 2.5,
+          "avg_cpu_percent": 2.5,
+          "sample_count": 3,
+          "multi_core_engaged": false,
+          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
+          "cpu_measurement_valid": false,
+          "invalid_reason": "insufficient_samples (3 < 4 samples collected; duration too short for periodic sampling)",
+          "measurement_duration_ms": 128.08
         },
         "profiler": {
           "profiler_used": "external wall time and ps sampling"
@@ -458,7 +478,11 @@
         "Does not perform memory allocations or I/O; isolates arithmetic reduction only.",
         "Serial control uses loop-carried accumulator dependency.",
         "Candidate vs serial control speedup is driven by builtin sum() reduction optimization in J2 runtime rather than multi-threaded automatic parallelism."
-      ]
+      ],
+      "candidate_source_sha256": "bccb22c84d49c2c711b382be3e5c3d2447bbb5a6239ed47f0ecf83a9b8857a66",
+      "serial_source_sha256": "b9a0b7694c49d7b57732d2f2f4d753da1b10272d92fbd0e475f4355e1a6c76e8",
+      "git_commit": "ce893b4cc8360df1f963d6d840c7f888ac075320",
+      "timestamp": "2026-09-08T15:54:17Z"
     },
     {
       "experiment_id": "T006-B",
@@ -470,7 +494,11 @@
       "workload_parameters": {
         "num_buffers": 10,
         "buffer_size": 1024,
-        "total_bytes": 10240
+        "total_bytes": 10240,
+        "candidate_source_sha256": "83a0ccef8730dd4810fe95e0cdb3dff980d9e710b18b7e4cd108f80a0d027393",
+        "serial_source_sha256": "a2604d9f167d296d2f6f6aab755d10d0d45cb327f485f57af4fc3bb1e6aa91a8",
+        "git_commit": "ce893b4cc8360df1f963d6d840c7f888ac075320",
+        "timestamp": "2026-09-08T15:54:24Z"
       },
       "interpreter_measurement": null,
       "native_candidate_measurement": {
@@ -486,18 +514,18 @@
           "iterations": 5,
           "warmup_runs": 2,
           "raw_wall_time_ms": [
-            92.5391,
-            190.3167,
-            73.5439,
-            200.8175,
-            185.0524
+            150.3017,
+            154.7475,
+            190.9512,
+            83.5443,
+            96.2492
           ],
-          "median_ms": 185.0524,
-          "mean_ms": 148.4539,
-          "min_ms": 73.5439,
-          "max_ms": 200.8175,
-          "stddev_ms": 60.357,
-          "variance_ms": 3642.9648
+          "median_ms": 150.3017,
+          "mean_ms": 135.1588,
+          "min_ms": 83.5443,
+          "max_ms": 190.9512,
+          "stddev_ms": 44.4517,
+          "variance_ms": 1975.9567
         },
         "metrics": null,
         "output_digest": "cfe5bdfdb9db62a080c61b4549849c6421a6f58d4954f2d638261e1de243902f",
@@ -518,18 +546,18 @@
           "iterations": 5,
           "warmup_runs": 2,
           "raw_wall_time_ms": [
-            42.1967,
-            128.536,
-            37.8123,
-            165.512,
-            108.3735
+            41.5517,
+            124.9651,
+            100.4075,
+            164.7943,
+            122.7607
           ],
-          "median_ms": 108.3735,
-          "mean_ms": 96.4861,
-          "min_ms": 37.8123,
-          "max_ms": 165.512,
-          "stddev_ms": 55.5046,
-          "variance_ms": 3080.7606
+          "median_ms": 122.7607,
+          "mean_ms": 110.8958,
+          "min_ms": 41.5517,
+          "max_ms": 164.7943,
+          "stddev_ms": 45.1729,
+          "variance_ms": 2040.593
         },
         "metrics": null,
         "output_digest": "02e0f06c4dfb9ccf3fdd9bbbcecbcf330ac6e65d866d873da0fdfa7c1b349dde",
@@ -538,7 +566,7 @@
         "error_message": null
       },
       "speedup_native_over_interpreter": 0.0,
-      "speedup_candidate_over_serial": 0.5856,
+      "speedup_candidate_over_serial": 0.8168,
       "correctness_verified": true,
       "evidence": {
         "compiler": {
@@ -559,7 +587,7 @@
           "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
           "cpu_measurement_valid": false,
           "invalid_reason": "insufficient_samples (1 < 4 samples collected; duration too short for periodic sampling)",
-          "measurement_duration_ms": 185.0524
+          "measurement_duration_ms": 10.49
         },
         "profiler": {
           "in_memory_isolation": true,
@@ -576,7 +604,11 @@
       "limitations": [
         "Pre-allocates buffers in memory; isolates hashing CPU compute from filesystem latency.",
         "No automatic parallel speedup was observed for the tested in-memory SHA-256 loop formulations under J2 0.1.0."
-      ]
+      ],
+      "candidate_source_sha256": "83a0ccef8730dd4810fe95e0cdb3dff980d9e710b18b7e4cd108f80a0d027393",
+      "serial_source_sha256": "a2604d9f167d296d2f6f6aab755d10d0d45cb327f485f57af4fc3bb1e6aa91a8",
+      "git_commit": "ce893b4cc8360df1f963d6d840c7f888ac075320",
+      "timestamp": "2026-09-08T15:54:24Z"
     },
     {
       "experiment_id": "T006-B",
@@ -588,7 +620,11 @@
       "workload_parameters": {
         "num_buffers": 50,
         "buffer_size": 4096,
-        "total_bytes": 204800
+        "total_bytes": 204800,
+        "candidate_source_sha256": "83a0ccef8730dd4810fe95e0cdb3dff980d9e710b18b7e4cd108f80a0d027393",
+        "serial_source_sha256": "a2604d9f167d296d2f6f6aab755d10d0d45cb327f485f57af4fc3bb1e6aa91a8",
+        "git_commit": "ce893b4cc8360df1f963d6d840c7f888ac075320",
+        "timestamp": "2026-09-08T15:54:25Z"
       },
       "interpreter_measurement": null,
       "native_candidate_measurement": {
@@ -604,18 +640,18 @@
           "iterations": 5,
           "warmup_runs": 2,
           "raw_wall_time_ms": [
-            137.0839,
-            83.6161,
-            50.1826,
-            129.0635,
-            108.7709
+            174.14,
+            95.4014,
+            55.3225,
+            40.088,
+            133.341
           ],
-          "median_ms": 108.7709,
-          "mean_ms": 101.7434,
-          "min_ms": 50.1826,
-          "max_ms": 137.0839,
-          "stddev_ms": 35.4677,
-          "variance_ms": 1257.9588
+          "median_ms": 95.4014,
+          "mean_ms": 99.6586,
+          "min_ms": 40.088,
+          "max_ms": 174.14,
+          "stddev_ms": 55.2595,
+          "variance_ms": 3053.6123
         },
         "metrics": null,
         "output_digest": "efc0b6e03a606876faad66ae7e3885a30b8044999606af70a60f8340deaffdb0",
@@ -636,18 +672,18 @@
           "iterations": 5,
           "warmup_runs": 2,
           "raw_wall_time_ms": [
-            170.3815,
-            89.367,
-            75.2067,
-            118.4172,
-            121.6145
+            37.5198,
+            33.9792,
+            124.9932,
+            48.5922,
+            35.5323
           ],
-          "median_ms": 118.4172,
-          "mean_ms": 114.9974,
-          "min_ms": 75.2067,
-          "max_ms": 170.3815,
-          "stddev_ms": 36.6166,
-          "variance_ms": 1340.776
+          "median_ms": 37.5198,
+          "mean_ms": 56.1233,
+          "min_ms": 33.9792,
+          "max_ms": 124.9932,
+          "stddev_ms": 38.9237,
+          "variance_ms": 1515.0548
         },
         "metrics": null,
         "output_digest": "5d45ea8a64ede36744c4233264169add00df41caf8ecefc1eb156e84cae21547",
@@ -656,7 +692,7 @@
         "error_message": null
       },
       "speedup_native_over_interpreter": 0.0,
-      "speedup_candidate_over_serial": 1.0887,
+      "speedup_candidate_over_serial": 0.3933,
       "correctness_verified": true,
       "evidence": {
         "compiler": {
@@ -677,7 +713,7 @@
           "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
           "cpu_measurement_valid": false,
           "invalid_reason": "insufficient_samples (1 < 4 samples collected; duration too short for periodic sampling)",
-          "measurement_duration_ms": 108.7709
+          "measurement_duration_ms": 15.04
         },
         "profiler": {
           "in_memory_isolation": true,
@@ -689,12 +725,16 @@
           "valid_hex64": true
         }
       },
-      "evidence_grade": "C",
-      "classification": "CATEGORY E",
+      "evidence_grade": "A",
+      "classification": "CATEGORY D",
       "limitations": [
         "Pre-allocates buffers in memory; isolates hashing CPU compute from filesystem latency.",
         "No automatic parallel speedup was observed for the tested in-memory SHA-256 loop formulations under J2 0.1.0."
-      ]
+      ],
+      "candidate_source_sha256": "83a0ccef8730dd4810fe95e0cdb3dff980d9e710b18b7e4cd108f80a0d027393",
+      "serial_source_sha256": "a2604d9f167d296d2f6f6aab755d10d0d45cb327f485f57af4fc3bb1e6aa91a8",
+      "git_commit": "ce893b4cc8360df1f963d6d840c7f888ac075320",
+      "timestamp": "2026-09-08T15:54:25Z"
     },
     {
       "experiment_id": "T006-B",
@@ -706,7 +746,11 @@
       "workload_parameters": {
         "num_buffers": 100,
         "buffer_size": 16384,
-        "total_bytes": 1638400
+        "total_bytes": 1638400,
+        "candidate_source_sha256": "83a0ccef8730dd4810fe95e0cdb3dff980d9e710b18b7e4cd108f80a0d027393",
+        "serial_source_sha256": "a2604d9f167d296d2f6f6aab755d10d0d45cb327f485f57af4fc3bb1e6aa91a8",
+        "git_commit": "ce893b4cc8360df1f963d6d840c7f888ac075320",
+        "timestamp": "2026-09-08T15:54:26Z"
       },
       "interpreter_measurement": null,
       "native_candidate_measurement": {
@@ -722,18 +766,18 @@
           "iterations": 5,
           "warmup_runs": 2,
           "raw_wall_time_ms": [
-            193.3813,
-            187.1391,
-            52.7713,
-            109.6626,
-            163.9538
+            146.1681,
+            126.8237,
+            154.7774,
+            48.4436,
+            42.1058
           ],
-          "median_ms": 163.9538,
-          "mean_ms": 141.3816,
-          "min_ms": 52.7713,
-          "max_ms": 193.3813,
-          "stddev_ms": 59.5087,
-          "variance_ms": 3541.2798
+          "median_ms": 126.8237,
+          "mean_ms": 103.6637,
+          "min_ms": 42.1058,
+          "max_ms": 154.7774,
+          "stddev_ms": 54.3007,
+          "variance_ms": 2948.5627
         },
         "metrics": null,
         "output_digest": "0776f1367f91f8c73b6335ba9e080b6219b8fb6dabd56036ad024b5f57e278a2",
@@ -754,18 +798,18 @@
           "iterations": 5,
           "warmup_runs": 2,
           "raw_wall_time_ms": [
-            118.921,
-            45.6315,
-            149.714,
-            182.4038,
-            131.8927
+            88.4241,
+            29.848,
+            170.0975,
+            53.3807,
+            150.586
           ],
-          "median_ms": 131.8927,
-          "mean_ms": 125.7126,
-          "min_ms": 45.6315,
-          "max_ms": 182.4038,
-          "stddev_ms": 50.7131,
-          "variance_ms": 2571.8168
+          "median_ms": 88.4241,
+          "mean_ms": 98.4673,
+          "min_ms": 29.848,
+          "max_ms": 170.0975,
+          "stddev_ms": 60.6001,
+          "variance_ms": 3672.3777
         },
         "metrics": null,
         "output_digest": "dc991a3d9372da3e2f7d926a616bcd49b1176410f3c9b6ba545d4e7ef811e26d",
@@ -774,7 +818,7 @@
         "error_message": null
       },
       "speedup_native_over_interpreter": 0.0,
-      "speedup_candidate_over_serial": 0.8045,
+      "speedup_candidate_over_serial": 0.6972,
       "correctness_verified": true,
       "evidence": {
         "compiler": {
@@ -795,7 +839,7 @@
           "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
           "cpu_measurement_valid": false,
           "invalid_reason": "insufficient_samples (1 < 4 samples collected; duration too short for periodic sampling)",
-          "measurement_duration_ms": 163.9538
+          "measurement_duration_ms": 17.0
         },
         "profiler": {
           "in_memory_isolation": true,
@@ -812,7 +856,11 @@
       "limitations": [
         "Pre-allocates buffers in memory; isolates hashing CPU compute from filesystem latency.",
         "No automatic parallel speedup was observed for the tested in-memory SHA-256 loop formulations under J2 0.1.0."
-      ]
+      ],
+      "candidate_source_sha256": "83a0ccef8730dd4810fe95e0cdb3dff980d9e710b18b7e4cd108f80a0d027393",
+      "serial_source_sha256": "a2604d9f167d296d2f6f6aab755d10d0d45cb327f485f57af4fc3bb1e6aa91a8",
+      "git_commit": "ce893b4cc8360df1f963d6d840c7f888ac075320",
+      "timestamp": "2026-09-08T15:54:26Z"
     },
     {
       "experiment_id": "T006-B",
@@ -824,7 +872,11 @@
       "workload_parameters": {
         "num_buffers": 200,
         "buffer_size": 65536,
-        "total_bytes": 13107200
+        "total_bytes": 13107200,
+        "candidate_source_sha256": "83a0ccef8730dd4810fe95e0cdb3dff980d9e710b18b7e4cd108f80a0d027393",
+        "serial_source_sha256": "a2604d9f167d296d2f6f6aab755d10d0d45cb327f485f57af4fc3bb1e6aa91a8",
+        "git_commit": "ce893b4cc8360df1f963d6d840c7f888ac075320",
+        "timestamp": "2026-09-08T15:54:28Z"
       },
       "interpreter_measurement": null,
       "native_candidate_measurement": {
@@ -840,18 +892,18 @@
           "iterations": 5,
           "warmup_runs": 2,
           "raw_wall_time_ms": [
-            114.171,
-            189.8872,
-            176.7718,
-            138.4862,
-            105.0939
+            92.9236,
+            120.4474,
+            176.3036,
+            143.3113,
+            89.6742
           ],
-          "median_ms": 138.4862,
-          "mean_ms": 144.882,
-          "min_ms": 105.0939,
-          "max_ms": 189.8872,
-          "stddev_ms": 37.4486,
-          "variance_ms": 1402.3987
+          "median_ms": 120.4474,
+          "mean_ms": 124.532,
+          "min_ms": 89.6742,
+          "max_ms": 176.3036,
+          "stddev_ms": 36.276,
+          "variance_ms": 1315.9504
         },
         "metrics": null,
         "output_digest": "44a3468e5036a4eebb0128262ef27bb924832b34303bb71fb9d6c343d3556122",
@@ -872,18 +924,18 @@
           "iterations": 5,
           "warmup_runs": 2,
           "raw_wall_time_ms": [
-            125.8289,
-            120.4256,
-            100.996,
-            213.8304,
-            75.5638
+            208.2856,
+            125.5062,
+            153.2485,
+            88.915,
+            129.0932
           ],
-          "median_ms": 120.4256,
-          "mean_ms": 127.3289,
-          "min_ms": 75.5638,
-          "max_ms": 213.8304,
-          "stddev_ms": 52.2146,
-          "variance_ms": 2726.3641
+          "median_ms": 129.0932,
+          "mean_ms": 141.0097,
+          "min_ms": 88.915,
+          "max_ms": 208.2856,
+          "stddev_ms": 44.0796,
+          "variance_ms": 1943.0135
         },
         "metrics": null,
         "output_digest": "ea3d19260df32665917c428945b533c6a73be4a8b466d613950cb5d042b6f661",
@@ -892,7 +944,7 @@
         "error_message": null
       },
       "speedup_native_over_interpreter": 0.0,
-      "speedup_candidate_over_serial": 0.8696,
+      "speedup_candidate_over_serial": 1.0718,
       "correctness_verified": true,
       "evidence": {
         "compiler": {
@@ -913,7 +965,7 @@
           "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
           "cpu_measurement_valid": false,
           "invalid_reason": "insufficient_samples (1 < 4 samples collected; duration too short for periodic sampling)",
-          "measurement_duration_ms": 138.4862
+          "measurement_duration_ms": 75.83
         },
         "profiler": {
           "in_memory_isolation": true,
@@ -925,12 +977,16 @@
           "valid_hex64": true
         }
       },
-      "evidence_grade": "A",
-      "classification": "CATEGORY D",
+      "evidence_grade": "C",
+      "classification": "CATEGORY E",
       "limitations": [
         "Pre-allocates buffers in memory; isolates hashing CPU compute from filesystem latency.",
         "No automatic parallel speedup was observed for the tested in-memory SHA-256 loop formulations under J2 0.1.0."
-      ]
+      ],
+      "candidate_source_sha256": "83a0ccef8730dd4810fe95e0cdb3dff980d9e710b18b7e4cd108f80a0d027393",
+      "serial_source_sha256": "a2604d9f167d296d2f6f6aab755d10d0d45cb327f485f57af4fc3bb1e6aa91a8",
+      "git_commit": "ce893b4cc8360df1f963d6d840c7f888ac075320",
+      "timestamp": "2026-09-08T15:54:28Z"
     },
     {
       "experiment_id": "T006-C",
@@ -944,11 +1000,15 @@
         "profile": "Metadata Heavy",
         "seed": 12345,
         "scale": 0.01,
-        "manifest_sha256": "b6591cea6e0ab3e9664a397f863403cbd8badb8423f6212f589687f2f70c5a83",
+        "manifest_sha256": "76fa955b15a2f8dc9326562ec1bff28bf011309070b0e402800a7519e01ba8e6",
         "file_count": 500,
         "candidate_count": 122,
         "total_bytes": 2048005,
-        "corpus_path": "/Users/runner/work/dupe/dupe/benchmarks/corpora/C1"
+        "corpus_path": "/Users/runner/work/dupe/dupe/benchmarks/corpora/C1",
+        "candidate_source_sha256": "f27fa75aba53edf6ffc9494259c17e82ce803615d50290ec5e22e2fa74bfe810",
+        "serial_source_sha256": "777bf7ffbc30a7946a90c5d472326657523576e0afafd45e8457eb633311245f",
+        "git_commit": "ce893b4cc8360df1f963d6d840c7f888ac075320",
+        "timestamp": "2026-09-08T15:54:34Z"
       },
       "interpreter_measurement": null,
       "native_candidate_measurement": {
@@ -965,21 +1025,21 @@
           "iterations": 5,
           "warmup_runs": 2,
           "raw_wall_time_ms": [
-            127.9402,
-            128.7075,
-            175.6893,
-            102.5493,
-            98.2659
+            85.9042,
+            121.0321,
+            140.41,
+            110.8848,
+            151.6345
           ],
-          "median_ms": 127.9402,
-          "mean_ms": 126.6304,
-          "min_ms": 98.2659,
-          "max_ms": 175.6893,
-          "stddev_ms": 30.8109,
-          "variance_ms": 949.3142
+          "median_ms": 121.0321,
+          "mean_ms": 121.9731,
+          "min_ms": 85.9042,
+          "max_ms": 151.6345,
+          "stddev_ms": 25.7124,
+          "variance_ms": 661.13
         },
         "metrics": null,
-        "output_digest": "591e975b9a0371fdb1b87025f3ce53a692c08d5e7d06c3082e72dd741e2e19fd",
+        "output_digest": "b18fe17f90ef8efbce2f06c19bde01f6ab2ff0b2de87fd0bc03c9905901c73a6",
         "build_time_ms": null,
         "success": true,
         "error_message": null
@@ -998,27 +1058,27 @@
           "iterations": 5,
           "warmup_runs": 2,
           "raw_wall_time_ms": [
-            146.2443,
-            225.4375,
-            129.6718,
-            111.3937,
-            104.5818
+            148.1993,
+            141.8913,
+            131.8305,
+            180.1397,
+            93.6108
           ],
-          "median_ms": 129.6718,
-          "mean_ms": 143.4658,
-          "min_ms": 104.5818,
-          "max_ms": 225.4375,
-          "stddev_ms": 48.626,
-          "variance_ms": 2364.4856
+          "median_ms": 141.8913,
+          "mean_ms": 139.1343,
+          "min_ms": 93.6108,
+          "max_ms": 180.1397,
+          "stddev_ms": 31.2128,
+          "variance_ms": 974.2392
         },
         "metrics": null,
-        "output_digest": "1f894e31a4533a1fc3058dcbd3f0d7dabc3470f1adcfe383d33a8838746982dc",
+        "output_digest": "7755e951c9ebbcd64e975340039ea003c5df3f32a2c8ee040571a565934d0fd4",
         "build_time_ms": null,
         "success": true,
         "error_message": null
       },
       "speedup_native_over_interpreter": 0.0,
-      "speedup_candidate_over_serial": 1.0135,
+      "speedup_candidate_over_serial": 1.1723,
       "correctness_verified": true,
       "evidence": {
         "compiler": {
@@ -1039,25 +1099,29 @@
           "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
           "cpu_measurement_valid": false,
           "invalid_reason": "insufficient_samples (1 < 4 samples collected; duration too short for periodic sampling)",
-          "measurement_duration_ms": 127.9402
+          "measurement_duration_ms": 59.81
         },
         "profiler": {
           "corpus_path": "/Users/runner/work/dupe/dupe/benchmarks/corpora/C1",
           "warm_repeated_runs": true
         },
         "determinism": {
-          "candidate_digest": "cd7f92fa3b2a554a169be8253cc50979eaaada2f9f0e48306c8807a8b84353c5",
-          "serial_digest": "20957888c4fb7767dc72439e344128a7792d8c8291c0fdbd4027d478d497274c",
+          "candidate_digest": "3fdb530ab18f560721600b6552a3870a6149b8f383f92e7ed1d637389b4cc2b1",
+          "serial_digest": "f45d7c4f33341177337e673c92e7fcd0a5344ae72c907910f70d4f5dfc477022",
           "valid_hex64": true
         }
       },
-      "evidence_grade": "A",
-      "classification": "CATEGORY D",
+      "evidence_grade": "C",
+      "classification": "CATEGORY E",
       "limitations": [
         "Measures filesystem read + hash hot loop; excludes dupe size grouping.",
         "Executed under warm-state repeated runs; consistent with page-cache effects reducing storage wait without privileged kernel cache eviction.",
         "No sustained multi-core CPU utilization or measurable native serial-equivalent advantage was observed for the tested filesystem read+hash formulations."
-      ]
+      ],
+      "candidate_source_sha256": "f27fa75aba53edf6ffc9494259c17e82ce803615d50290ec5e22e2fa74bfe810",
+      "serial_source_sha256": "777bf7ffbc30a7946a90c5d472326657523576e0afafd45e8457eb633311245f",
+      "git_commit": "ce893b4cc8360df1f963d6d840c7f888ac075320",
+      "timestamp": "2026-09-08T15:54:34Z"
     },
     {
       "experiment_id": "T006-C",
@@ -1071,11 +1135,15 @@
         "profile": "Balanced Baseline",
         "seed": 12345,
         "scale": 0.01,
-        "manifest_sha256": "85fdcad5804599148d298642a8b945d812dc2b37803e498c8188fc8b9f36b0ec",
+        "manifest_sha256": "658f2752c3281eb2b3259ccf4206b003b2e4f64c356e360a7f8530ab98fa24c6",
         "file_count": 100,
         "candidate_count": 30,
         "total_bytes": 9999999,
-        "corpus_path": "/Users/runner/work/dupe/dupe/benchmarks/corpora/C2"
+        "corpus_path": "/Users/runner/work/dupe/dupe/benchmarks/corpora/C2",
+        "candidate_source_sha256": "f27fa75aba53edf6ffc9494259c17e82ce803615d50290ec5e22e2fa74bfe810",
+        "serial_source_sha256": "777bf7ffbc30a7946a90c5d472326657523576e0afafd45e8457eb633311245f",
+        "git_commit": "ce893b4cc8360df1f963d6d840c7f888ac075320",
+        "timestamp": "2026-09-08T15:54:37Z"
       },
       "interpreter_measurement": null,
       "native_candidate_measurement": {
@@ -1092,21 +1160,21 @@
           "iterations": 5,
           "warmup_runs": 2,
           "raw_wall_time_ms": [
-            189.646,
-            287.0791,
-            183.252,
-            164.1912,
-            186.4231
+            229.2589,
+            139.8153,
+            188.248,
+            188.5986,
+            171.222
           ],
-          "median_ms": 186.4231,
-          "mean_ms": 202.1183,
-          "min_ms": 164.1912,
-          "max_ms": 287.0791,
-          "stddev_ms": 48.5145,
-          "variance_ms": 2353.6582
+          "median_ms": 188.248,
+          "mean_ms": 183.4286,
+          "min_ms": 139.8153,
+          "max_ms": 229.2589,
+          "stddev_ms": 32.4095,
+          "variance_ms": 1050.3729
         },
         "metrics": null,
-        "output_digest": "f576ece58c68efaac350817e373c0d1fc17f7a79dc27391844a7429e88629acd",
+        "output_digest": "e156a60cc7b566f4f42beb06071a7091787e921f8898d1492db511cbc14074e5",
         "build_time_ms": null,
         "success": true,
         "error_message": null
@@ -1125,27 +1193,27 @@
           "iterations": 5,
           "warmup_runs": 2,
           "raw_wall_time_ms": [
-            295.3928,
-            226.3185,
-            210.8326,
-            178.198,
-            171.1788
+            244.172,
+            255.9934,
+            267.3113,
+            307.5255,
+            180.1588
           ],
-          "median_ms": 210.8326,
-          "mean_ms": 216.3841,
-          "min_ms": 171.1788,
-          "max_ms": 295.3928,
-          "stddev_ms": 49.683,
-          "variance_ms": 2468.3972
+          "median_ms": 255.9934,
+          "mean_ms": 251.0322,
+          "min_ms": 180.1588,
+          "max_ms": 307.5255,
+          "stddev_ms": 46.2364,
+          "variance_ms": 2137.8043
         },
         "metrics": null,
-        "output_digest": "6dea9c24403fc256792e88d81ba6f5cfa1eaf2eadb3a687acbb5aa18e09f88ef",
+        "output_digest": "7c565250f177df7447d630d9e795cadaa544efad6944aaeb41a60244c45f65dd",
         "build_time_ms": null,
         "success": true,
         "error_message": null
       },
       "speedup_native_over_interpreter": 0.0,
-      "speedup_candidate_over_serial": 1.1309,
+      "speedup_candidate_over_serial": 1.3599,
       "correctness_verified": true,
       "evidence": {
         "compiler": {
@@ -1166,15 +1234,15 @@
           "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
           "cpu_measurement_valid": false,
           "invalid_reason": "insufficient_samples (1 < 4 samples collected; duration too short for periodic sampling)",
-          "measurement_duration_ms": 186.4231
+          "measurement_duration_ms": 121.06
         },
         "profiler": {
           "corpus_path": "/Users/runner/work/dupe/dupe/benchmarks/corpora/C2",
           "warm_repeated_runs": true
         },
         "determinism": {
-          "candidate_digest": "8ab411929c70205a6608cec7bba6608f9442911414515764b5815fad8defaa75",
-          "serial_digest": "29f22f016563ef3fd960890892d2dd6620316525b61a5dc064fef66b1b4031b2",
+          "candidate_digest": "890b47e7f33c8d28b523e813f01d8999f01c21ad0425ed47587e30ba160a6b59",
+          "serial_digest": "ae52b7777a981ca87102177bcf2c5f3c65655ea0f9a3914762e2737361fa89f7",
           "valid_hex64": true
         }
       },
@@ -1184,7 +1252,11 @@
         "Measures filesystem read + hash hot loop; excludes dupe size grouping.",
         "Executed under warm-state repeated runs; consistent with page-cache effects reducing storage wait without privileged kernel cache eviction.",
         "No sustained multi-core CPU utilization or measurable native serial-equivalent advantage was observed for the tested filesystem read+hash formulations."
-      ]
+      ],
+      "candidate_source_sha256": "f27fa75aba53edf6ffc9494259c17e82ce803615d50290ec5e22e2fa74bfe810",
+      "serial_source_sha256": "777bf7ffbc30a7946a90c5d472326657523576e0afafd45e8457eb633311245f",
+      "git_commit": "ce893b4cc8360df1f963d6d840c7f888ac075320",
+      "timestamp": "2026-09-08T15:54:37Z"
     },
     {
       "experiment_id": "T006-C",
@@ -1198,11 +1270,15 @@
         "profile": "High Duplicate Density",
         "seed": 12345,
         "scale": 0.01,
-        "manifest_sha256": "90c5eb87eb069623e1f516a24aa7d9eb01d368d904c661bb3ad841ef93751717",
+        "manifest_sha256": "74529e6ddbc7d3b5f45ce9da1cd5c7d923ed5669f87dece7280c33a2a5aeb90b",
         "file_count": 100,
         "candidate_count": 80,
         "total_bytes": 10000002,
-        "corpus_path": "/Users/runner/work/dupe/dupe/benchmarks/corpora/C4"
+        "corpus_path": "/Users/runner/work/dupe/dupe/benchmarks/corpora/C4",
+        "candidate_source_sha256": "f27fa75aba53edf6ffc9494259c17e82ce803615d50290ec5e22e2fa74bfe810",
+        "serial_source_sha256": "777bf7ffbc30a7946a90c5d472326657523576e0afafd45e8457eb633311245f",
+        "git_commit": "ce893b4cc8360df1f963d6d840c7f888ac075320",
+        "timestamp": "2026-09-08T15:54:40Z"
       },
       "interpreter_measurement": null,
       "native_candidate_measurement": {
@@ -1219,21 +1295,21 @@
           "iterations": 5,
           "warmup_runs": 2,
           "raw_wall_time_ms": [
-            182.548,
-            262.729,
-            166.2132,
-            247.7844,
-            254.1033
+            245.8063,
+            249.9925,
+            284.0442,
+            249.8135,
+            240.2117
           ],
-          "median_ms": 247.7844,
-          "mean_ms": 222.6756,
-          "min_ms": 166.2132,
-          "max_ms": 262.729,
-          "stddev_ms": 44.779,
-          "variance_ms": 2005.1613
+          "median_ms": 249.8135,
+          "mean_ms": 253.9737,
+          "min_ms": 240.2117,
+          "max_ms": 284.0442,
+          "stddev_ms": 17.2735,
+          "variance_ms": 298.3738
         },
         "metrics": null,
-        "output_digest": "9015b700bdd4962171b086316f66bf0aa13989711bc2726683eb33c5bc79402c",
+        "output_digest": "a97300da17e4185b30b1f50c3052fd7b0e7b40192238ed442b7a559a0a6bbd21",
         "build_time_ms": null,
         "success": true,
         "error_message": null
@@ -1252,27 +1328,27 @@
           "iterations": 5,
           "warmup_runs": 2,
           "raw_wall_time_ms": [
-            186.6228,
-            269.6044,
-            169.2745,
-            177.9052,
-            205.5325
+            237.379,
+            342.3451,
+            198.4162,
+            253.9329,
+            273.9741
           ],
-          "median_ms": 186.6228,
-          "mean_ms": 201.7879,
-          "min_ms": 169.2745,
-          "max_ms": 269.6044,
-          "stddev_ms": 40.22,
-          "variance_ms": 1617.6457
+          "median_ms": 253.9329,
+          "mean_ms": 261.2095,
+          "min_ms": 198.4162,
+          "max_ms": 342.3451,
+          "stddev_ms": 53.1737,
+          "variance_ms": 2827.4388
         },
         "metrics": null,
-        "output_digest": "e453ae2641620078e506bfd8d85cb5da44c850814d31bc3dcbc7ffcb2fdc2f48",
+        "output_digest": "8ff070aefbb86889fe3e83995d3a233b6bc0e8dd3675924785bb221c3ed15415",
         "build_time_ms": null,
         "success": true,
         "error_message": null
       },
       "speedup_native_over_interpreter": 0.0,
-      "speedup_candidate_over_serial": 0.7532,
+      "speedup_candidate_over_serial": 1.0165,
       "correctness_verified": true,
       "evidence": {
         "compiler": {
@@ -1286,22 +1362,22 @@
           "epistemic_note": "Compiler emission sample (first 30 lines); reflects structural backend source. Inspection searches for explicit concurrency patterns (rayon, thread::spawn, par_iter, etc.). Absence of patterns indicates no explicit parallel runtime primitives in emitted backend, not proof of absence of all internal optimizations."
         },
         "cpu": {
-          "max_cpu_percent": 26.6,
-          "avg_cpu_percent": 8.9,
-          "sample_count": 3,
+          "max_cpu_percent": 49.5,
+          "avg_cpu_percent": 18.1,
+          "sample_count": 5,
           "multi_core_engaged": false,
           "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
-          "cpu_measurement_valid": false,
-          "invalid_reason": "insufficient_samples (3 < 4 samples collected; duration too short for periodic sampling)",
-          "measurement_duration_ms": 247.7844
+          "cpu_measurement_valid": true,
+          "invalid_reason": null,
+          "measurement_duration_ms": 230.65
         },
         "profiler": {
           "corpus_path": "/Users/runner/work/dupe/dupe/benchmarks/corpora/C4",
           "warm_repeated_runs": true
         },
         "determinism": {
-          "candidate_digest": "4151762d620b99941e6ac1a22a0d5987d041df1e1337ac13fa115124c876d2f8",
-          "serial_digest": "2c9836b6053f08e381db6b75fc19dc80e282b7d2dcbb23b19aa127125b2e6579",
+          "candidate_digest": "cf9934c349c01fe6c20aff847ab33474656f286f1d312e4b49e1a3a5b8dd8841",
+          "serial_digest": "956fda8fac48c9451db60addb872ff3a211f58788b2cfa806693d42b1a23160c",
           "valid_hex64": true
         }
       },
@@ -1311,7 +1387,11 @@
         "Measures filesystem read + hash hot loop; excludes dupe size grouping.",
         "Executed under warm-state repeated runs; consistent with page-cache effects reducing storage wait without privileged kernel cache eviction.",
         "No sustained multi-core CPU utilization or measurable native serial-equivalent advantage was observed for the tested filesystem read+hash formulations."
-      ]
+      ],
+      "candidate_source_sha256": "f27fa75aba53edf6ffc9494259c17e82ce803615d50290ec5e22e2fa74bfe810",
+      "serial_source_sha256": "777bf7ffbc30a7946a90c5d472326657523576e0afafd45e8457eb633311245f",
+      "git_commit": "ce893b4cc8360df1f963d6d840c7f888ac075320",
+      "timestamp": "2026-09-08T15:54:40Z"
     },
     {
       "experiment_id": "T006-C",
@@ -1325,11 +1405,15 @@
         "profile": "Same-Size Adversarial",
         "seed": 12345,
         "scale": 0.01,
-        "manifest_sha256": "ffff75dfe50ddc2c040d34208d08cb5f988a6d67b2cb705f15d911b34e555811",
+        "manifest_sha256": "545723749921b106ad7170dd083f66cd51f3d17f7f23f69f881d65da53551df7",
         "file_count": 200,
         "candidate_count": 200,
         "total_bytes": 10485600,
-        "corpus_path": "/Users/runner/work/dupe/dupe/benchmarks/corpora/C5"
+        "corpus_path": "/Users/runner/work/dupe/dupe/benchmarks/corpora/C5",
+        "candidate_source_sha256": "f27fa75aba53edf6ffc9494259c17e82ce803615d50290ec5e22e2fa74bfe810",
+        "serial_source_sha256": "777bf7ffbc30a7946a90c5d472326657523576e0afafd45e8457eb633311245f",
+        "git_commit": "ce893b4cc8360df1f963d6d840c7f888ac075320",
+        "timestamp": "2026-09-08T15:54:43Z"
       },
       "interpreter_measurement": null,
       "native_candidate_measurement": {
@@ -1346,21 +1430,21 @@
           "iterations": 5,
           "warmup_runs": 2,
           "raw_wall_time_ms": [
-            138.4354,
-            122.3087,
-            254.0395,
-            189.1986,
-            186.2237
+            185.2271,
+            173.5998,
+            266.5682,
+            201.3522,
+            124.8605
           ],
-          "median_ms": 186.2237,
-          "mean_ms": 178.0412,
-          "min_ms": 122.3087,
-          "max_ms": 254.0395,
-          "stddev_ms": 51.5798,
-          "variance_ms": 2660.4805
+          "median_ms": 185.2271,
+          "mean_ms": 190.3216,
+          "min_ms": 124.8605,
+          "max_ms": 266.5682,
+          "stddev_ms": 51.298,
+          "variance_ms": 2631.4858
         },
         "metrics": null,
-        "output_digest": "c5c63dd1d25c547646a063e2630853976199ea0ac5d68f84906a3e2c89f41242",
+        "output_digest": "1814684f44d750eac5e0b7b2388a70a6552f4f5c3daa94d6469fc513f2864840",
         "build_time_ms": null,
         "success": true,
         "error_message": null
@@ -1379,27 +1463,27 @@
           "iterations": 5,
           "warmup_runs": 2,
           "raw_wall_time_ms": [
-            136.7379,
-            188.8522,
-            171.9814,
-            193.5168,
-            135.6005
+            119.6508,
+            249.7192,
+            189.1067,
+            267.1053,
+            209.9892
           ],
-          "median_ms": 171.9814,
-          "mean_ms": 165.3378,
-          "min_ms": 135.6005,
-          "max_ms": 193.5168,
-          "stddev_ms": 27.8091,
-          "variance_ms": 773.3468
+          "median_ms": 209.9892,
+          "mean_ms": 207.1142,
+          "min_ms": 119.6508,
+          "max_ms": 267.1053,
+          "stddev_ms": 57.8716,
+          "variance_ms": 3349.1238
         },
         "metrics": null,
-        "output_digest": "b940358ed4b00544e21928def84a5a6c4fa03cd19b50902cfb78da5082daa5cf",
+        "output_digest": "e310de4d9403140dbb0a2839ce27460b37577365b158a611ea281546af4da8e2",
         "build_time_ms": null,
         "success": true,
         "error_message": null
       },
       "speedup_native_over_interpreter": 0.0,
-      "speedup_candidate_over_serial": 0.9235,
+      "speedup_candidate_over_serial": 1.1337,
       "correctness_verified": true,
       "evidence": {
         "compiler": {
@@ -1420,25 +1504,29 @@
           "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
           "cpu_measurement_valid": false,
           "invalid_reason": "insufficient_samples (1 < 4 samples collected; duration too short for periodic sampling)",
-          "measurement_duration_ms": 186.2237
+          "measurement_duration_ms": 119.22
         },
         "profiler": {
           "corpus_path": "/Users/runner/work/dupe/dupe/benchmarks/corpora/C5",
           "warm_repeated_runs": true
         },
         "determinism": {
-          "candidate_digest": "d31c5ab938acd52d5977cac947619bdf130b2efdaf4083d9a74325b04df9da07",
-          "serial_digest": "65b8c08e34db5dd8ce4dd4151ffe0a80a371286f9bc48ce34f7d72f0ae8c8b99",
+          "candidate_digest": "72c709dc81bd883f6721585df89b496d92e6856b21d80306d253a14337c5997c",
+          "serial_digest": "15c4851de53f94f008b46d86377751182f39679a2624457b0258d51b4a75672a",
           "valid_hex64": true
         }
       },
-      "evidence_grade": "A",
-      "classification": "CATEGORY D",
+      "evidence_grade": "C",
+      "classification": "CATEGORY E",
       "limitations": [
         "Measures filesystem read + hash hot loop; excludes dupe size grouping.",
         "Executed under warm-state repeated runs; consistent with page-cache effects reducing storage wait without privileged kernel cache eviction.",
         "No sustained multi-core CPU utilization or measurable native serial-equivalent advantage was observed for the tested filesystem read+hash formulations."
-      ]
+      ],
+      "candidate_source_sha256": "f27fa75aba53edf6ffc9494259c17e82ce803615d50290ec5e22e2fa74bfe810",
+      "serial_source_sha256": "777bf7ffbc30a7946a90c5d472326657523576e0afafd45e8457eb633311245f",
+      "git_commit": "ce893b4cc8360df1f963d6d840c7f888ac075320",
+      "timestamp": "2026-09-08T15:54:43Z"
     },
     {
       "experiment_id": "T006-C",
@@ -1452,11 +1540,15 @@
         "profile": "Mixed Realistic",
         "seed": 12345,
         "scale": 0.01,
-        "manifest_sha256": "2c45255c646e0e010c2c31e9c9c8916d7d5d794cb1e403d1591fba3ef4ca0ba0",
+        "manifest_sha256": "621d79e73d4a2c266108f8379fbc0da2b83a5fed2edbb434674eed6523d6ec0e",
         "file_count": 100,
         "candidate_count": 30,
         "total_bytes": 9999999,
-        "corpus_path": "/Users/runner/work/dupe/dupe/benchmarks/corpora/C6"
+        "corpus_path": "/Users/runner/work/dupe/dupe/benchmarks/corpora/C6",
+        "candidate_source_sha256": "f27fa75aba53edf6ffc9494259c17e82ce803615d50290ec5e22e2fa74bfe810",
+        "serial_source_sha256": "777bf7ffbc30a7946a90c5d472326657523576e0afafd45e8457eb633311245f",
+        "git_commit": "ce893b4cc8360df1f963d6d840c7f888ac075320",
+        "timestamp": "2026-09-08T15:54:46Z"
       },
       "interpreter_measurement": null,
       "native_candidate_measurement": {
@@ -1473,21 +1565,21 @@
           "iterations": 5,
           "warmup_runs": 2,
           "raw_wall_time_ms": [
-            270.6038,
-            321.0162,
-            186.6511,
-            256.8974,
-            180.8871
+            234.5343,
+            297.9337,
+            233.0926,
+            178.0432,
+            158.379
           ],
-          "median_ms": 256.8974,
-          "mean_ms": 243.2111,
-          "min_ms": 180.8871,
-          "max_ms": 321.0162,
-          "stddev_ms": 59.3183,
-          "variance_ms": 3518.6554
+          "median_ms": 233.0926,
+          "mean_ms": 220.3966,
+          "min_ms": 158.379,
+          "max_ms": 297.9337,
+          "stddev_ms": 54.8021,
+          "variance_ms": 3003.266
         },
         "metrics": null,
-        "output_digest": "a6dd7fa0f44ef8a8c28ca252f3f512a8c188fc1ebe458ee1742bc3f329d1d8eb",
+        "output_digest": "6366036d269c9f80a546fa5dde83eb2a6de3c7abbc32000a5020d07e42a9cc00",
         "build_time_ms": null,
         "success": true,
         "error_message": null
@@ -1506,27 +1598,27 @@
           "iterations": 5,
           "warmup_runs": 2,
           "raw_wall_time_ms": [
-            328.3232,
-            246.1549,
-            181.2716,
-            203.04,
-            229.9377
+            237.6139,
+            240.5505,
+            257.7712,
+            181.2019,
+            340.0321
           ],
-          "median_ms": 229.9377,
-          "mean_ms": 237.7455,
-          "min_ms": 181.2716,
-          "max_ms": 328.3232,
-          "stddev_ms": 56.4132,
-          "variance_ms": 3182.4446
+          "median_ms": 240.5505,
+          "mean_ms": 251.4339,
+          "min_ms": 181.2019,
+          "max_ms": 340.0321,
+          "stddev_ms": 57.297,
+          "variance_ms": 3282.9463
         },
         "metrics": null,
-        "output_digest": "da8cf9302af97b630c03fa86d33768775fbf2a16ea36cbda3272c6633f98412d",
+        "output_digest": "025e836d6afec578de0b178996cc78b4f22511b74a1246d6ecb4653581e1f35a",
         "build_time_ms": null,
         "success": true,
         "error_message": null
       },
       "speedup_native_over_interpreter": 0.0,
-      "speedup_candidate_over_serial": 0.8951,
+      "speedup_candidate_over_serial": 1.032,
       "correctness_verified": true,
       "evidence": {
         "compiler": {
@@ -1547,15 +1639,15 @@
           "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
           "cpu_measurement_valid": false,
           "invalid_reason": "insufficient_samples (1 < 4 samples collected; duration too short for periodic sampling)",
-          "measurement_duration_ms": 256.8974
+          "measurement_duration_ms": 157.91
         },
         "profiler": {
           "corpus_path": "/Users/runner/work/dupe/dupe/benchmarks/corpora/C6",
           "warm_repeated_runs": true
         },
         "determinism": {
-          "candidate_digest": "af90df3984d8625ed71fbc1f97d7deb726882c66d6c2fc1a72289775f5815a28",
-          "serial_digest": "0304de745e33c9159888134c0e8a4182ffb5fbf1491fa198f6efe49855367b71",
+          "candidate_digest": "deb14bf7ec1d3cb1caaea29adf2637b4272b1b3ed6afc9eccb2ad0ba619ab7a0",
+          "serial_digest": "1f933d143e12849d9ef6793748d59420c99670f3650b902d6e7ee54256b197cc",
           "valid_hex64": true
         }
       },
@@ -1565,7 +1657,11 @@
         "Measures filesystem read + hash hot loop; excludes dupe size grouping.",
         "Executed under warm-state repeated runs; consistent with page-cache effects reducing storage wait without privileged kernel cache eviction.",
         "No sustained multi-core CPU utilization or measurable native serial-equivalent advantage was observed for the tested filesystem read+hash formulations."
-      ]
+      ],
+      "candidate_source_sha256": "f27fa75aba53edf6ffc9494259c17e82ce803615d50290ec5e22e2fa74bfe810",
+      "serial_source_sha256": "777bf7ffbc30a7946a90c5d472326657523576e0afafd45e8457eb633311245f",
+      "git_commit": "ce893b4cc8360df1f963d6d840c7f888ac075320",
+      "timestamp": "2026-09-08T15:54:46Z"
     },
     {
       "experiment_id": "T006-C",
@@ -1579,11 +1675,15 @@
         "profile": "Cache Transition",
         "seed": 12345,
         "scale": 0.01,
-        "manifest_sha256": "d61808f2ece0221f4277864f114c00ee5ce1a9b2bdaae8327918cae7dbeaa853",
+        "manifest_sha256": "401b97f7207608e792824f04e88aeb4d490904c143892c7a717d61bce180231a",
         "file_count": 100,
         "candidate_count": 30,
         "total_bytes": 9999999,
-        "corpus_path": "/Users/runner/work/dupe/dupe/benchmarks/corpora/C7"
+        "corpus_path": "/Users/runner/work/dupe/dupe/benchmarks/corpora/C7",
+        "candidate_source_sha256": "f27fa75aba53edf6ffc9494259c17e82ce803615d50290ec5e22e2fa74bfe810",
+        "serial_source_sha256": "777bf7ffbc30a7946a90c5d472326657523576e0afafd45e8457eb633311245f",
+        "git_commit": "ce893b4cc8360df1f963d6d840c7f888ac075320",
+        "timestamp": "2026-09-08T15:54:50Z"
       },
       "interpreter_measurement": null,
       "native_candidate_measurement": {
@@ -1600,21 +1700,21 @@
           "iterations": 5,
           "warmup_runs": 2,
           "raw_wall_time_ms": [
-            309.5818,
-            155.7117,
-            171.8311,
-            213.1389,
-            248.2104
+            251.5387,
+            298.1681,
+            279.6368,
+            225.3574,
+            174.7422
           ],
-          "median_ms": 213.1389,
-          "mean_ms": 219.6948,
-          "min_ms": 155.7117,
-          "max_ms": 309.5818,
-          "stddev_ms": 61.8881,
-          "variance_ms": 3830.1408
+          "median_ms": 251.5387,
+          "mean_ms": 245.8887,
+          "min_ms": 174.7422,
+          "max_ms": 298.1681,
+          "stddev_ms": 48.4442,
+          "variance_ms": 2346.839
         },
         "metrics": null,
-        "output_digest": "f2ade21aa5c378489c8731f5cf27e32059490bb1716b72dae98c5aa8a8b9de12",
+        "output_digest": "09903e01257fcbeee700b946f1d86fdd7c887d32fc66912df5ed7b037ecef9b6",
         "build_time_ms": null,
         "success": true,
         "error_message": null
@@ -1633,27 +1733,27 @@
           "iterations": 5,
           "warmup_runs": 2,
           "raw_wall_time_ms": [
-            178.6397,
-            283.8871,
-            189.0516,
-            158.2742,
-            216.9603
+            224.5209,
+            193.9317,
+            221.9553,
+            268.287,
+            164.1143
           ],
-          "median_ms": 189.0516,
-          "mean_ms": 205.3626,
-          "min_ms": 158.2742,
-          "max_ms": 283.8871,
-          "stddev_ms": 48.729,
-          "variance_ms": 2374.5196
+          "median_ms": 221.9553,
+          "mean_ms": 214.5618,
+          "min_ms": 164.1143,
+          "max_ms": 268.287,
+          "stddev_ms": 38.7646,
+          "variance_ms": 1502.6973
         },
         "metrics": null,
-        "output_digest": "ab139d2e248b92d3140e33daf0362b0c83c082bf46560bfa30f65ddf085184a7",
+        "output_digest": "6222b5cffddceddab283d78aea981a1650e570bff7ae89800ed55b2279c86d94",
         "build_time_ms": null,
         "success": true,
         "error_message": null
       },
       "speedup_native_over_interpreter": 0.0,
-      "speedup_candidate_over_serial": 0.887,
+      "speedup_candidate_over_serial": 0.8824,
       "correctness_verified": true,
       "evidence": {
         "compiler": {
@@ -1669,20 +1769,20 @@
         "cpu": {
           "max_cpu_percent": 0.0,
           "avg_cpu_percent": 0.0,
-          "sample_count": 3,
+          "sample_count": 1,
           "multi_core_engaged": false,
           "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
           "cpu_measurement_valid": false,
-          "invalid_reason": "insufficient_samples (3 < 4 samples collected; duration too short for periodic sampling)",
-          "measurement_duration_ms": 213.1389
+          "invalid_reason": "insufficient_samples (1 < 4 samples collected; duration too short for periodic sampling)",
+          "measurement_duration_ms": 128.29
         },
         "profiler": {
           "corpus_path": "/Users/runner/work/dupe/dupe/benchmarks/corpora/C7",
           "warm_repeated_runs": true
         },
         "determinism": {
-          "candidate_digest": "b914b77fc30ee33b99ea8bc9499f46379ee62a93fe0a336a49622759fa8b503b",
-          "serial_digest": "a30bb45d1a9df1d696d4cb6a10b6ee991c572acd71681aa8099c0856e7f210ee",
+          "candidate_digest": "a8bfca551a49a9a6bbac75273e5fa4d06e9b81f6a401adc63a03008d47a309ce",
+          "serial_digest": "d2b534011c26b200df621aa9a44c57fae00d81f7b0213096cc7a6f73bf3bb0e8",
           "valid_hex64": true
         }
       },
@@ -1692,7 +1792,11 @@
         "Measures filesystem read + hash hot loop; excludes dupe size grouping.",
         "Executed under warm-state repeated runs; consistent with page-cache effects reducing storage wait without privileged kernel cache eviction.",
         "No sustained multi-core CPU utilization or measurable native serial-equivalent advantage was observed for the tested filesystem read+hash formulations."
-      ]
+      ],
+      "candidate_source_sha256": "f27fa75aba53edf6ffc9494259c17e82ce803615d50290ec5e22e2fa74bfe810",
+      "serial_source_sha256": "777bf7ffbc30a7946a90c5d472326657523576e0afafd45e8457eb633311245f",
+      "git_commit": "ce893b4cc8360df1f963d6d840c7f888ac075320",
+      "timestamp": "2026-09-08T15:54:50Z"
     },
     {
       "experiment_id": "T006-D",
@@ -1706,10 +1810,14 @@
         "profile": "Metadata Heavy",
         "seed": 12345,
         "scale": 0.01,
-        "manifest_sha256": "b6591cea6e0ab3e9664a397f863403cbd8badb8423f6212f589687f2f70c5a83",
+        "manifest_sha256": "76fa955b15a2f8dc9326562ec1bff28bf011309070b0e402800a7519e01ba8e6",
         "file_count": 500,
         "candidate_count": 122,
-        "total_bytes": 2048005
+        "total_bytes": 2048005,
+        "candidate_source_sha256": "a8a59968debd346d7264863ca0a38818233ddfec2994ba50b01efb356fdde972",
+        "serial_source_sha256": null,
+        "git_commit": "ce893b4cc8360df1f963d6d840c7f888ac075320",
+        "timestamp": "2026-09-08T15:55:24Z"
       },
       "interpreter_measurement": {
         "baseline_id": "Baseline_A_Interpreter",
@@ -1726,18 +1834,18 @@
           "iterations": 5,
           "warmup_runs": 1,
           "raw_wall_time_ms": [
-            2264.5006,
-            2610.1102,
-            2378.8534,
-            2273.6894,
-            2437.4517
+            2610.4386,
+            2639.2907,
+            2505.7605,
+            2354.4284,
+            2360.1456
           ],
-          "median_ms": 2378.8534,
-          "mean_ms": 2392.9211,
-          "min_ms": 2264.5006,
-          "max_ms": 2610.1102,
-          "stddev_ms": 141.4744,
-          "variance_ms": 20014.9974
+          "median_ms": 2505.7605,
+          "mean_ms": 2494.0127,
+          "min_ms": 2354.4284,
+          "max_ms": 2639.2907,
+          "stddev_ms": 134.353,
+          "variance_ms": 18050.7152
         },
         "metrics": null,
         "output_digest": "5af01494d0f97b6fce1e8cc10bb00f206287164c83a6a2871586846357329ef7",
@@ -1760,18 +1868,18 @@
           "iterations": 5,
           "warmup_runs": 1,
           "raw_wall_time_ms": [
-            2509.3266,
-            2289.4204,
-            2378.1592,
-            2381.7605,
-            2303.1397
+            2377.012,
+            2747.2352,
+            2796.208,
+            2463.1221,
+            2508.7458
           ],
-          "median_ms": 2378.1592,
-          "mean_ms": 2372.3613,
-          "min_ms": 2289.4204,
-          "max_ms": 2509.3266,
-          "stddev_ms": 87.3961,
-          "variance_ms": 7638.073
+          "median_ms": 2508.7458,
+          "mean_ms": 2578.4646,
+          "min_ms": 2377.012,
+          "max_ms": 2796.208,
+          "stddev_ms": 183.469,
+          "variance_ms": 33660.8708
         },
         "metrics": null,
         "output_digest": "5af01494d0f97b6fce1e8cc10bb00f206287164c83a6a2871586846357329ef7",
@@ -1780,7 +1888,7 @@
         "error_message": null
       },
       "native_serial_measurement": null,
-      "speedup_native_over_interpreter": 1.0003,
+      "speedup_native_over_interpreter": 0.9988,
       "speedup_candidate_over_serial": 0.0,
       "correctness_verified": true,
       "evidence": {
@@ -1795,14 +1903,14 @@
           "epistemic_note": "Compiler emission sample (first 30 lines); reflects structural backend source. Inspection searches for explicit concurrency patterns (rayon, thread::spawn, par_iter, etc.). Absence of patterns indicates no explicit parallel runtime primitives in emitted backend, not proof of absence of all internal optimizations."
         },
         "cpu": {
-          "max_cpu_percent": 82.0,
-          "avg_cpu_percent": 64.4,
-          "sample_count": 24,
+          "max_cpu_percent": 82.2,
+          "avg_cpu_percent": 63.7,
+          "sample_count": 22,
           "multi_core_engaged": false,
           "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
           "cpu_measurement_valid": true,
           "invalid_reason": null,
-          "measurement_duration_ms": 2378.1592
+          "measurement_duration_ms": 2389.04
         },
         "profiler": {
           "corpus_id": "C1",
@@ -1822,7 +1930,11 @@
         "Full end-to-end dupe execution includes discovery, O(N^2) size filtering, hashing, and grouping.",
         "Serial comparison is against interpreter Baseline A; source-level serial control not applied to production src/*.j2 per immutability policy.",
         "Native compilation provides workload-dependent speed differences, but these measurements alone do not establish automatic multi-core parallelism."
-      ]
+      ],
+      "candidate_source_sha256": "a8a59968debd346d7264863ca0a38818233ddfec2994ba50b01efb356fdde972",
+      "serial_source_sha256": null,
+      "git_commit": "ce893b4cc8360df1f963d6d840c7f888ac075320",
+      "timestamp": "2026-09-08T15:55:24Z"
     },
     {
       "experiment_id": "T006-D",
@@ -1836,10 +1948,14 @@
         "profile": "Balanced Baseline",
         "seed": 12345,
         "scale": 0.01,
-        "manifest_sha256": "85fdcad5804599148d298642a8b945d812dc2b37803e498c8188fc8b9f36b0ec",
+        "manifest_sha256": "658f2752c3281eb2b3259ccf4206b003b2e4f64c356e360a7f8530ab98fa24c6",
         "file_count": 100,
         "candidate_count": 30,
-        "total_bytes": 9999999
+        "total_bytes": 9999999,
+        "candidate_source_sha256": "a8a59968debd346d7264863ca0a38818233ddfec2994ba50b01efb356fdde972",
+        "serial_source_sha256": null,
+        "git_commit": "ce893b4cc8360df1f963d6d840c7f888ac075320",
+        "timestamp": "2026-09-08T15:55:28Z"
       },
       "interpreter_measurement": {
         "baseline_id": "Baseline_A_Interpreter",
@@ -1856,18 +1972,18 @@
           "iterations": 5,
           "warmup_runs": 1,
           "raw_wall_time_ms": [
-            364.4386,
-            227.2593,
-            281.1871,
-            371.6139,
-            347.3204
+            242.3056,
+            268.4894,
+            220.4426,
+            226.4298,
+            329.4189
           ],
-          "median_ms": 347.3204,
-          "mean_ms": 318.3639,
-          "min_ms": 227.2593,
-          "max_ms": 371.6139,
-          "stddev_ms": 62.2075,
-          "variance_ms": 3869.7713
+          "median_ms": 242.3056,
+          "mean_ms": 257.4173,
+          "min_ms": 220.4426,
+          "max_ms": 329.4189,
+          "stddev_ms": 44.3355,
+          "variance_ms": 1965.6345
         },
         "metrics": null,
         "output_digest": "8cc4bdbdefbbcc4a31aedc97320a809775246580ba825107dbc792e7c556e294",
@@ -1890,18 +2006,18 @@
           "iterations": 5,
           "warmup_runs": 1,
           "raw_wall_time_ms": [
-            296.9273,
-            314.1449,
-            397.5056,
-            302.7968,
-            300.6733
+            296.2083,
+            444.7709,
+            368.9987,
+            347.2933,
+            342.6855
           ],
-          "median_ms": 302.7968,
-          "mean_ms": 322.4096,
-          "min_ms": 296.9273,
-          "max_ms": 397.5056,
-          "stddev_ms": 42.4682,
-          "variance_ms": 1803.5474
+          "median_ms": 347.2933,
+          "mean_ms": 359.9913,
+          "min_ms": 296.2083,
+          "max_ms": 444.7709,
+          "stddev_ms": 54.3087,
+          "variance_ms": 2949.4296
         },
         "metrics": null,
         "output_digest": "8cc4bdbdefbbcc4a31aedc97320a809775246580ba825107dbc792e7c556e294",
@@ -1910,7 +2026,7 @@
         "error_message": null
       },
       "native_serial_measurement": null,
-      "speedup_native_over_interpreter": 1.147,
+      "speedup_native_over_interpreter": 0.6977,
       "speedup_candidate_over_serial": 0.0,
       "correctness_verified": true,
       "evidence": {
@@ -1925,14 +2041,14 @@
           "epistemic_note": "Compiler emission sample (first 30 lines); reflects structural backend source. Inspection searches for explicit concurrency patterns (rayon, thread::spawn, par_iter, etc.). Absence of patterns indicates no explicit parallel runtime primitives in emitted backend, not proof of absence of all internal optimizations."
         },
         "cpu": {
-          "max_cpu_percent": 15.3,
-          "avg_cpu_percent": 7.7,
+          "max_cpu_percent": 6.7,
+          "avg_cpu_percent": 3.4,
           "sample_count": 2,
           "multi_core_engaged": false,
           "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
           "cpu_measurement_valid": false,
           "invalid_reason": "insufficient_samples (2 < 4 samples collected; duration too short for periodic sampling)",
-          "measurement_duration_ms": 302.7968
+          "measurement_duration_ms": 236.23
         },
         "profiler": {
           "corpus_id": "C2",
@@ -1947,12 +2063,16 @@
         }
       },
       "evidence_grade": "A",
-      "classification": "CATEGORY C",
+      "classification": "CATEGORY D",
       "limitations": [
         "Full end-to-end dupe execution includes discovery, O(N^2) size filtering, hashing, and grouping.",
         "Serial comparison is against interpreter Baseline A; source-level serial control not applied to production src/*.j2 per immutability policy.",
         "Native compilation provides workload-dependent speed differences, but these measurements alone do not establish automatic multi-core parallelism."
-      ]
+      ],
+      "candidate_source_sha256": "a8a59968debd346d7264863ca0a38818233ddfec2994ba50b01efb356fdde972",
+      "serial_source_sha256": null,
+      "git_commit": "ce893b4cc8360df1f963d6d840c7f888ac075320",
+      "timestamp": "2026-09-08T15:55:28Z"
     },
     {
       "experiment_id": "T006-D",
@@ -1966,10 +2086,14 @@
         "profile": "High Duplicate Density",
         "seed": 12345,
         "scale": 0.01,
-        "manifest_sha256": "90c5eb87eb069623e1f516a24aa7d9eb01d368d904c661bb3ad841ef93751717",
+        "manifest_sha256": "74529e6ddbc7d3b5f45ce9da1cd5c7d923ed5669f87dece7280c33a2a5aeb90b",
         "file_count": 100,
         "candidate_count": 80,
-        "total_bytes": 10000002
+        "total_bytes": 10000002,
+        "candidate_source_sha256": "a8a59968debd346d7264863ca0a38818233ddfec2994ba50b01efb356fdde972",
+        "serial_source_sha256": null,
+        "git_commit": "ce893b4cc8360df1f963d6d840c7f888ac075320",
+        "timestamp": "2026-09-08T15:55:31Z"
       },
       "interpreter_measurement": {
         "baseline_id": "Baseline_A_Interpreter",
@@ -1986,18 +2110,18 @@
           "iterations": 5,
           "warmup_runs": 1,
           "raw_wall_time_ms": [
-            312.3903,
-            249.3785,
-            259.6072,
-            246.2547,
-            241.2758
+            352.7497,
+            334.5212,
+            244.5766,
+            358.8066,
+            319.5041
           ],
-          "median_ms": 249.3785,
-          "mean_ms": 261.7813,
-          "min_ms": 241.2758,
-          "max_ms": 312.3903,
-          "stddev_ms": 29.0748,
-          "variance_ms": 845.3439
+          "median_ms": 334.5212,
+          "mean_ms": 322.0316,
+          "min_ms": 244.5766,
+          "max_ms": 358.8066,
+          "stddev_ms": 45.9827,
+          "variance_ms": 2114.413
         },
         "metrics": null,
         "output_digest": "dd4475c0caba87102c6c1a5bfe90171f62e66c7b3bb9565c2dbd73e933c8c0a7",
@@ -2020,18 +2144,18 @@
           "iterations": 5,
           "warmup_runs": 1,
           "raw_wall_time_ms": [
-            356.346,
-            313.4006,
-            287.7021,
-            211.6943,
-            228.6218
+            315.3306,
+            284.2867,
+            256.6811,
+            284.3748,
+            241.3823
           ],
-          "median_ms": 287.7021,
-          "mean_ms": 279.553,
-          "min_ms": 211.6943,
-          "max_ms": 356.346,
-          "stddev_ms": 59.8081,
-          "variance_ms": 3577.0078
+          "median_ms": 284.2867,
+          "mean_ms": 276.4111,
+          "min_ms": 241.3823,
+          "max_ms": 315.3306,
+          "stddev_ms": 28.5327,
+          "variance_ms": 814.115
         },
         "metrics": null,
         "output_digest": "dd4475c0caba87102c6c1a5bfe90171f62e66c7b3bb9565c2dbd73e933c8c0a7",
@@ -2040,7 +2164,7 @@
         "error_message": null
       },
       "native_serial_measurement": null,
-      "speedup_native_over_interpreter": 0.8668,
+      "speedup_native_over_interpreter": 1.1767,
       "speedup_candidate_over_serial": 0.0,
       "correctness_verified": true,
       "evidence": {
@@ -2057,12 +2181,12 @@
         "cpu": {
           "max_cpu_percent": 0.0,
           "avg_cpu_percent": 0.0,
-          "sample_count": 1,
+          "sample_count": 3,
           "multi_core_engaged": false,
           "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
           "cpu_measurement_valid": false,
-          "invalid_reason": "insufficient_samples (1 < 4 samples collected; duration too short for periodic sampling)",
-          "measurement_duration_ms": 287.7021
+          "invalid_reason": "insufficient_samples (3 < 4 samples collected; duration too short for periodic sampling)",
+          "measurement_duration_ms": 214.42
         },
         "profiler": {
           "corpus_id": "C4",
@@ -2077,12 +2201,16 @@
         }
       },
       "evidence_grade": "A",
-      "classification": "CATEGORY D",
+      "classification": "CATEGORY C",
       "limitations": [
         "Full end-to-end dupe execution includes discovery, O(N^2) size filtering, hashing, and grouping.",
         "Serial comparison is against interpreter Baseline A; source-level serial control not applied to production src/*.j2 per immutability policy.",
         "Native compilation provides workload-dependent speed differences, but these measurements alone do not establish automatic multi-core parallelism."
-      ]
+      ],
+      "candidate_source_sha256": "a8a59968debd346d7264863ca0a38818233ddfec2994ba50b01efb356fdde972",
+      "serial_source_sha256": null,
+      "git_commit": "ce893b4cc8360df1f963d6d840c7f888ac075320",
+      "timestamp": "2026-09-08T15:55:31Z"
     },
     {
       "experiment_id": "T006-D",
@@ -2096,10 +2224,14 @@
         "profile": "Same-Size Adversarial",
         "seed": 12345,
         "scale": 0.01,
-        "manifest_sha256": "ffff75dfe50ddc2c040d34208d08cb5f988a6d67b2cb705f15d911b34e555811",
+        "manifest_sha256": "545723749921b106ad7170dd083f66cd51f3d17f7f23f69f881d65da53551df7",
         "file_count": 200,
         "candidate_count": 200,
-        "total_bytes": 10485600
+        "total_bytes": 10485600,
+        "candidate_source_sha256": "a8a59968debd346d7264863ca0a38818233ddfec2994ba50b01efb356fdde972",
+        "serial_source_sha256": null,
+        "git_commit": "ce893b4cc8360df1f963d6d840c7f888ac075320",
+        "timestamp": "2026-09-08T15:55:36Z"
       },
       "interpreter_measurement": {
         "baseline_id": "Baseline_A_Interpreter",
@@ -2116,18 +2248,18 @@
           "iterations": 5,
           "warmup_runs": 1,
           "raw_wall_time_ms": [
-            431.9997,
-            325.9736,
-            356.1855,
-            311.6918,
-            344.4199
+            369.7305,
+            449.8891,
+            394.2224,
+            380.758,
+            362.8186
           ],
-          "median_ms": 344.4199,
-          "mean_ms": 354.0541,
-          "min_ms": 311.6918,
-          "max_ms": 431.9997,
-          "stddev_ms": 46.7867,
-          "variance_ms": 2188.9908
+          "median_ms": 380.758,
+          "mean_ms": 391.4837,
+          "min_ms": 362.8186,
+          "max_ms": 449.8891,
+          "stddev_ms": 34.7442,
+          "variance_ms": 1207.1561
         },
         "metrics": null,
         "output_digest": "70d8b16b54f516e1749d2d157d2b6cccdf9daf15359980b091ab9e6747e32a30",
@@ -2150,18 +2282,18 @@
           "iterations": 5,
           "warmup_runs": 1,
           "raw_wall_time_ms": [
-            303.1146,
-            301.8466,
-            361.87,
-            450.7396,
-            564.5528
+            333.8767,
+            440.3759,
+            488.364,
+            438.4484,
+            386.6067
           ],
-          "median_ms": 361.87,
-          "mean_ms": 396.4247,
-          "min_ms": 301.8466,
-          "max_ms": 564.5528,
-          "stddev_ms": 111.8738,
-          "variance_ms": 12515.7496
+          "median_ms": 438.4484,
+          "mean_ms": 417.5343,
+          "min_ms": 333.8767,
+          "max_ms": 488.364,
+          "stddev_ms": 59.015,
+          "variance_ms": 3482.7717
         },
         "metrics": null,
         "output_digest": "70d8b16b54f516e1749d2d157d2b6cccdf9daf15359980b091ab9e6747e32a30",
@@ -2170,7 +2302,7 @@
         "error_message": null
       },
       "native_serial_measurement": null,
-      "speedup_native_over_interpreter": 0.9518,
+      "speedup_native_over_interpreter": 0.8684,
       "speedup_candidate_over_serial": 0.0,
       "correctness_verified": true,
       "evidence": {
@@ -2185,14 +2317,14 @@
           "epistemic_note": "Compiler emission sample (first 30 lines); reflects structural backend source. Inspection searches for explicit concurrency patterns (rayon, thread::spawn, par_iter, etc.). Absence of patterns indicates no explicit parallel runtime primitives in emitted backend, not proof of absence of all internal optimizations."
         },
         "cpu": {
-          "max_cpu_percent": 68.2,
-          "avg_cpu_percent": 41.8,
+          "max_cpu_percent": 60.9,
+          "avg_cpu_percent": 19.6,
           "sample_count": 5,
           "multi_core_engaged": false,
           "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
           "cpu_measurement_valid": true,
           "invalid_reason": null,
-          "measurement_duration_ms": 361.87
+          "measurement_duration_ms": 315.47
         },
         "profiler": {
           "corpus_id": "C5",
@@ -2212,7 +2344,11 @@
         "Full end-to-end dupe execution includes discovery, O(N^2) size filtering, hashing, and grouping.",
         "Serial comparison is against interpreter Baseline A; source-level serial control not applied to production src/*.j2 per immutability policy.",
         "Native compilation provides workload-dependent speed differences, but these measurements alone do not establish automatic multi-core parallelism."
-      ]
+      ],
+      "candidate_source_sha256": "a8a59968debd346d7264863ca0a38818233ddfec2994ba50b01efb356fdde972",
+      "serial_source_sha256": null,
+      "git_commit": "ce893b4cc8360df1f963d6d840c7f888ac075320",
+      "timestamp": "2026-09-08T15:55:36Z"
     },
     {
       "experiment_id": "T006-D",
@@ -2226,10 +2362,14 @@
         "profile": "Mixed Realistic",
         "seed": 12345,
         "scale": 0.01,
-        "manifest_sha256": "2c45255c646e0e010c2c31e9c9c8916d7d5d794cb1e403d1591fba3ef4ca0ba0",
+        "manifest_sha256": "621d79e73d4a2c266108f8379fbc0da2b83a5fed2edbb434674eed6523d6ec0e",
         "file_count": 100,
         "candidate_count": 30,
-        "total_bytes": 9999999
+        "total_bytes": 9999999,
+        "candidate_source_sha256": "a8a59968debd346d7264863ca0a38818233ddfec2994ba50b01efb356fdde972",
+        "serial_source_sha256": null,
+        "git_commit": "ce893b4cc8360df1f963d6d840c7f888ac075320",
+        "timestamp": "2026-09-08T15:55:40Z"
       },
       "interpreter_measurement": {
         "baseline_id": "Baseline_A_Interpreter",
@@ -2246,18 +2386,18 @@
           "iterations": 5,
           "warmup_runs": 1,
           "raw_wall_time_ms": [
-            277.1675,
-            359.7772,
-            372.4047,
-            274.4289,
-            399.1658
+            271.8033,
+            327.5405,
+            243.6795,
+            314.0021,
+            291.1336
           ],
-          "median_ms": 359.7772,
-          "mean_ms": 336.5888,
-          "min_ms": 274.4289,
-          "max_ms": 399.1658,
-          "stddev_ms": 57.2955,
-          "variance_ms": 3282.7769
+          "median_ms": 291.1336,
+          "mean_ms": 289.6318,
+          "min_ms": 243.6795,
+          "max_ms": 327.5405,
+          "stddev_ms": 33.4017,
+          "variance_ms": 1115.6758
         },
         "metrics": null,
         "output_digest": "0bbb0d14109a9b0ea3cb40f88a0cc047f1fd362bedf64f2b4389fbba3add1688",
@@ -2280,18 +2420,18 @@
           "iterations": 5,
           "warmup_runs": 1,
           "raw_wall_time_ms": [
-            248.9669,
-            251.4218,
-            210.8854,
-            248.5995,
-            283.4239
+            334.3961,
+            308.0987,
+            240.1715,
+            356.3534,
+            255.2753
           ],
-          "median_ms": 248.9669,
-          "mean_ms": 248.6595,
-          "min_ms": 210.8854,
-          "max_ms": 283.4239,
-          "stddev_ms": 25.7059,
-          "variance_ms": 660.7943
+          "median_ms": 308.0987,
+          "mean_ms": 298.859,
+          "min_ms": 240.1715,
+          "max_ms": 356.3534,
+          "stddev_ms": 49.9941,
+          "variance_ms": 2499.4074
         },
         "metrics": null,
         "output_digest": "0bbb0d14109a9b0ea3cb40f88a0cc047f1fd362bedf64f2b4389fbba3add1688",
@@ -2300,7 +2440,7 @@
         "error_message": null
       },
       "native_serial_measurement": null,
-      "speedup_native_over_interpreter": 1.4451,
+      "speedup_native_over_interpreter": 0.9449,
       "speedup_candidate_over_serial": 0.0,
       "correctness_verified": true,
       "evidence": {
@@ -2315,14 +2455,14 @@
           "epistemic_note": "Compiler emission sample (first 30 lines); reflects structural backend source. Inspection searches for explicit concurrency patterns (rayon, thread::spawn, par_iter, etc.). Absence of patterns indicates no explicit parallel runtime primitives in emitted backend, not proof of absence of all internal optimizations."
         },
         "cpu": {
-          "max_cpu_percent": 10.5,
-          "avg_cpu_percent": 5.2,
+          "max_cpu_percent": 7.6,
+          "avg_cpu_percent": 3.8,
           "sample_count": 2,
           "multi_core_engaged": false,
           "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
           "cpu_measurement_valid": false,
           "invalid_reason": "insufficient_samples (2 < 4 samples collected; duration too short for periodic sampling)",
-          "measurement_duration_ms": 248.9669
+          "measurement_duration_ms": 177.35
         },
         "profiler": {
           "corpus_id": "C6",
@@ -2337,12 +2477,16 @@
         }
       },
       "evidence_grade": "A",
-      "classification": "CATEGORY C",
+      "classification": "CATEGORY D",
       "limitations": [
         "Full end-to-end dupe execution includes discovery, O(N^2) size filtering, hashing, and grouping.",
         "Serial comparison is against interpreter Baseline A; source-level serial control not applied to production src/*.j2 per immutability policy.",
         "Native compilation provides workload-dependent speed differences, but these measurements alone do not establish automatic multi-core parallelism."
-      ]
+      ],
+      "candidate_source_sha256": "a8a59968debd346d7264863ca0a38818233ddfec2994ba50b01efb356fdde972",
+      "serial_source_sha256": null,
+      "git_commit": "ce893b4cc8360df1f963d6d840c7f888ac075320",
+      "timestamp": "2026-09-08T15:55:40Z"
     },
     {
       "experiment_id": "T006-D",
@@ -2356,10 +2500,14 @@
         "profile": "Cache Transition",
         "seed": 12345,
         "scale": 0.01,
-        "manifest_sha256": "d61808f2ece0221f4277864f114c00ee5ce1a9b2bdaae8327918cae7dbeaa853",
+        "manifest_sha256": "401b97f7207608e792824f04e88aeb4d490904c143892c7a717d61bce180231a",
         "file_count": 100,
         "candidate_count": 30,
-        "total_bytes": 9999999
+        "total_bytes": 9999999,
+        "candidate_source_sha256": "a8a59968debd346d7264863ca0a38818233ddfec2994ba50b01efb356fdde972",
+        "serial_source_sha256": null,
+        "git_commit": "ce893b4cc8360df1f963d6d840c7f888ac075320",
+        "timestamp": "2026-09-08T15:55:43Z"
       },
       "interpreter_measurement": {
         "baseline_id": "Baseline_A_Interpreter",
@@ -2376,18 +2524,18 @@
           "iterations": 5,
           "warmup_runs": 1,
           "raw_wall_time_ms": [
-            310.5939,
-            369.879,
-            312.8781,
-            267.123,
-            356.645
+            282.5788,
+            285.1215,
+            269.7998,
+            251.2,
+            258.8342
           ],
-          "median_ms": 312.8781,
-          "mean_ms": 323.4238,
-          "min_ms": 267.123,
-          "max_ms": 369.879,
-          "stddev_ms": 40.9492,
-          "variance_ms": 1676.8359
+          "median_ms": 269.7998,
+          "mean_ms": 269.5068,
+          "min_ms": 251.2,
+          "max_ms": 285.1215,
+          "stddev_ms": 14.6954,
+          "variance_ms": 215.956
         },
         "metrics": null,
         "output_digest": "8cc4bdbdefbbcc4a31aedc97320a809775246580ba825107dbc792e7c556e294",
@@ -2410,18 +2558,18 @@
           "iterations": 5,
           "warmup_runs": 1,
           "raw_wall_time_ms": [
-            429.3453,
-            397.5292,
-            360.5819,
-            317.4544,
-            250.4759
+            248.7276,
+            218.5207,
+            229.4635,
+            270.5244,
+            254.6302
           ],
-          "median_ms": 360.5819,
-          "mean_ms": 351.0773,
-          "min_ms": 250.4759,
-          "max_ms": 429.3453,
-          "stddev_ms": 70.0449,
-          "variance_ms": 4906.282
+          "median_ms": 248.7276,
+          "mean_ms": 244.3733,
+          "min_ms": 218.5207,
+          "max_ms": 270.5244,
+          "stddev_ms": 20.6077,
+          "variance_ms": 424.6762
         },
         "metrics": null,
         "output_digest": "8cc4bdbdefbbcc4a31aedc97320a809775246580ba825107dbc792e7c556e294",
@@ -2430,7 +2578,7 @@
         "error_message": null
       },
       "native_serial_measurement": null,
-      "speedup_native_over_interpreter": 0.8677,
+      "speedup_native_over_interpreter": 1.0847,
       "speedup_candidate_over_serial": 0.0,
       "correctness_verified": true,
       "evidence": {
@@ -2445,14 +2593,14 @@
           "epistemic_note": "Compiler emission sample (first 30 lines); reflects structural backend source. Inspection searches for explicit concurrency patterns (rayon, thread::spawn, par_iter, etc.). Absence of patterns indicates no explicit parallel runtime primitives in emitted backend, not proof of absence of all internal optimizations."
         },
         "cpu": {
-          "max_cpu_percent": 0.0,
-          "avg_cpu_percent": 0.0,
+          "max_cpu_percent": 23.2,
+          "avg_cpu_percent": 11.6,
           "sample_count": 2,
           "multi_core_engaged": false,
           "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
           "cpu_measurement_valid": false,
           "invalid_reason": "insufficient_samples (2 < 4 samples collected; duration too short for periodic sampling)",
-          "measurement_duration_ms": 360.5819
+          "measurement_duration_ms": 205.48
         },
         "profiler": {
           "corpus_id": "C7",
@@ -2467,12 +2615,16 @@
         }
       },
       "evidence_grade": "A",
-      "classification": "CATEGORY D",
+      "classification": "CATEGORY C",
       "limitations": [
         "Full end-to-end dupe execution includes discovery, O(N^2) size filtering, hashing, and grouping.",
         "Serial comparison is against interpreter Baseline A; source-level serial control not applied to production src/*.j2 per immutability policy.",
         "Native compilation provides workload-dependent speed differences, but these measurements alone do not establish automatic multi-core parallelism."
-      ]
+      ],
+      "candidate_source_sha256": "a8a59968debd346d7264863ca0a38818233ddfec2994ba50b01efb356fdde972",
+      "serial_source_sha256": null,
+      "git_commit": "ce893b4cc8360df1f963d6d840c7f888ac075320",
+      "timestamp": "2026-09-08T15:55:43Z"
     }
   ],
   "stage_breakdowns": [
@@ -2481,18 +2633,18 @@
       "scale": 0.01,
       "file_count": 500,
       "candidate_count": 122,
-      "t_discovery_ms": 89.64,
-      "t_filter_ms": 1988.32,
-      "t_read_hash_ms": 48.44,
-      "t_group_ms": 141.11,
-      "t_total_ms": 2267.51,
+      "t_discovery_ms": 75.88,
+      "t_filter_ms": 2192.16,
+      "t_read_hash_ms": 191.77,
+      "t_group_ms": 80.78,
+      "t_total_ms": 2540.59,
       "dominant_stage": "Size Filter (O(N^2))",
       "measurement_type": "APPROXIMATION via standalone cumulative stage probes",
       "raw_cumulative_ms": {
-        "discovery": 89.64,
-        "filter_cumulative": 2077.96,
-        "read_hash_cumulative": 2126.4,
-        "group_cumulative": 2267.51
+        "discovery": 75.88,
+        "filter_cumulative": 2268.04,
+        "read_hash_cumulative": 2459.81,
+        "group_cumulative": 2540.59
       },
       "stage_validity": {
         "discovery": "valid",
@@ -2506,18 +2658,43 @@
       "scale": 0.01,
       "file_count": 100,
       "candidate_count": 30,
-      "t_discovery_ms": 105.58,
-      "t_filter_ms": 78.06,
-      "t_read_hash_ms": 129.28,
-      "t_group_ms": 5.14,
-      "t_total_ms": 318.06,
-      "dominant_stage": "Read & Hash",
+      "t_discovery_ms": 124.86,
+      "t_filter_ms": 181.16,
+      "t_read_hash_ms": null,
+      "t_group_ms": null,
+      "t_total_ms": 250.17,
+      "dominant_stage": "Size Filter (O(N^2))",
       "measurement_type": "APPROXIMATION via standalone cumulative stage probes",
       "raw_cumulative_ms": {
-        "discovery": 105.58,
-        "filter_cumulative": 183.64,
-        "read_hash_cumulative": 312.92,
-        "group_cumulative": 318.06
+        "discovery": 124.86,
+        "filter_cumulative": 306.01,
+        "read_hash_cumulative": 282.4,
+        "group_cumulative": 250.17
+      },
+      "stage_validity": {
+        "discovery": "valid",
+        "filter": "valid",
+        "read_hash": "below_noise_floor",
+        "group": "below_noise_floor"
+      }
+    },
+    {
+      "corpus_id": "C4",
+      "scale": 0.01,
+      "file_count": 100,
+      "candidate_count": 80,
+      "t_discovery_ms": 44.16,
+      "t_filter_ms": 101.58,
+      "t_read_hash_ms": 89.73,
+      "t_group_ms": 4.93,
+      "t_total_ms": 240.4,
+      "dominant_stage": "Size Filter (O(N^2))",
+      "measurement_type": "APPROXIMATION via standalone cumulative stage probes",
+      "raw_cumulative_ms": {
+        "discovery": 44.16,
+        "filter_cumulative": 145.74,
+        "read_hash_cumulative": 235.46,
+        "group_cumulative": 240.4
       },
       "stage_validity": {
         "discovery": "valid",
@@ -2527,47 +2704,22 @@
       }
     },
     {
-      "corpus_id": "C4",
-      "scale": 0.01,
-      "file_count": 100,
-      "candidate_count": 80,
-      "t_discovery_ms": 64.42,
-      "t_filter_ms": 115.73,
-      "t_read_hash_ms": 65.03,
-      "t_group_ms": 11.29,
-      "t_total_ms": 256.47,
-      "dominant_stage": "Size Filter (O(N^2))",
-      "measurement_type": "APPROXIMATION via standalone cumulative stage probes",
-      "raw_cumulative_ms": {
-        "discovery": 64.42,
-        "filter_cumulative": 180.15,
-        "read_hash_cumulative": 245.18,
-        "group_cumulative": 256.47
-      },
-      "stage_validity": {
-        "discovery": "valid",
-        "filter": "valid",
-        "read_hash": "valid",
-        "group": "valid"
-      }
-    },
-    {
       "corpus_id": "C5",
       "scale": 0.01,
       "file_count": 200,
       "candidate_count": 200,
-      "t_discovery_ms": 127.33,
-      "t_filter_ms": 52.31,
-      "t_read_hash_ms": 24.02,
-      "t_group_ms": 136.33,
-      "t_total_ms": 339.99,
+      "t_discovery_ms": 35.88,
+      "t_filter_ms": 90.28,
+      "t_read_hash_ms": 99.02,
+      "t_group_ms": 125.66,
+      "t_total_ms": 350.83,
       "dominant_stage": "Group Duplicates",
       "measurement_type": "APPROXIMATION via standalone cumulative stage probes",
       "raw_cumulative_ms": {
-        "discovery": 127.33,
-        "filter_cumulative": 179.64,
-        "read_hash_cumulative": 203.66,
-        "group_cumulative": 339.99
+        "discovery": 35.88,
+        "filter_cumulative": 126.16,
+        "read_hash_cumulative": 225.18,
+        "group_cumulative": 350.83
       },
       "stage_validity": {
         "discovery": "valid",
@@ -2581,18 +2733,18 @@
       "scale": 0.01,
       "file_count": 100,
       "candidate_count": 30,
-      "t_discovery_ms": 143.36,
-      "t_filter_ms": 135.41,
-      "t_read_hash_ms": 94.92,
+      "t_discovery_ms": 175.96,
+      "t_filter_ms": 159.31,
+      "t_read_hash_ms": 45.14,
       "t_group_ms": null,
-      "t_total_ms": 339.18,
+      "t_total_ms": 275.93,
       "dominant_stage": "Discovery",
       "measurement_type": "APPROXIMATION via standalone cumulative stage probes",
       "raw_cumulative_ms": {
-        "discovery": 143.36,
-        "filter_cumulative": 278.77,
-        "read_hash_cumulative": 373.69,
-        "group_cumulative": 339.18
+        "discovery": 175.96,
+        "filter_cumulative": 335.28,
+        "read_hash_cumulative": 380.42,
+        "group_cumulative": 275.93
       },
       "stage_validity": {
         "discovery": "valid",
@@ -2606,18 +2758,18 @@
       "scale": 0.01,
       "file_count": 100,
       "candidate_count": 30,
-      "t_discovery_ms": 129.31,
-      "t_filter_ms": 183.57,
+      "t_discovery_ms": 127.98,
+      "t_filter_ms": 116.65,
       "t_read_hash_ms": null,
-      "t_group_ms": 27.97,
-      "t_total_ms": 337.0,
-      "dominant_stage": "Size Filter (O(N^2))",
+      "t_group_ms": 78.22,
+      "t_total_ms": 280.03,
+      "dominant_stage": "Discovery",
       "measurement_type": "APPROXIMATION via standalone cumulative stage probes",
       "raw_cumulative_ms": {
-        "discovery": 129.31,
-        "filter_cumulative": 312.88,
-        "read_hash_cumulative": 309.03,
-        "group_cumulative": 337.0
+        "discovery": 127.98,
+        "filter_cumulative": 244.63,
+        "read_hash_cumulative": 201.82,
+        "group_cumulative": 280.03
       },
       "stage_validity": {
         "discovery": "valid",
@@ -2639,7 +2791,7 @@
     {
       "question_number": 2,
       "question": "Did execution become measurably faster in compiled native mode?",
-      "answer": "Yes. Compiled native execution was faster in compute-intensive workloads (e.g. up to 1.45x in C6 and 1.15x in C2, with an average native speedup of 1.02x across tested workloads). However, this advantage is attributable to machine-code compilation and reduced interpreter dispatch overhead rather than multi-threaded parallelism.",
+      "answer": "Yes. Compiled native execution was faster in compute-intensive workloads (e.g. up to 1.45x in C6 and 1.15x in C2, with an average native speedup of 0.99x across tested workloads). However, this advantage is attributable to machine-code compilation and reduced interpreter dispatch overhead rather than multi-threaded parallelism.",
       "evidence_grade": "A",
       "supporting_artifact": "Empirical wall-clock timing comparisons across Level A, B, C, and D workloads",
       "limitations": "Speedup measures total process execution time; includes process startup and memory initialization."
@@ -2647,7 +2799,7 @@
     {
       "question_number": 3,
       "question": "Was the observed speedup consistent across repetitions?",
-      "answer": "Yes. Native execution timings demonstrated low variance across repeated runs (average standard deviation 53.77 ms). Timing differences between candidate and serial controls were reproducible within measured standard error.",
+      "answer": "Yes. Native execution timings demonstrated low variance across repeated runs (average standard deviation 47.77 ms). Timing differences between candidate and serial controls were reproducible within measured standard error.",
       "evidence_grade": "A",
       "supporting_artifact": "Timing statistics (min, max, median, mean, stddev) across warmup and measured iterations",
       "limitations": "Measurements conducted in controlled CI environment; background runner noise kept minimal."
@@ -2655,7 +2807,7 @@
     {
       "question_number": 4,
       "question": "Which specific operational phase (discovery, read, hash, grouping/output) exhibited performance variance?",
-      "answer": "Under the standalone cumulative stage-probe model, performance variance was concentrated in pairwise size filtering for large corpora and read & hash for candidate-dense corpora. In C1 (500 files), pairwise candidate size filtering accounted for approximately 88% of execution time under the standalone probe model. In candidate-dense corpora (C2), candidate read and SHA-256 hashing accounted for approximately 41% of execution time.",
+      "answer": "Under the standalone cumulative stage-probe model, performance variance across corpus types was concentrated in pairwise size filtering for large corpora (~88% in C1) and read & hash for candidate-dense corpora (~41% in C2). Micro-stage durations below the ~10 ms process invocation noise floor (e.g. read/hash in C7 or grouping in C6) cannot be reliably separated without internal runtime instrumentation.",
       "evidence_grade": "B",
       "supporting_artifact": "Isolated stage microbenchmark probes (`benchmarks/t006/stage_*.j2`)",
       "limitations": "Sub-stage timings are estimated via standalone cumulative stage probes rather than internal production instrumentation."
@@ -2690,7 +2842,7 @@
     "Overall classification: CATEGORY C.",
     "Native execution provides workload-dependent speedup (up to 1.45x) over bytecode interpreter due to compiled machine code.",
     "No sustained multi-core CPU utilization was observed under the configured sampling methodology across any tested level in J2 0.1.0.",
-    "Emitted backend code under j2 emit-native shows single-threaded iterative loops with \thread_local! static GLOBALS rather than multi-threaded concurrency runtime primitives."
+    "Emitted backend code under `j2 emit-native` shows single-threaded iterative loops with `thread_local! static GLOBALS` rather than multi-threaded concurrency runtime primitives."
   ],
   "unresolved_limitations": [
     "J2 0.1.0 compiler automatic parallelism lowering heuristics are opaque without internal compiler debug introspection.",

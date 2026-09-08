@@ -18,8 +18,8 @@ completed:
     - Level 5: Bit-for-bit result determinism and manifest digest verification
     - Scientific classification into Categories A–E with Evidence Grades A–E
   - Implemented top-level CLI runner (`benchmarks/run_t006.py`) generating publication-quality Markdown report (`benchmarks/results/t006_report.md`) and machine-readable schema (`benchmarks/results/t006_results.json`)
-  - Added dedicated unit test suite (`tests/test_t006_experiments.py`, 14/14 PASS)
-  - Implemented and executed dedicated GitHub Actions workflow (`.github/workflows/t006-automatic-parallelism.yml`) on `macos-15` (arm64 Apple Silicon, 3 vCPUs, 7.0 GB RAM, Run ID `34051835154`)
+  - Added dedicated unit test suite (`tests/test_t006_experiments.py`, 23/23 PASS)
+  - Implemented and executed dedicated GitHub Actions workflow (`.github/workflows/t006-automatic-parallelism.yml`) on `macos-15` (arm64 Apple Silicon, 3 vCPUs, 7.0 GB RAM, Run ID `34246767819`, 11m 30s)
   - Verified 100% test and correctness pass across all 4 levels and all 6 standard corpora
   - Answered all 7 authoritative research questions with explicit Evidence Grades (A–E)
   - Established scientific conclusion: Overall **CATEGORY C** (Native compilation effect only; no sustained multi-core automatic parallelism observed in J2 0.1.0 under tested workloads)
@@ -33,7 +33,7 @@ not_done:
   - T011 Final package
 
 verification:
-  ci_workflow_run: pass (run 34051835154 on macos-15 arm64 Apple Silicon, 10m 56s)
+  ci_workflow_run: pass (run 34246767819 on macos-15 arm64 Apple Silicon, 11m 30s)
   overall_classification: CATEGORY C
   t006_a_classification: CATEGORY E / Evidence Grade C* (Reconciled: candidate vs serial comparison confounded by runtime sum() loop fold optimization)
   t006_a_correctness: pass (100% VALID mathematical reduction match across 100K, 2M, 5M, and boundary N=0, 1, 32767, 32769)
@@ -43,10 +43,10 @@ verification:
   cpu_monitoring: pass (verified no sustained multi-core utilization <105% CPU across all levels; explicit observability status cpu_measurement_valid=false for <4 samples)
   stage_breakdowns: pass (approximate standalone cumulative probes; sub-noise-floor deltas <=10 ms preserved as below_noise_floor and rendered N/A*)
   compiler_inspection: pass (single-threaded thread-local globals; zero concurrency primitives found in emitted backend)
-  t006_unit_tests: pass (20/20 tests in tests/test_t006_experiments.py)
+  t006_unit_tests: pass (23/23 tests in tests/test_t006_experiments.py)
   harness_offline_tests: pass (11/11 tests in tests/test_benchmark_harness.py)
   corpus_generator_tests: pass (14/14 tests in tests/test_benchmark_corpus.py)
-  full_test_suite: pass (45/45 tests in unittest discover -s tests)
+  full_test_suite: pass (48/48 tests in unittest discover -s tests)
   phase4_offline_tests: pass (tests/phase4_differential.py --offline)
   production_source_integrity: pass (git diff origin/main -- src/ is strictly empty)
   git_boundary: clean, all T006 artifacts committed and synchronized

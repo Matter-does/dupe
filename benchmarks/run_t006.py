@@ -248,6 +248,8 @@ def format_t006_markdown_report(report: T006FullReport) -> str:
                 corr = "VALID" if e.correctness_verified else "INVALID"
                 lines.append(f"| `{e.variant_id}` | `{cid}` | {prof} | {seed} | {scale} | {files} | {cands} | {bytes_cnt} | {t_cand} | {t_ser} | {sp_ser} | {corr} |")
             lines.append("")
+            lines.append("> **Serial Control Provenance Note:** Level C measurements were generated from the corrected serial control (`t006_c_serial.j2`) featuring genuine cryptographic loop-carried chaining (`chained = fmt('{}:{}', prev_hash, file_digest); d = hash.sha256(chained); prev_hash = d`), guaranteeing strict sequential execution without degenerate dependencies.")
+            lines.append("")
         elif level_code == "T006-D":
             lines.append(f"## {level_title}")
             lines.append("")

@@ -464,21 +464,23 @@ To separate native compilation benefits from genuine multi-core parallelism, can
 
 | Level | Description | Status | Classification | Native vs Interp | Cand vs Serial | Multi-Core Engaged |
 |---|---|---|---|---|---|---|
-| **T006-A** | Pure Computational Reduction (100K, 2M, 5M) | PASS | **CATEGORY E** (Grade C)* | 0.78x–1.14x | 12.5x–145.0x | INSUFFICIENT SAMPLES (<4) |
-| **T006-B** | Pure In-Memory Hashing (10KB–12.8MB) | PASS | **CATEGORY D** (Grade A) | N/A | 0.59x–1.09x | INSUFFICIENT SAMPLES (<4) |
-| **T006-C** | Filesystem Read + Hash (C1–C7) | PASS | **CATEGORY D** (Grade A) | N/A | 0.75x–1.13x | INSUFFICIENT SAMPLES (<4) |
-| **T006-D** | Full dupe Pipeline (C1–C7) | PASS | **CATEGORY C** (Grade A)† | 0.87x–1.45x | N/A | NO (<105% on C1/C5) |
+| **T006-A** | Pure Computational Reduction (100K, 2M, 5M) | PASS | **CATEGORY E** (Grade C)* | 0.95x–1.18x | 9.86x–242.45x | INSUFFICIENT SAMPLES (<4) |
+| **T006-B** | Pure In-Memory Hashing (10KB–12.8MB) | PASS | **CATEGORY D** (Grade A)‡ | N/A | 0.39x–1.07x | INSUFFICIENT SAMPLES (<4) |
+| **T006-C** | Filesystem Read + Hash (C1–C7) | PASS | **CATEGORY D / E** (Grade A/C)§ | N/A | 0.88x–1.36x | INSUFFICIENT SAMPLES (<4) / NO (<105% on C4) |
+| **T006-D** | Full dupe Pipeline (C1–C7) | PASS | **CATEGORY C / D** (Grade A)† | 0.70x–1.18x | N/A | NO (<105% on C1/C5) |
 
-> \* **T006-A Confounding Note:** T006-A candidate-vs-serial speedup (12.5x–145.0x) is driven by J2's built-in `sum()` runtime iterator fold optimization in native Rust versus a dynamic interpreted J2 loop with loop-carried variable reassignment, rather than automatic parallelism. Native candidate was not consistently faster than interpreter (0.78x–1.14x).  
-> † **T006-D Variance Note:** 2 of 6 corpora exhibited native compilation advantage (C2: 1.15x, C6: 1.45x; Category C), while 4 of 6 exhibited no significant benefit or slight slowdown (C1: 1.00x, C4: 0.87x, C5: 0.95x, C7: 0.87x; Category D). Average native speedup across all Level D corpora was 1.05x.
+> \* **T006-A Confounding Note:** T006-A candidate-vs-serial speedup (9.86x–242.45x) is driven by J2's built-in `sum()` runtime iterator fold optimization in native Rust versus an interpreted J2 loop with loop-carried variable reassignment, rather than automatic parallelism. Native candidate was not consistently faster than interpreter (0.95x–1.18x).  
+> ‡ **T006-B Variance Note:** 3 of 4 buffer configs classified as Category D (0.39x–0.82x; candidate slower than serial control), 1 config classified as Category E (1.07x).  
+> § **T006-C Corrected Serial Control Note:** Measured using genuine cryptographic loop-carried chaining (`chained = fmt("{}:{}", prev_hash, file_digest); d = hash.sha256(chained); prev_hash = d`). 3 of 6 corpora classified as Category D (C4: 1.02x, C6: 1.03x, C7: 0.88x; Grade A), 3 corpora classified as Category E (C1: 1.17x, C2: 1.36x, C5: 1.13x; Grade C due to insufficient CPU samples). Average speedup was 1.10x with zero compiler parallel constructs and zero multi-core engagement.  
+> † **T006-D Variance Note:** 2 of 6 corpora exhibited native compilation advantage (C4: 1.18x, C7: 1.08x; Category C), while 4 of 6 exhibited no significant benefit or slight slowdown (C1: 1.00x, C2: 0.70x, C5: 0.87x, C6: 0.94x; Category D). Average native speedup across all Level D corpora was 0.99x.
 
 ### 18.3 Key Empirical Conclusions
 1. **No Sustained Multi-Core Parallelism Observed (Category C):** Across long-running workloads where CPU sampling captured sufficient samples (e.g. C1 with 24 samples), process CPU utilization sampling showed no sustained multi-core engagement (<105% process CPU on a 3-vCPU host). For microbenchmarks (<200 ms), sampling yielded insufficient sample counts (<4), which are explicitly reported as insufficient rather than as evidence of single-threadedness.
-2. **Native Compilation Advantage:** Native compiled binaries provide modest speedup over the bytecode interpreter (average 1.05x, up to 1.45x in compute-heavy paths like C6). This advantage stems from avoiding interpreter bytecode dispatch and leveraging LLVM machine codegen optimization.
+2. **Native Compilation Advantage:** Native compiled binaries provide workload-dependent speedup over the bytecode interpreter (average 0.99x across Level D, up to 1.18x in C4). This advantage stems from avoiding interpreter bytecode dispatch and leveraging LLVM machine codegen optimization.
 3. **Compiler Backend Emission:** `j2 emit-native` produces sequential loops using thread-local static globals (`thread_local! static GLOBALS`). Explicit multi-threaded runtime primitives (`rayon`, `par_iter`, `thread::spawn`) were not observed in the emitted backend for J2 0.1.0.
 4. **Dominant Pipeline Bottlenecks:**
-   - In large-file corpora (e.g. C1 with 500 files, seed 12345, scale 0.01), the pairwise $O(N^2)$ candidate size filter in `scan.j2` accounts for approximately 88% of execution time under the standalone cumulative stage-probe model (1,988 ms out of 2,267 ms).
-   - In candidate-dense corpora (e.g. C2), candidate read and SHA-256 hashing accounts for approximately 41% of probe time (129 ms).
-   - Micro-stage durations below the ~10 ms process invocation noise floor (such as read/hash in C7 or grouping in C6) cannot be reliably separated without internal runtime instrumentation and are reported as below the measurement noise floor.
+   - In large-file corpora (e.g. C1 with 500 files, seed 12345, scale 0.01), the pairwise $O(N^2)$ candidate size filter in `scan.j2` accounts for approximately 86% of execution time under the standalone cumulative stage-probe model (2,192 ms out of 2,541 ms).
+   - In candidate-dense corpora (e.g. C2), pairwise candidate size filtering dominates probe time (181 ms).
+   - Micro-stage durations below the ~10 ms process invocation noise floor (such as read/hash in C2/C7 or grouping in C2/C6) cannot be reliably separated without internal runtime instrumentation and are reported as below the measurement noise floor.
    - Warm-state repeated runs are consistent with OS page-cache effects reducing physical storage wait, shifting execution to CPU computation.
 
