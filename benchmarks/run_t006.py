@@ -114,11 +114,10 @@ def synthesize_research_answers(
 
     # Q4: Operational phase variance
     q4_answer = (
-        "Under the standalone cumulative stage-probe model, performance variance was concentrated in "
-        "pairwise size filtering for large corpora and read & hash for candidate-dense corpora. In C1 "
-        "(500 files), pairwise candidate size filtering accounted for approximately 88% of execution time "
-        "under the standalone probe model. In candidate-dense corpora (C2), candidate read and SHA-256 "
-        "hashing accounted for approximately 41% of execution time."
+        "Under the standalone cumulative stage-probe model, performance variance across corpus types was "
+        "concentrated in pairwise size filtering for large corpora (~88% in C1) and read & hash for candidate-dense "
+        "corpora (~41% in C2). Micro-stage durations below the ~10 ms process invocation noise floor (e.g. read/hash in C7 or "
+        "grouping in C6) cannot be reliably separated without internal runtime instrumentation."
     )
     q4 = ResearchQuestionAnswer(
         question_number=4,
@@ -206,7 +205,12 @@ def format_t006_markdown_report(report: T006FullReport) -> str:
         status = "PASS" if exp.correctness_verified else "FAIL"
         sp_interp = f"{exp.speedup_native_over_interpreter:.2f}x" if exp.speedup_native_over_interpreter > 0 else "N/A"
         sp_serial = f"{exp.speedup_candidate_over_serial:.2f}x" if exp.speedup_candidate_over_serial > 0 else "N/A"
-        mc = "YES (>110%)" if exp.evidence.cpu.multi_core_engaged else "NO (<105%)"
+        if not exp.evidence.cpu.cpu_measurement_valid:
+            mc = "INSUFFICIENT SAMPLES (<4)"
+        elif exp.evidence.cpu.multi_core_engaged:
+            mc = "YES (>110%)"
+        else:
+            mc = "NO (<105%)"
         lines.append(f"| {exp.experiment_id} | {exp.workload_name} | {status} | **{exp.classification}** (Grade {exp.evidence_grade}) | {sp_interp} | {sp_serial} | {mc} |")
 
     lines.append("")
@@ -289,11 +293,16 @@ def format_t006_markdown_report(report: T006FullReport) -> str:
         lines.append("| Corpus | Scale | Files | Candidates | Discovery (ms) | Size Filter (ms) | Read & Hash (ms) | Grouping (ms) | Total (ms) | Dominant Stage |")
         lines.append("|---|---|---|---|---|---|---|---|---|---|")
         for b in report.stage_breakdowns:
+            s_filt = f"{b.t_filter_ms:.1f}" if b.t_filter_ms is not None else "N/A*"
+            s_hash = f"{b.t_read_hash_ms:.1f}" if b.t_read_hash_ms is not None else "N/A*"
+            s_grp = f"{b.t_group_ms:.1f}" if b.t_group_ms is not None else "N/A*"
             lines.append(
                 f"| `{b.corpus_id}` | {b.scale} | {b.file_count} | {b.candidate_count} | "
-                f"{b.t_discovery_ms:.1f} | {b.t_filter_ms:.1f} | {b.t_read_hash_ms:.1f} | "
-                f"{b.t_group_ms:.1f} | {b.t_total_ms:.1f} | **{b.dominant_stage}** |"
+                f"{b.t_discovery_ms:.1f} | {s_filt} | {s_hash} | "
+                f"{s_grp} | {b.t_total_ms:.1f} | **{b.dominant_stage}** |"
             )
+        lines.append("")
+        lines.append("> *Stage duration below standalone process measurement noise floor (~10 ms); not reliably separable via external probe delta.")
         lines.append("")
 
     # Research Questions
@@ -510,6 +519,8 @@ def generate_offline_mock_report(
                 t_group_ms=5.5,
                 t_total_ms=55.0,
                 dominant_stage="Read & Hash",
+                raw_cumulative_ms={"discovery": 12.5, "filter_cumulative": 27.5, "read_hash_cumulative": 49.5, "group_cumulative": 55.0},
+                stage_validity={"discovery": "valid", "filter": "valid", "read_hash": "valid", "group": "near_noise_floor"},
             )
         )
 

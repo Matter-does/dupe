@@ -16,25 +16,25 @@
 
 | Experiment | Level Description | Status | Classification | Native vs Interp Speedup | Candidate vs Serial Speedup | Multi-Core Engaged |
 |---|---|---|---|---|---|---|
-| T006-A | Pure Computational Reduction (N=100,000) | PASS | **CATEGORY E** (Grade C) | 1.14x | 12.50x | NO (<105%) |
-| T006-A | Pure Computational Reduction (N=2,000,000) | PASS | **CATEGORY E** (Grade C) | 0.78x | 144.98x | NO (<105%) |
-| T006-A | Pure Computational Reduction (N=5,000,000) | PASS | **CATEGORY E** (Grade C) | 0.96x | 135.40x | NO (<105%) |
-| T006-B | In-Memory Hashing (10 buffers of 1024 B, 10.0 KB total) | PASS | **CATEGORY D** (Grade A) | N/A | 0.59x | NO (<105%) |
-| T006-B | In-Memory Hashing (50 buffers of 4096 B, 200.0 KB total) | PASS | **CATEGORY E** (Grade C) | N/A | 1.09x | NO (<105%) |
-| T006-B | In-Memory Hashing (100 buffers of 16384 B, 1600.0 KB total) | PASS | **CATEGORY D** (Grade A) | N/A | 0.80x | NO (<105%) |
-| T006-B | In-Memory Hashing (200 buffers of 65536 B, 12800.0 KB total) | PASS | **CATEGORY D** (Grade A) | N/A | 0.87x | NO (<105%) |
-| T006-C | Filesystem Read + Hash on Corpus C1 | PASS | **CATEGORY D** (Grade A) | N/A | 1.01x | NO (<105%) |
-| T006-C | Filesystem Read + Hash on Corpus C2 | PASS | **CATEGORY E** (Grade C) | N/A | 1.13x | NO (<105%) |
-| T006-C | Filesystem Read + Hash on Corpus C4 | PASS | **CATEGORY D** (Grade A) | N/A | 0.75x | NO (<105%) |
-| T006-C | Filesystem Read + Hash on Corpus C5 | PASS | **CATEGORY D** (Grade A) | N/A | 0.92x | NO (<105%) |
-| T006-C | Filesystem Read + Hash on Corpus C6 | PASS | **CATEGORY D** (Grade A) | N/A | 0.90x | NO (<105%) |
-| T006-C | Filesystem Read + Hash on Corpus C7 | PASS | **CATEGORY D** (Grade A) | N/A | 0.89x | NO (<105%) |
+| T006-A | Pure Computational Reduction (N=100,000) | PASS | **CATEGORY E** (Grade C) | 1.14x | 12.50x | INSUFFICIENT SAMPLES (<4) |
+| T006-A | Pure Computational Reduction (N=2,000,000) | PASS | **CATEGORY E** (Grade C) | 0.78x | 144.98x | INSUFFICIENT SAMPLES (<4) |
+| T006-A | Pure Computational Reduction (N=5,000,000) | PASS | **CATEGORY E** (Grade C) | 0.96x | 135.40x | INSUFFICIENT SAMPLES (<4) |
+| T006-B | In-Memory Hashing (10 buffers of 1024 B, 10.0 KB total) | PASS | **CATEGORY D** (Grade A) | N/A | 0.59x | INSUFFICIENT SAMPLES (<4) |
+| T006-B | In-Memory Hashing (50 buffers of 4096 B, 200.0 KB total) | PASS | **CATEGORY E** (Grade C) | N/A | 1.09x | INSUFFICIENT SAMPLES (<4) |
+| T006-B | In-Memory Hashing (100 buffers of 16384 B, 1600.0 KB total) | PASS | **CATEGORY D** (Grade A) | N/A | 0.80x | INSUFFICIENT SAMPLES (<4) |
+| T006-B | In-Memory Hashing (200 buffers of 65536 B, 12800.0 KB total) | PASS | **CATEGORY D** (Grade A) | N/A | 0.87x | INSUFFICIENT SAMPLES (<4) |
+| T006-C | Filesystem Read + Hash on Corpus C1 | PASS | **CATEGORY D** (Grade A) | N/A | 1.01x | INSUFFICIENT SAMPLES (<4) |
+| T006-C | Filesystem Read + Hash on Corpus C2 | PASS | **CATEGORY E** (Grade C) | N/A | 1.13x | INSUFFICIENT SAMPLES (<4) |
+| T006-C | Filesystem Read + Hash on Corpus C4 | PASS | **CATEGORY D** (Grade A) | N/A | 0.75x | INSUFFICIENT SAMPLES (<4) |
+| T006-C | Filesystem Read + Hash on Corpus C5 | PASS | **CATEGORY D** (Grade A) | N/A | 0.92x | INSUFFICIENT SAMPLES (<4) |
+| T006-C | Filesystem Read + Hash on Corpus C6 | PASS | **CATEGORY D** (Grade A) | N/A | 0.90x | INSUFFICIENT SAMPLES (<4) |
+| T006-C | Filesystem Read + Hash on Corpus C7 | PASS | **CATEGORY D** (Grade A) | N/A | 0.89x | INSUFFICIENT SAMPLES (<4) |
 | T006-D | Full dupe Pipeline on Corpus C1 | PASS | **CATEGORY D** (Grade A) | 1.00x | N/A | NO (<105%) |
-| T006-D | Full dupe Pipeline on Corpus C2 | PASS | **CATEGORY C** (Grade A) | 1.15x | N/A | NO (<105%) |
-| T006-D | Full dupe Pipeline on Corpus C4 | PASS | **CATEGORY D** (Grade A) | 0.87x | N/A | NO (<105%) |
+| T006-D | Full dupe Pipeline on Corpus C2 | PASS | **CATEGORY C** (Grade A) | 1.15x | N/A | INSUFFICIENT SAMPLES (<4) |
+| T006-D | Full dupe Pipeline on Corpus C4 | PASS | **CATEGORY D** (Grade A) | 0.87x | N/A | INSUFFICIENT SAMPLES (<4) |
 | T006-D | Full dupe Pipeline on Corpus C5 | PASS | **CATEGORY D** (Grade A) | 0.95x | N/A | NO (<105%) |
-| T006-D | Full dupe Pipeline on Corpus C6 | PASS | **CATEGORY C** (Grade A) | 1.45x | N/A | NO (<105%) |
-| T006-D | Full dupe Pipeline on Corpus C7 | PASS | **CATEGORY D** (Grade A) | 0.87x | N/A | NO (<105%) |
+| T006-D | Full dupe Pipeline on Corpus C6 | PASS | **CATEGORY C** (Grade A) | 1.45x | N/A | INSUFFICIENT SAMPLES (<4) |
+| T006-D | Full dupe Pipeline on Corpus C7 | PASS | **CATEGORY D** (Grade A) | 0.87x | N/A | INSUFFICIENT SAMPLES (<4) |
 
 ---
 
@@ -87,8 +87,10 @@
 | `C2` | 0.01 | 100 | 30 | 105.6 | 78.1 | 129.3 | 5.1 | 318.1 | **Read & Hash** |
 | `C4` | 0.01 | 100 | 80 | 64.4 | 115.7 | 65.0 | 11.3 | 256.5 | **Size Filter (O(N^2))** |
 | `C5` | 0.01 | 200 | 200 | 127.3 | 52.3 | 24.0 | 136.3 | 340.0 | **Group Duplicates** |
-| `C6` | 0.01 | 100 | 30 | 143.4 | 135.4 | 94.9 | 0.0 | 339.2 | **Discovery** |
-| `C7` | 0.01 | 100 | 30 | 129.3 | 183.6 | 0.0 | 28.0 | 337.0 | **Size Filter (O(N^2))** |
+| `C6` | 0.01 | 100 | 30 | 143.4 | 135.4 | 94.9 | N/A* | 339.2 | **Discovery** |
+| `C7` | 0.01 | 100 | 30 | 129.3 | 183.6 | N/A* | 28.0 | 337.0 | **Size Filter (O(N^2))** |
+
+> *Stage duration below standalone process measurement noise floor (~10 ms); not reliably separable via external probe delta.
 
 ## Authoritative Research Questions (Answers & Evidence Grades)
 

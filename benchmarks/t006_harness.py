@@ -95,6 +95,9 @@ class CpuUtilizationEvidence:
     sample_count: int
     multi_core_engaged: bool
     measurement_method: str
+    cpu_measurement_valid: bool = True
+    invalid_reason: Optional[str] = None
+    measurement_duration_ms: Optional[float] = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -145,12 +148,14 @@ class StageBreakdownResult:
     file_count: int
     candidate_count: int
     t_discovery_ms: float
-    t_filter_ms: float
-    t_read_hash_ms: float
-    t_group_ms: float
+    t_filter_ms: Optional[float]
+    t_read_hash_ms: Optional[float]
+    t_group_ms: Optional[float]
     t_total_ms: float
     dominant_stage: str
     measurement_type: str = "APPROXIMATION via standalone cumulative stage probes"
+    raw_cumulative_ms: dict[str, float] = field(default_factory=dict)
+    stage_validity: dict[str, str] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -250,7 +255,7 @@ class CpuSampler:
         self._thread = threading.Thread(target=self._run, daemon=True)
         self._thread.start()
 
-    def stop(self) -> CpuUtilizationEvidence:
+    def stop(self, duration_ms: Optional[float] = None) -> CpuUtilizationEvidence:
         self._stop_event.set()
         if self._thread:
             self._thread.join(timeout=1.0)
@@ -262,10 +267,28 @@ class CpuSampler:
                 sample_count=0,
                 multi_core_engaged=False,
                 measurement_method="Process CPU sampling (no samples captured)",
+                cpu_measurement_valid=False,
+                invalid_reason="insufficient_samples (0 samples captured; process execution too short for sampling interval)",
+                measurement_duration_ms=duration_ms,
             )
 
         max_cpu = round(max(self.samples), 1)
         avg_cpu = round(sum(self.samples) / len(self.samples), 1)
+
+        # Statistical validity: require at least 4 samples for reliable CPU load inference
+        MIN_RELIABLE_SAMPLES = 4
+        if len(self.samples) < MIN_RELIABLE_SAMPLES:
+            return CpuUtilizationEvidence(
+                max_cpu_percent=max_cpu,
+                avg_cpu_percent=avg_cpu,
+                sample_count=len(self.samples),
+                multi_core_engaged=False,
+                measurement_method="Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
+                cpu_measurement_valid=False,
+                invalid_reason=f"insufficient_samples ({len(self.samples)} < {MIN_RELIABLE_SAMPLES} samples collected; duration too short for periodic sampling)",
+                measurement_duration_ms=duration_ms,
+            )
+
         multi_core = max_cpu > 110.0
 
         return CpuUtilizationEvidence(
@@ -274,6 +297,9 @@ class CpuSampler:
             sample_count=len(self.samples),
             multi_core_engaged=multi_core,
             measurement_method="Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
+            cpu_measurement_valid=True,
+            invalid_reason=None,
+            measurement_duration_ms=duration_ms,
         )
 
     def _run(self) -> None:
@@ -328,7 +354,9 @@ def execute_with_cpu_monitoring(
         try:
             stdout, stderr = proc.communicate(timeout=timeout_s)
         finally:
-            cpu_evidence = sampler.stop()
+            t_comm = time.perf_counter_ns()
+            comm_duration_ms = (t_comm - t_start) / 1_000_000.0
+            cpu_evidence = sampler.stop(duration_ms=round(comm_duration_ms, 2))
 
         t_end = time.perf_counter_ns()
         duration_ms = (t_end - t_start) / 1_000_000.0
@@ -343,6 +371,11 @@ def execute_with_cpu_monitoring(
         return res, cpu_evidence
 
     except subprocess.TimeoutExpired as exc:
+        try:
+            proc.kill()
+            proc.communicate()
+        except Exception:
+            pass
         t_end = time.perf_counter_ns()
         duration_ms = (t_end - t_start) / 1_000_000.0
         return (
@@ -353,7 +386,16 @@ def execute_with_cpu_monitoring(
                 stderr="",
                 error=f"TimeoutExpired after {timeout_s}s",
             ),
-            CpuUtilizationEvidence(0.0, 0.0, 0, False, "Process timed out"),
+            CpuUtilizationEvidence(
+                mean_percent=0.0,
+                max_percent=0.0,
+                sample_count=0,
+                multi_core_engaged=False,
+                monitoring_method="Process timed out",
+                cpu_measurement_valid=False,
+                invalid_reason="process_timed_out",
+                measurement_duration_ms=round(duration_ms, 2),
+            ),
         )
     except Exception as exc:
         t_end = time.perf_counter_ns()
@@ -448,13 +490,17 @@ class T006ExperimentHarness:
             interp_times: list[float] = []
             interp_out = ""
             for _ in range(warmup_runs):
-                execute_with_cpu_monitoring(interp_cmd, timeout_s=self.timeout_s)
+                res_w, _ = execute_with_cpu_monitoring(interp_cmd, timeout_s=self.timeout_s)
+                if res_w.returncode != 0:
+                    raise RuntimeError(f"Level A interpreter warmup failed for n={n} (code {res_w.returncode}): {res_w.stderr}")
             for _ in range(measured_runs):
                 res, _ = execute_with_cpu_monitoring(interp_cmd, timeout_s=self.timeout_s)
+                if res.returncode != 0:
+                    raise RuntimeError(f"Level A interpreter failed for n={n} (code {res.returncode}): {res.stderr}")
+                if res.stdout.strip() != ground_truth:
+                    raise RuntimeError(f"Level A interpreter output mismatch for n={n}: expected {ground_truth}, got {res.stdout.strip()}")
                 interp_times.append(res.wall_time_ms)
                 interp_out = res.stdout.strip()
-                if res.returncode != 0:
-                    print(f"Warning: {interp_cmd} failed (code {res.returncode}): {res.stderr}")
 
             interp_timing = calculate_timing_statistics(interp_times, warmup_runs)
             meas_interp = BaselineMeasurement(
@@ -473,9 +519,15 @@ class T006ExperimentHarness:
             native_out = ""
             last_cpu_cand = CpuUtilizationEvidence(0.0, 0.0, 0, False, "none")
             for _ in range(warmup_runs):
-                execute_with_cpu_monitoring(native_cmd, timeout_s=self.timeout_s)
+                res_w, _ = execute_with_cpu_monitoring(native_cmd, timeout_s=self.timeout_s)
+                if res_w.returncode != 0:
+                    raise RuntimeError(f"Level A native candidate warmup failed for n={n} (code {res_w.returncode}): {res_w.stderr}")
             for _ in range(measured_runs):
                 res, cpu = execute_with_cpu_monitoring(native_cmd, timeout_s=self.timeout_s)
+                if res.returncode != 0:
+                    raise RuntimeError(f"Level A native candidate failed for n={n} (code {res.returncode}): {res.stderr}")
+                if res.stdout.strip() != ground_truth:
+                    raise RuntimeError(f"Level A native candidate output mismatch for n={n}: expected {ground_truth}, got {res.stdout.strip()}")
                 native_times.append(res.wall_time_ms)
                 native_out = res.stdout.strip()
                 last_cpu_cand = cpu
@@ -496,9 +548,15 @@ class T006ExperimentHarness:
             serial_times: list[float] = []
             serial_out = ""
             for _ in range(warmup_runs):
-                execute_with_cpu_monitoring(serial_cmd, timeout_s=self.timeout_s)
+                res_w, _ = execute_with_cpu_monitoring(serial_cmd, timeout_s=self.timeout_s)
+                if res_w.returncode != 0:
+                    raise RuntimeError(f"Level A native serial control warmup failed for n={n} (code {res_w.returncode}): {res_w.stderr}")
             for _ in range(measured_runs):
                 res, _ = execute_with_cpu_monitoring(serial_cmd, timeout_s=self.timeout_s)
+                if res.returncode != 0:
+                    raise RuntimeError(f"Level A native serial control failed for n={n} (code {res.returncode}): {res.stderr}")
+                if res.stdout.strip() != ground_truth:
+                    raise RuntimeError(f"Level A native serial control output mismatch for n={n}: expected {ground_truth}, got {res.stdout.strip()}")
                 serial_times.append(res.wall_time_ms)
                 serial_out = res.stdout.strip()
 
@@ -593,14 +651,18 @@ class T006ExperimentHarness:
             native_out = ""
             last_cpu_cand = CpuUtilizationEvidence(0.0, 0.0, 0, False, "none")
             for _ in range(warmup_runs):
-                execute_with_cpu_monitoring(native_cmd, timeout_s=self.timeout_s)
+                res_w, _ = execute_with_cpu_monitoring(native_cmd, timeout_s=self.timeout_s)
+                if res_w.returncode != 0:
+                    raise RuntimeError(f"Level B native candidate warmup failed (code {res_w.returncode}): {res_w.stderr}")
             for _ in range(measured_runs):
                 res, cpu = execute_with_cpu_monitoring(native_cmd, timeout_s=self.timeout_s)
+                if res.returncode != 0:
+                    raise RuntimeError(f"Level B native candidate failed (code {res.returncode}): {res.stderr}")
+                if len(res.stdout.strip()) != 64:
+                    raise RuntimeError(f"Level B native candidate invalid output: expected 64-char hex digest, got {res.stdout.strip()}")
                 native_times.append(res.wall_time_ms)
                 native_out = res.stdout.strip()
                 last_cpu_cand = cpu
-                if res.returncode != 0:
-                    print(f"Warning: {native_cmd} failed (code {res.returncode}): {res.stderr}")
 
             native_timing = calculate_timing_statistics(native_times, warmup_runs)
             meas_native = BaselineMeasurement(
@@ -618,13 +680,17 @@ class T006ExperimentHarness:
             serial_times: list[float] = []
             serial_out = ""
             for _ in range(warmup_runs):
-                execute_with_cpu_monitoring(serial_cmd, timeout_s=self.timeout_s)
+                res_w, _ = execute_with_cpu_monitoring(serial_cmd, timeout_s=self.timeout_s)
+                if res_w.returncode != 0:
+                    raise RuntimeError(f"Level B native serial control warmup failed (code {res_w.returncode}): {res_w.stderr}")
             for _ in range(measured_runs):
                 res, _ = execute_with_cpu_monitoring(serial_cmd, timeout_s=self.timeout_s)
+                if res.returncode != 0:
+                    raise RuntimeError(f"Level B native serial control failed (code {res.returncode}): {res.stderr}")
+                if len(res.stdout.strip()) != 64:
+                    raise RuntimeError(f"Level B native serial control invalid output: expected 64-char hex digest, got {res.stdout.strip()}")
                 serial_times.append(res.wall_time_ms)
                 serial_out = res.stdout.strip()
-                if res.returncode != 0:
-                    print(f"Warning: {serial_cmd} failed (code {res.returncode}): {res.stderr}")
 
             serial_timing = calculate_timing_statistics(serial_times, warmup_runs)
             meas_serial = BaselineMeasurement(
@@ -719,9 +785,15 @@ class T006ExperimentHarness:
             native_out = ""
             last_cpu_cand = CpuUtilizationEvidence(0.0, 0.0, 0, False, "none")
             for _ in range(warmup_runs):
-                execute_with_cpu_monitoring(native_cmd, env=native_env, timeout_s=self.timeout_s)
+                res_w, _ = execute_with_cpu_monitoring(native_cmd, env=native_env, timeout_s=self.timeout_s)
+                if res_w.returncode != 0:
+                    raise RuntimeError(f"Level C candidate warmup failed on {cid} (code {res_w.returncode}): {res_w.stderr}")
             for _ in range(measured_runs):
                 res, cpu = execute_with_cpu_monitoring(native_cmd, env=native_env, timeout_s=self.timeout_s)
+                if res.returncode != 0:
+                    raise RuntimeError(f"Level C candidate failed on {cid} (code {res.returncode}): {res.stderr}")
+                if len(res.stdout.strip()) != 64:
+                    raise RuntimeError(f"Level C candidate output invalid on {cid}: expected 64-char hex digest, got: {res.stdout}")
                 native_times.append(res.wall_time_ms)
                 native_out = res.stdout.strip()
                 last_cpu_cand = cpu
@@ -742,9 +814,15 @@ class T006ExperimentHarness:
             serial_times: list[float] = []
             serial_out = ""
             for _ in range(warmup_runs):
-                execute_with_cpu_monitoring(serial_cmd, env=native_env, timeout_s=self.timeout_s)
+                res_w, _ = execute_with_cpu_monitoring(serial_cmd, env=native_env, timeout_s=self.timeout_s)
+                if res_w.returncode != 0:
+                    raise RuntimeError(f"Level C serial control warmup failed on {cid} (code {res_w.returncode}): {res_w.stderr}")
             for _ in range(measured_runs):
                 res, _ = execute_with_cpu_monitoring(serial_cmd, env=native_env, timeout_s=self.timeout_s)
+                if res.returncode != 0:
+                    raise RuntimeError(f"Level C serial control failed on {cid} (code {res.returncode}): {res.stderr}")
+                if len(res.stdout.strip()) != 64:
+                    raise RuntimeError(f"Level C serial control output invalid on {cid}: expected 64-char hex digest, got: {res.stdout}")
                 serial_times.append(res.wall_time_ms)
                 serial_out = res.stdout.strip()
 
@@ -861,9 +939,13 @@ class T006ExperimentHarness:
                     cmd = [str(b_path), str(c_dir)]
                     times: list[float] = []
                     for _ in range(warmup_runs):
-                        execute_with_cpu_monitoring(cmd, env=native_env, timeout_s=self.timeout_s)
+                        res_w, _ = execute_with_cpu_monitoring(cmd, env=native_env, timeout_s=self.timeout_s)
+                        if res_w.returncode != 0:
+                            raise RuntimeError(f"Stage probe warmup {b_path.name} failed on {cid} (code {res_w.returncode}): {res_w.stderr}")
                     for _ in range(measured_runs):
                         res, _ = execute_with_cpu_monitoring(cmd, env=native_env, timeout_s=self.timeout_s)
+                        if res.returncode != 0:
+                            raise RuntimeError(f"Stage probe {b_path.name} failed on {cid} (code {res.returncode}): {res.stderr}")
                         times.append(res.wall_time_ms)
                     return statistics.median(times) if times else 0.0
 
@@ -872,19 +954,55 @@ class T006ExperimentHarness:
                 t3 = time_bin(bin_hash)
                 t4 = time_bin(bin_grp)
 
+                raw_cum = {
+                    "discovery": round(t1, 2),
+                    "filter_cumulative": round(t2, 2),
+                    "read_hash_cumulative": round(t3, 2),
+                    "group_cumulative": round(t4, 2),
+                }
+
+                # Empirical noise floor: ~10 ms across process invocations
+                STAGE_NOISE_FLOOR_MS = 10.0
+
                 t_disc = round(t1, 2)
-                t_filt = round(max(0.0, t2 - t1), 2)
-                t_hash = round(max(0.0, t3 - t2), 2)
-                t_grp = round(max(0.0, t4 - t3), 2)
+                d_filt = round(t2 - t1, 2)
+                d_hash = round(t3 - t2, 2)
+                d_grp = round(t4 - t3, 2)
+
+                validity: dict[str, str] = {"discovery": "valid"}
+
+                if d_filt <= 0.0:
+                    t_filt = None
+                    validity["filter"] = "below_noise_floor"
+                else:
+                    t_filt = d_filt
+                    validity["filter"] = "valid" if d_filt >= STAGE_NOISE_FLOOR_MS else "near_noise_floor"
+
+                if d_hash <= 0.0:
+                    t_hash = None
+                    validity["read_hash"] = "below_noise_floor"
+                else:
+                    t_hash = d_hash
+                    validity["read_hash"] = "valid" if d_hash >= STAGE_NOISE_FLOOR_MS else "near_noise_floor"
+
+                if d_grp <= 0.0:
+                    t_grp = None
+                    validity["group"] = "below_noise_floor"
+                else:
+                    t_grp = d_grp
+                    validity["group"] = "valid" if d_grp >= STAGE_NOISE_FLOOR_MS else "near_noise_floor"
+
                 t_total = round(t4, 2)
 
-                stages = {
-                    "Discovery": t_disc,
-                    "Size Filter (O(N^2))": t_filt,
-                    "Read & Hash": t_hash,
-                    "Group Duplicates": t_grp,
-                }
-                dominant = max(stages.items(), key=lambda item: item[1])[0]
+                candidate_stages = {"Discovery": t_disc}
+                if t_filt is not None and validity["filter"] == "valid":
+                    candidate_stages["Size Filter (O(N^2))"] = t_filt
+                if t_hash is not None and validity["read_hash"] == "valid":
+                    candidate_stages["Read & Hash"] = t_hash
+                if t_grp is not None and validity["group"] == "valid":
+                    candidate_stages["Group Duplicates"] = t_grp
+
+                dominant = max(candidate_stages.items(), key=lambda item: item[1])[0]
 
                 breakdowns.append(
                     StageBreakdownResult(
@@ -898,6 +1016,8 @@ class T006ExperimentHarness:
                         t_group_ms=t_grp,
                         t_total_ms=t_total,
                         dominant_stage=dominant,
+                        raw_cumulative_ms=raw_cum,
+                        stage_validity=validity,
                     )
                 )
             finally:
@@ -943,9 +1063,13 @@ class T006ExperimentHarness:
                 interp_out = ""
                 last_interp_res: Optional[RunExecutionResult] = None
                 for _ in range(warmup_runs):
-                    execute_with_cpu_monitoring(interp_cmd, timeout_s=self.timeout_s)
+                    res_w, _ = execute_with_cpu_monitoring(interp_cmd, timeout_s=self.timeout_s)
+                    if res_w.returncode != 0:
+                        raise RuntimeError(f"Baseline A (interpreter) warmup failed on {cid} (code {res_w.returncode}): {res_w.stderr}")
                 for _ in range(measured_runs):
                     res, _ = execute_with_cpu_monitoring(interp_cmd, timeout_s=self.timeout_s)
+                    if res.returncode != 0:
+                        raise RuntimeError(f"Baseline A (interpreter) failed on {cid} (code {res.returncode}): {res.stderr}")
                     interp_times.append(res.wall_time_ms)
                     interp_out = res.stdout
                     last_interp_res = res
@@ -979,9 +1103,13 @@ class T006ExperimentHarness:
                 last_cpu_cand = CpuUtilizationEvidence(0.0, 0.0, 0, False, "none")
                 last_native_res: Optional[RunExecutionResult] = None
                 for _ in range(warmup_runs):
-                    execute_with_cpu_monitoring(native_cmd, env=native_env, timeout_s=self.timeout_s)
+                    res_w, _ = execute_with_cpu_monitoring(native_cmd, env=native_env, timeout_s=self.timeout_s)
+                    if res_w.returncode != 0:
+                        raise RuntimeError(f"Baseline B (native) warmup failed on {cid} (code {res_w.returncode}): {res_w.stderr}")
                 for _ in range(measured_runs):
                     res, cpu = execute_with_cpu_monitoring(native_cmd, env=native_env, timeout_s=self.timeout_s)
+                    if res.returncode != 0:
+                        raise RuntimeError(f"Baseline B (native) failed on {cid} (code {res.returncode}): {res.stderr}")
                     native_times.append(res.wall_time_ms)
                     native_out = res.stdout
                     last_cpu_cand = cpu

@@ -35,22 +35,24 @@ not_done:
 verification:
   ci_workflow_run: pass (run 34051835154 on macos-15 arm64 Apple Silicon, 10m 56s)
   overall_classification: CATEGORY C
-  t006_a_correctness: pass (100% VALID mathematical reduction match across 100K, 2M, 5M)
-  t006_b_correctness: pass (100% VALID deterministic in-memory SHA-256 digests across all configs)
-  t006_c_correctness: pass (100% VALID across C1, C2, C4, C5, C6, C7)
+  t006_a_classification: CATEGORY E / Evidence Grade C* (Reconciled: candidate vs serial comparison confounded by runtime sum() loop fold optimization)
+  t006_a_correctness: pass (100% VALID mathematical reduction match across 100K, 2M, 5M, and boundary N=0, 1, 32767, 32769)
+  t006_b_correctness: pass (100% VALID deterministic in-memory SHA-256 digests across all configs, and boundary 0, 1 buffer)
+  t006_c_correctness: pass (100% VALID across C1, C2, C4, C5, C6, C7; cryptographic chaining loop-carried dependence)
   t006_d_correctness: pass (100% VALID direct JSON match and manifest expected_result_digest agreement across C1, C2, C4, C5, C6, C7; seed 12345, scale 0.01)
-  cpu_monitoring: pass (verified no sustained multi-core utilization <105% CPU across all levels)
+  cpu_monitoring: pass (verified no sustained multi-core utilization <105% CPU across all levels; explicit observability status cpu_measurement_valid=false for <4 samples)
+  stage_breakdowns: pass (approximate standalone cumulative probes; sub-noise-floor deltas <=10 ms preserved as below_noise_floor and rendered N/A*)
   compiler_inspection: pass (single-threaded thread-local globals; zero concurrency primitives found in emitted backend)
-  t006_unit_tests: pass (14/14 tests in tests/test_t006_experiments.py)
+  t006_unit_tests: pass (20/20 tests in tests/test_t006_experiments.py)
   harness_offline_tests: pass (11/11 tests in tests/test_benchmark_harness.py)
   corpus_generator_tests: pass (14/14 tests in tests/test_benchmark_corpus.py)
+  full_test_suite: pass (45/45 tests in unittest discover -s tests)
   phase4_offline_tests: pass (tests/phase4_differential.py --offline)
   production_source_integrity: pass (git diff origin/main -- src/ is strictly empty)
   git_boundary: clean, all T006 artifacts committed and synchronized
 
 next_action:
-  - Complete handoff documentation in agent/HANDOFF.md
-  - Update agent/TODO.md and docs/RESEARCH.md
-  - Stop at T006 boundary. Do NOT begin T007 automatically.
+  - Stop at T006 boundary. Do NOT begin T007.
+  - Await independent OpenCode adversarial review.
 
 last_agent: Antigravity

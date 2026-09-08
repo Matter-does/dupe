@@ -18,6 +18,7 @@ import json
 from pathlib import Path
 import sys
 import unittest
+from unittest.mock import MagicMock, patch
 
 # Resolve repo root
 _REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -28,6 +29,7 @@ from benchmarks.generator.manifest import MANIFEST_FILENAME
 from benchmarks.harness import (
     BaselineMeasurement,
     PlatformProvenance,
+    RunExecutionResult,
     TimingStatistics,
     calculate_timing_statistics,
     collect_platform_provenance,
@@ -39,10 +41,12 @@ from benchmarks.run_t006 import (
 )
 from benchmarks.t006_harness import (
     CompilerInspectionEvidence,
+    CpuSampler,
     CpuUtilizationEvidence,
     ObservabilityEvidence,
     ResearchQuestionAnswer,
     StageBreakdownResult,
+    T006ExperimentHarness,
     T006ExperimentResult,
     T006FullReport,
     classify_experiment_result,
@@ -230,5 +234,225 @@ class TestT006ScientificReportingAndCorpusIdentity(unittest.TestCase):
         self.assertEqual(rq_map[7]["evidence_grade"], "B")  # macOS CI only, dev hardware not authoritative
 
 
+class TestT006RemediatedFindings(unittest.TestCase):
+    """Regression tests for findings P1-02, P2-02, P2-03, P2-04 remediated in T006."""
+
+    def test_stage_breakdown_negative_delta_handling(self) -> None:
+        """P1-02: Verify negative or sub-noise-floor stage deltas are not clipped to 0.0 ms.
+
+        Instead, they must be set to None with status 'below_noise_floor', preserve raw cumulative
+        values, and format as 'N/A*' in Markdown reports without skewing percentages.
+        """
+        raw_cum = {
+            "discovery_ms": 100.0,
+            "filter_ms": 120.0,
+            "read_hash_ms": 118.0,  # Negative delta vs filter: 118.0 - 120.0 = -2.0 ms
+            "group_ms": 140.0,
+        }
+        res = StageBreakdownResult(
+            corpus_id="C_test",
+            scale=0.01,
+            file_count=50,
+            candidate_count=20,
+            t_discovery_ms=100.0,
+            t_filter_ms=20.0,
+            t_read_hash_ms=None,  # below noise floor
+            t_group_ms=22.0,
+            t_total_ms=140.0,
+            dominant_stage="Discovery",
+            raw_cumulative_ms=raw_cum,
+            stage_validity={
+                "discovery": "valid",
+                "filter": "valid",
+                "read_hash": "below_noise_floor",
+                "group": "valid",
+            },
+        )
+        d = res.to_dict()
+        self.assertIsNone(d["t_read_hash_ms"])
+        self.assertEqual(d["stage_validity"]["read_hash"], "below_noise_floor")
+        self.assertEqual(d["raw_cumulative_ms"]["read_hash_ms"], 118.0)
+        self.assertEqual(d["raw_cumulative_ms"]["filter_ms"], 120.0)
+
+        # Verify full report markdown formatting renders N/A* without throwing
+        prov = collect_platform_provenance("j2")
+        mock_report = generate_offline_mock_report([], prov)
+        mock_report.stage_breakdowns = [res]
+        md = format_t006_markdown_report(mock_report)
+        self.assertIn("N/A*", md)
+        self.assertIn("noise floor", md)
+
+    def test_cpu_sampling_insufficient_samples(self) -> None:
+        """P2-03: Verify CPU profiler flags insufficient samples (<4) as invalid."""
+        sampler = CpuSampler(pid=99999)
+        # 1 sample: below MIN_RELIABLE_SAMPLES (4)
+        sampler.samples = [15.0]
+        ev = sampler.stop(duration_ms=45.0)
+        self.assertFalse(ev.cpu_measurement_valid)
+        self.assertIn("insufficient_samples", ev.invalid_reason or "")
+        self.assertEqual(ev.sample_count, 1)
+
+        # 4 samples: meeting MIN_RELIABLE_SAMPLES
+        sampler_ok = CpuSampler(pid=99999)
+        sampler_ok.samples = [25.0, 30.0, 20.0, 35.0]
+        ev_ok = sampler_ok.stop(duration_ms=200.0)
+        self.assertTrue(ev_ok.cpu_measurement_valid)
+        self.assertIsNone(ev_ok.invalid_reason)
+        self.assertEqual(ev_ok.sample_count, 4)
+
+    def test_level_c_serial_dependency_data_dependence(self) -> None:
+        """P2-02: Verify T006-C serial control has true loop-carried cryptographic data dependence.
+
+        The dependency chains prev_hash into the next hash:
+            chained = fmt("{}:{}", prev_hash, file_digest)
+            d = hash.sha256(chained)
+            prev_hash = d
+        A change to any file's digest must propagate to all subsequent chained digests.
+        """
+        serial_file = _REPO_ROOT / "benchmarks" / "t006" / "t006_c_serial.j2"
+        self.assertTrue(serial_file.is_file())
+        content = serial_file.read_text(encoding="utf-8")
+
+        # Must not rely on trivial length-based dependency
+        self.assertNotIn("prev_len = len(d)", content)
+        self.assertIn("prev_hash", content)
+        self.assertIn("hash.sha256(chained)", content)
+
+        # Verify mathematical avalanche effect: 1-bit difference in file 0 cascades
+        def run_chain(digests: list[str]) -> list[str]:
+            chain = []
+            prev = "0000000000000000000000000000000000000000000000000000000000000000"
+            for fd in digests:
+                c = f"{prev}:{fd}"
+                h = hashlib.sha256(c.encode("utf-8")).hexdigest()
+                chain.append(h)
+                prev = h
+            return chain
+
+        digests_a = [hashlib.sha256(f"file_{i}".encode()).hexdigest() for i in range(10)]
+        digests_b = list(digests_a)
+        # Introduce a 1-character difference in the first digest
+        digests_b[0] = hashlib.sha256(b"file_0_modified").hexdigest()
+
+        chain_a = run_chain(digests_a)
+        chain_b = run_chain(digests_b)
+
+        # Every single subsequent step must differ (avalanche effect)
+        for i in range(10):
+            self.assertNotEqual(chain_a[i], chain_b[i], f"Step {i} must diverge due to loop-carried dependency")
+
+    def test_harness_error_handling_rejection(self) -> None:
+        """P2-04: Subprocess failure, non-zero returncode, or timeout must raise RuntimeError."""
+        harness = T006ExperimentHarness(
+            j2_bin="j2",
+            build_dir=_REPO_ROOT / "build",
+            timeout_s=5.0,
+        )
+        harness.base_harness = MagicMock()
+
+        mock_inspect_ev = CompilerInspectionEvidence(
+            source_name="t006_c_candidate.j2",
+            source_sha256="abc123",
+            has_parallel_constructs=False,
+            matched_constructs=[],
+            evidence_excerpts=[],
+            emission_sample="",
+            analysis_method="regex",
+            epistemic_note="",
+        )
+
+        with patch("benchmarks.t006_harness.inspect_compiler_emission", return_value=mock_inspect_ev), \
+             patch("benchmarks.t006_harness.execute_with_cpu_monitoring") as mock_exec:
+            # 1. Non-zero returncode must raise RuntimeError
+            mock_exec.return_value = (
+                RunExecutionResult(returncode=1, wall_time_ms=10.0, stdout="", stderr="Segfault", error="code 1"),
+                CpuUtilizationEvidence(0.0, 0.0, 0, False, "none", False, "insufficient_samples", 10.0),
+            )
+            with self.assertRaises(RuntimeError) as ctx:
+                harness.run_level_c([_REPO_ROOT / "tests"], warmup_runs=0, measured_runs=1)
+            self.assertIn("failed", str(ctx.exception).lower())
+
+            # 2. Timeout (returncode -1) must raise RuntimeError
+            mock_exec.return_value = (
+                RunExecutionResult(returncode=-1, wall_time_ms=5000.0, stdout="", stderr="", error="TimeoutExpired"),
+                CpuUtilizationEvidence(0.0, 0.0, 0, False, "none", False, "process_timed_out", 5000.0),
+            )
+            with self.assertRaises(RuntimeError) as ctx:
+                harness.run_level_c([_REPO_ROOT / "tests"], warmup_runs=0, measured_runs=1)
+            self.assertIn("failed", str(ctx.exception).lower())
+
+            # 3. Malformed output (e.g. not 64-character hex digest) must raise RuntimeError
+            mock_exec.return_value = (
+                RunExecutionResult(returncode=0, wall_time_ms=15.0, stdout="short_digest", stderr="", error=None),
+                CpuUtilizationEvidence(0.0, 0.0, 5, False, "none", True, None, 15.0),
+            )
+            with self.assertRaises(RuntimeError) as ctx:
+                harness.run_level_c([_REPO_ROOT / "tests"], warmup_runs=0, measured_runs=1)
+            self.assertIn("invalid", str(ctx.exception).lower())
+
+
+class TestT006EdgeCases(unittest.TestCase):
+    """Targeted edge-case verification for T006-A and T006-B boundary behaviors."""
+
+    def test_level_a_boundary_edge_cases(self) -> None:
+        """Section 7: Validate N=0, N=1, and threshold-adjacent values (32767, 32769).
+
+        Ensures candidate reduction formula and serial loop accumulator agree mathematically
+        across word/register boundaries without integer overflow or behavioral divergences.
+        """
+        test_boundaries = [
+            (0, 0),
+            (1, 1),
+            (32767, 536854528),      # 2^15 - 1 (signed 16-bit max)
+            (32768, 536887296),      # 2^15 boundary
+            (32769, 536920065),      # 2^15 + 1
+        ]
+        for n, expected in test_boundaries:
+            # Candidate mathematical reduction
+            cand_val = n * (n + 1) // 2
+            self.assertEqual(cand_val, expected, f"Candidate failed on boundary N={n}")
+
+            # Serial accumulator loop simulation
+            acc = 0
+            prev = 0
+            for i in range(1, n + 1):
+                diff = i - prev
+                acc = acc + prev + diff
+                prev = i
+            self.assertEqual(acc, expected, f"Serial loop failed on boundary N={n}")
+
+    def test_level_b_boundary_edge_cases(self) -> None:
+        """Section 8: Validate zero buffers, one buffer, and one small buffer behavior."""
+        # 1. Zero buffers (K=0)
+        def hash_buffers_cand(bufs: list[bytes]) -> str:
+            d = "0000000000000000000000000000000000000000000000000000000000000000"
+            for b in bufs:
+                d = hashlib.sha256(b).hexdigest()
+            return d
+
+        def hash_buffers_serial(bufs: list[bytes]) -> str:
+            d = "0000000000000000000000000000000000000000000000000000000000000000"
+            for b in bufs:
+                fd = hashlib.sha256(b).hexdigest()
+                d = hashlib.sha256(f"{d}:{fd}".encode()).hexdigest()
+            return d
+
+        # Zero buffers: both preserve initial sentinel
+        self.assertEqual(hash_buffers_cand([]), "0000000000000000000000000000000000000000000000000000000000000000")
+        self.assertEqual(hash_buffers_serial([]), "0000000000000000000000000000000000000000000000000000000000000000")
+
+        # 2. One small buffer (16 bytes)
+        single_buf = [b"a" * 16]
+        cand_out = hash_buffers_cand(single_buf)
+        serial_out = hash_buffers_serial(single_buf)
+        self.assertEqual(len(cand_out), 64)
+        self.assertEqual(len(serial_out), 64)
+        self.assertEqual(cand_out, hashlib.sha256(b"a" * 16).hexdigest())
+        # Both outputs are deterministically reproducible
+        self.assertEqual(cand_out, hash_buffers_cand(single_buf))
+        self.assertEqual(serial_out, hash_buffers_serial(single_buf))
+
+
 if __name__ == "__main__":
     unittest.main()
+

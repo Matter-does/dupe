@@ -141,7 +141,10 @@
           "avg_cpu_percent": 0.0,
           "sample_count": 1,
           "multi_core_engaged": false,
-          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core"
+          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
+          "cpu_measurement_valid": false,
+          "invalid_reason": "insufficient_samples (1 < 4 samples collected; duration too short for periodic sampling)",
+          "measurement_duration_ms": 69.682
         },
         "profiler": {
           "profiler_used": "external wall time and ps sampling"
@@ -286,7 +289,10 @@
           "avg_cpu_percent": 0.0,
           "sample_count": 2,
           "multi_core_engaged": false,
-          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core"
+          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
+          "cpu_measurement_valid": false,
+          "invalid_reason": "insufficient_samples (2 < 4 samples collected; duration too short for periodic sampling)",
+          "measurement_duration_ms": 124.0373
         },
         "profiler": {
           "profiler_used": "external wall time and ps sampling"
@@ -431,7 +437,10 @@
           "avg_cpu_percent": 0.0,
           "sample_count": 1,
           "multi_core_engaged": false,
-          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core"
+          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
+          "cpu_measurement_valid": false,
+          "invalid_reason": "insufficient_samples (1 < 4 samples collected; duration too short for periodic sampling)",
+          "measurement_duration_ms": 259.6301
         },
         "profiler": {
           "profiler_used": "external wall time and ps sampling"
@@ -547,7 +556,10 @@
           "avg_cpu_percent": 0.0,
           "sample_count": 1,
           "multi_core_engaged": false,
-          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core"
+          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
+          "cpu_measurement_valid": false,
+          "invalid_reason": "insufficient_samples (1 < 4 samples collected; duration too short for periodic sampling)",
+          "measurement_duration_ms": 185.0524
         },
         "profiler": {
           "in_memory_isolation": true,
@@ -662,7 +674,10 @@
           "avg_cpu_percent": 0.0,
           "sample_count": 1,
           "multi_core_engaged": false,
-          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core"
+          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
+          "cpu_measurement_valid": false,
+          "invalid_reason": "insufficient_samples (1 < 4 samples collected; duration too short for periodic sampling)",
+          "measurement_duration_ms": 108.7709
         },
         "profiler": {
           "in_memory_isolation": true,
@@ -777,7 +792,10 @@
           "avg_cpu_percent": 0.0,
           "sample_count": 1,
           "multi_core_engaged": false,
-          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core"
+          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
+          "cpu_measurement_valid": false,
+          "invalid_reason": "insufficient_samples (1 < 4 samples collected; duration too short for periodic sampling)",
+          "measurement_duration_ms": 163.9538
         },
         "profiler": {
           "in_memory_isolation": true,
@@ -892,7 +910,10 @@
           "avg_cpu_percent": 0.0,
           "sample_count": 1,
           "multi_core_engaged": false,
-          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core"
+          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
+          "cpu_measurement_valid": false,
+          "invalid_reason": "insufficient_samples (1 < 4 samples collected; duration too short for periodic sampling)",
+          "measurement_duration_ms": 138.4862
         },
         "profiler": {
           "in_memory_isolation": true,
@@ -1015,7 +1036,10 @@
           "avg_cpu_percent": 0.0,
           "sample_count": 1,
           "multi_core_engaged": false,
-          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core"
+          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
+          "cpu_measurement_valid": false,
+          "invalid_reason": "insufficient_samples (1 < 4 samples collected; duration too short for periodic sampling)",
+          "measurement_duration_ms": 127.9402
         },
         "profiler": {
           "corpus_path": "/Users/runner/work/dupe/dupe/benchmarks/corpora/C1",
@@ -1139,7 +1163,10 @@
           "avg_cpu_percent": 0.0,
           "sample_count": 1,
           "multi_core_engaged": false,
-          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core"
+          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
+          "cpu_measurement_valid": false,
+          "invalid_reason": "insufficient_samples (1 < 4 samples collected; duration too short for periodic sampling)",
+          "measurement_duration_ms": 186.4231
         },
         "profiler": {
           "corpus_path": "/Users/runner/work/dupe/dupe/benchmarks/corpora/C2",
@@ -1263,7 +1290,10 @@
           "avg_cpu_percent": 8.9,
           "sample_count": 3,
           "multi_core_engaged": false,
-          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core"
+          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
+          "cpu_measurement_valid": false,
+          "invalid_reason": "insufficient_samples (3 < 4 samples collected; duration too short for periodic sampling)",
+          "measurement_duration_ms": 247.7844
         },
         "profiler": {
           "corpus_path": "/Users/runner/work/dupe/dupe/benchmarks/corpora/C4",
@@ -1387,7 +1417,10 @@
           "avg_cpu_percent": 0.0,
           "sample_count": 1,
           "multi_core_engaged": false,
-          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core"
+          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
+          "cpu_measurement_valid": false,
+          "invalid_reason": "insufficient_samples (1 < 4 samples collected; duration too short for periodic sampling)",
+          "measurement_duration_ms": 186.2237
         },
         "profiler": {
           "corpus_path": "/Users/runner/work/dupe/dupe/benchmarks/corpora/C5",
@@ -1511,7 +1544,10 @@
           "avg_cpu_percent": 0.0,
           "sample_count": 1,
           "multi_core_engaged": false,
-          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core"
+          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
+          "cpu_measurement_valid": false,
+          "invalid_reason": "insufficient_samples (1 < 4 samples collected; duration too short for periodic sampling)",
+          "measurement_duration_ms": 256.8974
         },
         "profiler": {
           "corpus_path": "/Users/runner/work/dupe/dupe/benchmarks/corpora/C6",
@@ -1635,7 +1671,10 @@
           "avg_cpu_percent": 0.0,
           "sample_count": 3,
           "multi_core_engaged": false,
-          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core"
+          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
+          "cpu_measurement_valid": false,
+          "invalid_reason": "insufficient_samples (3 < 4 samples collected; duration too short for periodic sampling)",
+          "measurement_duration_ms": 213.1389
         },
         "profiler": {
           "corpus_path": "/Users/runner/work/dupe/dupe/benchmarks/corpora/C7",
@@ -1760,7 +1799,10 @@
           "avg_cpu_percent": 64.4,
           "sample_count": 24,
           "multi_core_engaged": false,
-          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core"
+          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
+          "cpu_measurement_valid": true,
+          "invalid_reason": null,
+          "measurement_duration_ms": 2378.1592
         },
         "profiler": {
           "corpus_id": "C1",
@@ -1887,7 +1929,10 @@
           "avg_cpu_percent": 7.7,
           "sample_count": 2,
           "multi_core_engaged": false,
-          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core"
+          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
+          "cpu_measurement_valid": false,
+          "invalid_reason": "insufficient_samples (2 < 4 samples collected; duration too short for periodic sampling)",
+          "measurement_duration_ms": 302.7968
         },
         "profiler": {
           "corpus_id": "C2",
@@ -2014,7 +2059,10 @@
           "avg_cpu_percent": 0.0,
           "sample_count": 1,
           "multi_core_engaged": false,
-          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core"
+          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
+          "cpu_measurement_valid": false,
+          "invalid_reason": "insufficient_samples (1 < 4 samples collected; duration too short for periodic sampling)",
+          "measurement_duration_ms": 287.7021
         },
         "profiler": {
           "corpus_id": "C4",
@@ -2141,7 +2189,10 @@
           "avg_cpu_percent": 41.8,
           "sample_count": 5,
           "multi_core_engaged": false,
-          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core"
+          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
+          "cpu_measurement_valid": true,
+          "invalid_reason": null,
+          "measurement_duration_ms": 361.87
         },
         "profiler": {
           "corpus_id": "C5",
@@ -2268,7 +2319,10 @@
           "avg_cpu_percent": 5.2,
           "sample_count": 2,
           "multi_core_engaged": false,
-          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core"
+          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
+          "cpu_measurement_valid": false,
+          "invalid_reason": "insufficient_samples (2 < 4 samples collected; duration too short for periodic sampling)",
+          "measurement_duration_ms": 248.9669
         },
         "profiler": {
           "corpus_id": "C6",
@@ -2395,7 +2449,10 @@
           "avg_cpu_percent": 0.0,
           "sample_count": 2,
           "multi_core_engaged": false,
-          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core"
+          "measurement_method": "Periodic sampling of process CPU (%cpu via ps); 100% represents one fully utilized core",
+          "cpu_measurement_valid": false,
+          "invalid_reason": "insufficient_samples (2 < 4 samples collected; duration too short for periodic sampling)",
+          "measurement_duration_ms": 360.5819
         },
         "profiler": {
           "corpus_id": "C7",
@@ -2430,7 +2487,19 @@
       "t_group_ms": 141.11,
       "t_total_ms": 2267.51,
       "dominant_stage": "Size Filter (O(N^2))",
-      "measurement_type": "APPROXIMATION via standalone cumulative stage probes"
+      "measurement_type": "APPROXIMATION via standalone cumulative stage probes",
+      "raw_cumulative_ms": {
+        "discovery": 89.64,
+        "filter_cumulative": 2077.96,
+        "read_hash_cumulative": 2126.4,
+        "group_cumulative": 2267.51
+      },
+      "stage_validity": {
+        "discovery": "valid",
+        "filter": "valid",
+        "read_hash": "valid",
+        "group": "valid"
+      }
     },
     {
       "corpus_id": "C2",
@@ -2443,7 +2512,19 @@
       "t_group_ms": 5.14,
       "t_total_ms": 318.06,
       "dominant_stage": "Read & Hash",
-      "measurement_type": "APPROXIMATION via standalone cumulative stage probes"
+      "measurement_type": "APPROXIMATION via standalone cumulative stage probes",
+      "raw_cumulative_ms": {
+        "discovery": 105.58,
+        "filter_cumulative": 183.64,
+        "read_hash_cumulative": 312.92,
+        "group_cumulative": 318.06
+      },
+      "stage_validity": {
+        "discovery": "valid",
+        "filter": "valid",
+        "read_hash": "valid",
+        "group": "near_noise_floor"
+      }
     },
     {
       "corpus_id": "C4",
@@ -2456,7 +2537,19 @@
       "t_group_ms": 11.29,
       "t_total_ms": 256.47,
       "dominant_stage": "Size Filter (O(N^2))",
-      "measurement_type": "APPROXIMATION via standalone cumulative stage probes"
+      "measurement_type": "APPROXIMATION via standalone cumulative stage probes",
+      "raw_cumulative_ms": {
+        "discovery": 64.42,
+        "filter_cumulative": 180.15,
+        "read_hash_cumulative": 245.18,
+        "group_cumulative": 256.47
+      },
+      "stage_validity": {
+        "discovery": "valid",
+        "filter": "valid",
+        "read_hash": "valid",
+        "group": "valid"
+      }
     },
     {
       "corpus_id": "C5",
@@ -2469,7 +2562,19 @@
       "t_group_ms": 136.33,
       "t_total_ms": 339.99,
       "dominant_stage": "Group Duplicates",
-      "measurement_type": "APPROXIMATION via standalone cumulative stage probes"
+      "measurement_type": "APPROXIMATION via standalone cumulative stage probes",
+      "raw_cumulative_ms": {
+        "discovery": 127.33,
+        "filter_cumulative": 179.64,
+        "read_hash_cumulative": 203.66,
+        "group_cumulative": 339.99
+      },
+      "stage_validity": {
+        "discovery": "valid",
+        "filter": "valid",
+        "read_hash": "valid",
+        "group": "valid"
+      }
     },
     {
       "corpus_id": "C6",
@@ -2479,10 +2584,22 @@
       "t_discovery_ms": 143.36,
       "t_filter_ms": 135.41,
       "t_read_hash_ms": 94.92,
-      "t_group_ms": 0.0,
+      "t_group_ms": null,
       "t_total_ms": 339.18,
       "dominant_stage": "Discovery",
-      "measurement_type": "APPROXIMATION via standalone cumulative stage probes"
+      "measurement_type": "APPROXIMATION via standalone cumulative stage probes",
+      "raw_cumulative_ms": {
+        "discovery": 143.36,
+        "filter_cumulative": 278.77,
+        "read_hash_cumulative": 373.69,
+        "group_cumulative": 339.18
+      },
+      "stage_validity": {
+        "discovery": "valid",
+        "filter": "valid",
+        "read_hash": "valid",
+        "group": "below_noise_floor"
+      }
     },
     {
       "corpus_id": "C7",
@@ -2491,11 +2608,23 @@
       "candidate_count": 30,
       "t_discovery_ms": 129.31,
       "t_filter_ms": 183.57,
-      "t_read_hash_ms": 0.0,
+      "t_read_hash_ms": null,
       "t_group_ms": 27.97,
       "t_total_ms": 337.0,
       "dominant_stage": "Size Filter (O(N^2))",
-      "measurement_type": "APPROXIMATION via standalone cumulative stage probes"
+      "measurement_type": "APPROXIMATION via standalone cumulative stage probes",
+      "raw_cumulative_ms": {
+        "discovery": 129.31,
+        "filter_cumulative": 312.88,
+        "read_hash_cumulative": 309.03,
+        "group_cumulative": 337.0
+      },
+      "stage_validity": {
+        "discovery": "valid",
+        "filter": "valid",
+        "read_hash": "below_noise_floor",
+        "group": "valid"
+      }
     }
   ],
   "research_answers": [

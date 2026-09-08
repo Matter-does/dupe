@@ -23,10 +23,13 @@ Overall Task Classification: **CATEGORY C** (Native compilation effect only; no 
 
 | Level | Description | Status | Classification | Native vs Interp | Cand vs Serial | Multi-Core Engaged |
 |---|---|---|---|---|---|---|
-| **T006-A** | Pure Computational Reduction (100K, 2M, 5M) | PASS | **CATEGORY C** (Grade A) | 0.78x–1.14x | 12.5x–145.0x | NO (<105%) |
-| **T006-B** | Pure In-Memory Hashing (10KB–12.8MB) | PASS | **CATEGORY D** (Grade A) | N/A | 0.59x–1.09x | NO (<105%) |
-| **T006-C** | Filesystem Read + Hash (C1–C7) | PASS | **CATEGORY D** (Grade A) | N/A | 0.75x–1.13x | NO (<105%) |
-| **T006-D** | Full dupe Pipeline (C1–C7) | PASS | **CATEGORY C** (Grade A) | 0.87x–1.45x | N/A | NO (<105%) |
+| **T006-A** | Pure Computational Reduction (100K, 2M, 5M) | PASS | **CATEGORY E** (Grade C)* | 0.78x–1.14x | 12.5x–145.0x | INSUFFICIENT SAMPLES (<4) |
+| **T006-B** | Pure In-Memory Hashing (10KB–12.8MB) | PASS | **CATEGORY D** (Grade A) | N/A | 0.59x–1.09x | INSUFFICIENT SAMPLES (<4) |
+| **T006-C** | Filesystem Read + Hash (C1–C7) | PASS | **CATEGORY D** (Grade A) | N/A | 0.75x–1.13x | INSUFFICIENT SAMPLES (<4) |
+| **T006-D** | Full dupe Pipeline (C1–C7) | PASS | **CATEGORY C** (Grade A)† | 0.87x–1.45x | N/A | NO (<105% on C1/C5) |
+
+> \* **T006-A Confounding Note:** T006-A candidate-vs-serial speedup (12.5x–145.0x) is driven by J2's built-in `sum()` runtime iterator fold optimization in native Rust versus a dynamic interpreted J2 loop with loop-carried variable reassignment, rather than automatic parallelism. Native candidate was not consistently faster than interpreter (0.78x–1.14x).  
+> † **T006-D Variance Note:** 2 of 6 corpora exhibited native compilation advantage (C2: 1.15x, C6: 1.45x; Category C), while 4 of 6 exhibited no significant benefit or slight slowdown (C1: 1.00x, C4: 0.87x, C5: 0.95x, C7: 0.87x; Category D). Average native speedup across all Level D corpora was 1.05x.
 
 ---
 
@@ -39,7 +42,7 @@ Overall Task Classification: **CATEGORY C** (Native compilation effect only; no 
    - *Limitations:* Based on pattern search for standard concurrency primitives in emitted backend source; does not inspect internal compiler IR before emission.
 
 2. **Did execution become measurably faster in compiled native mode?**
-   - *Answer:* Yes. Compiled native execution was faster in compute-intensive workloads (up to 1.45x in C6, 1.15x in C2, and 1.36x on Baseline C), attributable to machine-code generation and eliminating interpreter dispatch rather than multi-threaded parallelism.
+   - *Answer:* Yes. Compiled native execution was faster in compute-intensive workloads (up to 1.45x in C6 and 1.15x in C2, with an average native speedup of 1.05x across tested workloads). However, this advantage is attributable to machine-code compilation and reduced interpreter dispatch overhead rather than multi-threaded parallelism.
    - *Evidence Grade:* **A**
    - *Supporting Artifact:* Empirical wall-clock timing comparisons across Level A, B, C, and D workloads
    - *Limitations:* Wall-clock timing includes process startup and memory initialization.
@@ -51,7 +54,7 @@ Overall Task Classification: **CATEGORY C** (Native compilation effect only; no 
    - *Limitations:* Conducted in controlled CI environment; background runner noise kept minimal.
 
 4. **Which specific operational phase (discovery, read, hash, grouping/output) exhibited performance variance?**
-   - *Answer:* Under the standalone cumulative stage-probe model, performance variance across corpus types was concentrated in **Size Filter ($O(N^2)$)** in large-file corpora (e.g. C1: approximately 88% of total probe time, 1,988.3 ms out of 2,267.5 ms total), and in **Read & Hash** in candidate-dense corpora (e.g. C2: approximately 41% of probe time).
+   - *Answer:* Under the standalone cumulative stage-probe model, performance variance across corpus types was concentrated in **Size Filter ($O(N^2)$)** in large-file corpora (e.g. C1: approximately 88% of total probe time, 1,988.3 ms out of 2,267.5 ms total), and in **Read & Hash** in candidate-dense corpora (e.g. C2: approximately 41% of probe time). Individual micro-stage durations below the ~10 ms process invocation noise floor (e.g. read/hash in C7 or grouping in C6) cannot be reliably separated without internal runtime instrumentation and are reported as unavailable rather than 0.0 ms.
    - *Evidence Grade:* **B**
    - *Supporting Artifact:* Standalone stage microbenchmark probes (`benchmarks/t006/stage_*.j2`)
    - *Limitations:* Sub-stage timings estimated via standalone cumulative stage probes rather than internal production instrumentation.

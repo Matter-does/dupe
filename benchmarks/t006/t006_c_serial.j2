@@ -33,17 +33,16 @@ func list_files_flat(dir) = {
 
 files = list_files_flat(root)
 
-# Sequential hot loop with loop-carried dependency
+# Sequential hot loop with genuinely data-dependent loop-carried dependency
 digests := []
-prev_len := 0
+prev_hash := "0000000000000000000000000000000000000000000000000000000000000000"
 for p in files {
     bytes = fs.read_bytes(p)
-    if len(bytes) > 0 {
-        # Loop-carried dependency: first byte depends on output of previous iteration
-        bytes[0] = (bytes[0] + prev_len) % 256
-    }
-    d = hash.sha256(bytes)
-    prev_len = len(d)
+    file_digest = hash.sha256(bytes)
+    # Loop-carried dependency: hash current file digest chained with previous iteration's hash digest
+    chained = fmt("{}:{}", prev_hash, file_digest)
+    d = hash.sha256(chained)
+    prev_hash = d
     digests = digests + [d]
 }
 
