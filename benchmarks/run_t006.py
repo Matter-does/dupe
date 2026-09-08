@@ -458,7 +458,13 @@ def generate_offline_mock_report(
                 workload_level="C",
                 source_file="benchmarks/t006/t006_c_candidate.j2",
                 source_sha256="mock_sha_c",
-                workload_parameters={"corpus_id": cid},
+                workload_parameters={
+                    "corpus_id": cid,
+                    "candidate_source_sha256": "mock_sha_c",
+                    "serial_source_sha256": "mock_sha_c_serial",
+                    "git_commit": provenance.git_commit,
+                    "timestamp": provenance.timestamp_utc,
+                },
                 interpreter_measurement=None,
                 native_candidate_measurement=BaselineMeasurement(
                     "Baseline_B", "Native Candidate", [], {}, calculate_timing_statistics([44.0, 45.0, 46.0, 45.0, 45.0], 2), "hash", True
@@ -473,6 +479,10 @@ def generate_offline_mock_report(
                 evidence_grade="A",
                 classification="CATEGORY C",
                 limitations=["Offline mock simulation for testing."],
+                candidate_source_sha256="mock_sha_c",
+                serial_source_sha256="mock_sha_c_serial",
+                git_commit=provenance.git_commit,
+                timestamp=provenance.timestamp_utc,
             )
         )
 

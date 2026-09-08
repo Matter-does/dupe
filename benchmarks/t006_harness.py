@@ -57,6 +57,7 @@ from benchmarks.harness import (
     calculate_timing_statistics,
     collect_platform_provenance,
     extract_workload_metrics,
+    get_git_commit,
     normalize_dupe_output_paths,
 )
 
@@ -135,6 +136,10 @@ class T006ExperimentResult:
     evidence_grade: str         # "A", "B", "C", "D", "E"
     classification: str         # "CATEGORY A".."CATEGORY E"
     limitations: list[str]
+    candidate_source_sha256: Optional[str] = None
+    serial_source_sha256: Optional[str] = None
+    git_commit: Optional[str] = None
+    timestamp: Optional[str] = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -371,9 +376,12 @@ def execute_with_cpu_monitoring(
         return res, cpu_evidence
 
     except subprocess.TimeoutExpired as exc:
+        stdout, stderr = "", ""
         try:
             proc.kill()
-            proc.communicate()
+            out_raw, err_raw = proc.communicate()
+            stdout = out_raw if isinstance(out_raw, str) else (out_raw.decode(errors="replace") if out_raw else "")
+            stderr = err_raw if isinstance(err_raw, str) else (err_raw.decode(errors="replace") if err_raw else "")
         except Exception:
             pass
         t_end = time.perf_counter_ns()
@@ -382,16 +390,16 @@ def execute_with_cpu_monitoring(
             RunExecutionResult(
                 returncode=-1,
                 wall_time_ms=duration_ms,
-                stdout="",
-                stderr="",
+                stdout=stdout,
+                stderr=stderr,
                 error=f"TimeoutExpired after {timeout_s}s",
             ),
             CpuUtilizationEvidence(
-                mean_percent=0.0,
-                max_percent=0.0,
+                max_cpu_percent=0.0,
+                avg_cpu_percent=0.0,
                 sample_count=0,
                 multi_core_engaged=False,
-                monitoring_method="Process timed out",
+                measurement_method="Process timed out",
                 cpu_measurement_valid=False,
                 invalid_reason="process_timed_out",
                 measurement_duration_ms=round(duration_ms, 2),
@@ -408,7 +416,16 @@ def execute_with_cpu_monitoring(
                 stderr=str(exc),
                 error=f"Execution error: {exc}",
             ),
-            CpuUtilizationEvidence(0.0, 0.0, 0, False, f"Error: {exc}"),
+            CpuUtilizationEvidence(
+                max_cpu_percent=0.0,
+                avg_cpu_percent=0.0,
+                sample_count=0,
+                multi_core_engaged=False,
+                measurement_method=f"Error: {exc}",
+                cpu_measurement_valid=False,
+                invalid_reason="execution_error",
+                measurement_duration_ms=round(duration_ms, 2),
+            ),
         )
 
 
@@ -492,11 +509,11 @@ class T006ExperimentHarness:
             for _ in range(warmup_runs):
                 res_w, _ = execute_with_cpu_monitoring(interp_cmd, timeout_s=self.timeout_s)
                 if res_w.returncode != 0:
-                    raise RuntimeError(f"Level A interpreter warmup failed for n={n} (code {res_w.returncode}): {res_w.stderr}")
+                    raise RuntimeError(f"Level A interpreter warmup failed for n={n} (code {res_w.returncode}): {res_w.error or res_w.stderr}")
             for _ in range(measured_runs):
                 res, _ = execute_with_cpu_monitoring(interp_cmd, timeout_s=self.timeout_s)
                 if res.returncode != 0:
-                    raise RuntimeError(f"Level A interpreter failed for n={n} (code {res.returncode}): {res.stderr}")
+                    raise RuntimeError(f"Level A interpreter failed for n={n} (code {res.returncode}): {res.error or res.stderr}")
                 if res.stdout.strip() != ground_truth:
                     raise RuntimeError(f"Level A interpreter output mismatch for n={n}: expected {ground_truth}, got {res.stdout.strip()}")
                 interp_times.append(res.wall_time_ms)
@@ -521,11 +538,11 @@ class T006ExperimentHarness:
             for _ in range(warmup_runs):
                 res_w, _ = execute_with_cpu_monitoring(native_cmd, timeout_s=self.timeout_s)
                 if res_w.returncode != 0:
-                    raise RuntimeError(f"Level A native candidate warmup failed for n={n} (code {res_w.returncode}): {res_w.stderr}")
+                    raise RuntimeError(f"Level A native candidate warmup failed for n={n} (code {res_w.returncode}): {res_w.error or res_w.stderr}")
             for _ in range(measured_runs):
                 res, cpu = execute_with_cpu_monitoring(native_cmd, timeout_s=self.timeout_s)
                 if res.returncode != 0:
-                    raise RuntimeError(f"Level A native candidate failed for n={n} (code {res.returncode}): {res.stderr}")
+                    raise RuntimeError(f"Level A native candidate failed for n={n} (code {res.returncode}): {res.error or res.stderr}")
                 if res.stdout.strip() != ground_truth:
                     raise RuntimeError(f"Level A native candidate output mismatch for n={n}: expected {ground_truth}, got {res.stdout.strip()}")
                 native_times.append(res.wall_time_ms)
@@ -550,11 +567,11 @@ class T006ExperimentHarness:
             for _ in range(warmup_runs):
                 res_w, _ = execute_with_cpu_monitoring(serial_cmd, timeout_s=self.timeout_s)
                 if res_w.returncode != 0:
-                    raise RuntimeError(f"Level A native serial control warmup failed for n={n} (code {res_w.returncode}): {res_w.stderr}")
+                    raise RuntimeError(f"Level A native serial control warmup failed for n={n} (code {res_w.returncode}): {res_w.error or res_w.stderr}")
             for _ in range(measured_runs):
                 res, _ = execute_with_cpu_monitoring(serial_cmd, timeout_s=self.timeout_s)
                 if res.returncode != 0:
-                    raise RuntimeError(f"Level A native serial control failed for n={n} (code {res.returncode}): {res.stderr}")
+                    raise RuntimeError(f"Level A native serial control failed for n={n} (code {res.returncode}): {res.error or res.stderr}")
                 if res.stdout.strip() != ground_truth:
                     raise RuntimeError(f"Level A native serial control output mismatch for n={n}: expected {ground_truth}, got {res.stdout.strip()}")
                 serial_times.append(res.wall_time_ms)
@@ -594,6 +611,11 @@ class T006ExperimentHarness:
                 },
             )
 
+            cand_sha = compiler_cand.source_sha256
+            serial_sha = hashlib.sha256(serial_src.read_bytes()).hexdigest()
+            cur_commit = get_git_commit()
+            cur_ts = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
             results.append(
                 T006ExperimentResult(
                     experiment_id="T006-A",
@@ -601,8 +623,15 @@ class T006ExperimentHarness:
                     workload_name=f"Pure Computational Reduction (N={n:,})",
                     workload_level="A",
                     source_file=str(cand_src),
-                    source_sha256=compiler_cand.source_sha256,
-                    workload_parameters={"n": n, "ground_truth": ground_truth},
+                    source_sha256=cand_sha,
+                    workload_parameters={
+                        "n": n,
+                        "ground_truth": ground_truth,
+                        "candidate_source_sha256": cand_sha,
+                        "serial_source_sha256": serial_sha,
+                        "git_commit": cur_commit,
+                        "timestamp": cur_ts,
+                    },
                     interpreter_measurement=meas_interp,
                     native_candidate_measurement=meas_native,
                     native_serial_measurement=meas_serial,
@@ -617,6 +646,10 @@ class T006ExperimentHarness:
                         "Serial control uses loop-carried accumulator dependency.",
                         "Candidate vs serial control speedup is driven by builtin sum() reduction optimization in J2 runtime rather than multi-threaded automatic parallelism.",
                     ],
+                    candidate_source_sha256=cand_sha,
+                    serial_source_sha256=serial_sha,
+                    git_commit=cur_commit,
+                    timestamp=cur_ts,
                 )
             )
 
@@ -653,11 +686,11 @@ class T006ExperimentHarness:
             for _ in range(warmup_runs):
                 res_w, _ = execute_with_cpu_monitoring(native_cmd, timeout_s=self.timeout_s)
                 if res_w.returncode != 0:
-                    raise RuntimeError(f"Level B native candidate warmup failed (code {res_w.returncode}): {res_w.stderr}")
+                    raise RuntimeError(f"Level B native candidate warmup failed (code {res_w.returncode}): {res_w.error or res_w.stderr}")
             for _ in range(measured_runs):
                 res, cpu = execute_with_cpu_monitoring(native_cmd, timeout_s=self.timeout_s)
                 if res.returncode != 0:
-                    raise RuntimeError(f"Level B native candidate failed (code {res.returncode}): {res.stderr}")
+                    raise RuntimeError(f"Level B native candidate failed (code {res.returncode}): {res.error or res.stderr}")
                 if len(res.stdout.strip()) != 64:
                     raise RuntimeError(f"Level B native candidate invalid output: expected 64-char hex digest, got {res.stdout.strip()}")
                 native_times.append(res.wall_time_ms)
@@ -682,11 +715,11 @@ class T006ExperimentHarness:
             for _ in range(warmup_runs):
                 res_w, _ = execute_with_cpu_monitoring(serial_cmd, timeout_s=self.timeout_s)
                 if res_w.returncode != 0:
-                    raise RuntimeError(f"Level B native serial control warmup failed (code {res_w.returncode}): {res_w.stderr}")
+                    raise RuntimeError(f"Level B native serial control warmup failed (code {res_w.returncode}): {res_w.error or res_w.stderr}")
             for _ in range(measured_runs):
                 res, _ = execute_with_cpu_monitoring(serial_cmd, timeout_s=self.timeout_s)
                 if res.returncode != 0:
-                    raise RuntimeError(f"Level B native serial control failed (code {res.returncode}): {res.stderr}")
+                    raise RuntimeError(f"Level B native serial control failed (code {res.returncode}): {res.error or res.stderr}")
                 if len(res.stdout.strip()) != 64:
                     raise RuntimeError(f"Level B native serial control invalid output: expected 64-char hex digest, got {res.stdout.strip()}")
                 serial_times.append(res.wall_time_ms)
@@ -723,6 +756,11 @@ class T006ExperimentHarness:
                 },
             )
 
+            cand_sha = compiler_cand.source_sha256
+            serial_sha = hashlib.sha256(serial_src.read_bytes()).hexdigest()
+            cur_commit = get_git_commit()
+            cur_ts = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
             results.append(
                 T006ExperimentResult(
                     experiment_id="T006-B",
@@ -730,8 +768,16 @@ class T006ExperimentHarness:
                     workload_name=f"In-Memory Hashing ({num_bufs} buffers of {buf_size} B, {total_bytes / 1024:.1f} KB total)",
                     workload_level="B",
                     source_file=str(cand_src),
-                    source_sha256=compiler_cand.source_sha256,
-                    workload_parameters={"num_buffers": num_bufs, "buffer_size": buf_size, "total_bytes": total_bytes},
+                    source_sha256=cand_sha,
+                    workload_parameters={
+                        "num_buffers": num_bufs,
+                        "buffer_size": buf_size,
+                        "total_bytes": total_bytes,
+                        "candidate_source_sha256": cand_sha,
+                        "serial_source_sha256": serial_sha,
+                        "git_commit": cur_commit,
+                        "timestamp": cur_ts,
+                    },
                     interpreter_measurement=None,
                     native_candidate_measurement=meas_native,
                     native_serial_measurement=meas_serial,
@@ -745,6 +791,10 @@ class T006ExperimentHarness:
                         "Pre-allocates buffers in memory; isolates hashing CPU compute from filesystem latency.",
                         "No automatic parallel speedup was observed for the tested in-memory SHA-256 loop formulations under J2 0.1.0.",
                     ],
+                    candidate_source_sha256=cand_sha,
+                    serial_source_sha256=serial_sha,
+                    git_commit=cur_commit,
+                    timestamp=cur_ts,
                 )
             )
 
@@ -787,11 +837,11 @@ class T006ExperimentHarness:
             for _ in range(warmup_runs):
                 res_w, _ = execute_with_cpu_monitoring(native_cmd, env=native_env, timeout_s=self.timeout_s)
                 if res_w.returncode != 0:
-                    raise RuntimeError(f"Level C candidate warmup failed on {cid} (code {res_w.returncode}): {res_w.stderr}")
+                    raise RuntimeError(f"Level C candidate warmup failed on {cid} (code {res_w.returncode}): {res_w.error or res_w.stderr}")
             for _ in range(measured_runs):
                 res, cpu = execute_with_cpu_monitoring(native_cmd, env=native_env, timeout_s=self.timeout_s)
                 if res.returncode != 0:
-                    raise RuntimeError(f"Level C candidate failed on {cid} (code {res.returncode}): {res.stderr}")
+                    raise RuntimeError(f"Level C candidate failed on {cid} (code {res.returncode}): {res.error or res.stderr}")
                 if len(res.stdout.strip()) != 64:
                     raise RuntimeError(f"Level C candidate output invalid on {cid}: expected 64-char hex digest, got: {res.stdout}")
                 native_times.append(res.wall_time_ms)
@@ -816,11 +866,11 @@ class T006ExperimentHarness:
             for _ in range(warmup_runs):
                 res_w, _ = execute_with_cpu_monitoring(serial_cmd, env=native_env, timeout_s=self.timeout_s)
                 if res_w.returncode != 0:
-                    raise RuntimeError(f"Level C serial control warmup failed on {cid} (code {res_w.returncode}): {res_w.stderr}")
+                    raise RuntimeError(f"Level C serial control warmup failed on {cid} (code {res_w.returncode}): {res_w.error or res_w.stderr}")
             for _ in range(measured_runs):
                 res, _ = execute_with_cpu_monitoring(serial_cmd, env=native_env, timeout_s=self.timeout_s)
                 if res.returncode != 0:
-                    raise RuntimeError(f"Level C serial control failed on {cid} (code {res.returncode}): {res.stderr}")
+                    raise RuntimeError(f"Level C serial control failed on {cid} (code {res.returncode}): {res.error or res.stderr}")
                 if len(res.stdout.strip()) != 64:
                     raise RuntimeError(f"Level C serial control output invalid on {cid}: expected 64-char hex digest, got: {res.stdout}")
                 serial_times.append(res.wall_time_ms)
@@ -857,6 +907,11 @@ class T006ExperimentHarness:
                 },
             )
 
+            cand_sha = compiler_cand.source_sha256
+            serial_sha = hashlib.sha256(serial_src.read_bytes()).hexdigest()
+            cur_commit = get_git_commit()
+            cur_ts = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
             results.append(
                 T006ExperimentResult(
                     experiment_id="T006-C",
@@ -864,7 +919,7 @@ class T006ExperimentHarness:
                     workload_name=f"Filesystem Read + Hash on Corpus {cid}",
                     workload_level="C",
                     source_file=str(cand_src),
-                    source_sha256=compiler_cand.source_sha256,
+                    source_sha256=cand_sha,
                     workload_parameters={
                         "corpus_id": cid,
                         "profile": prof_name,
@@ -875,6 +930,10 @@ class T006ExperimentHarness:
                         "candidate_count": int(manifest_data.get("same_size_candidate_files", 0)),
                         "total_bytes": int(manifest_data.get("total_bytes", 0)),
                         "corpus_path": str(c_dir),
+                        "candidate_source_sha256": cand_sha,
+                        "serial_source_sha256": serial_sha,
+                        "git_commit": cur_commit,
+                        "timestamp": cur_ts,
                     },
                     interpreter_measurement=None,
                     native_candidate_measurement=meas_native,
@@ -890,6 +949,10 @@ class T006ExperimentHarness:
                         "Executed under warm-state repeated runs; consistent with page-cache effects reducing storage wait without privileged kernel cache eviction.",
                         "No sustained multi-core CPU utilization or measurable native serial-equivalent advantage was observed for the tested filesystem read+hash formulations.",
                     ],
+                    candidate_source_sha256=cand_sha,
+                    serial_source_sha256=serial_sha,
+                    git_commit=cur_commit,
+                    timestamp=cur_ts,
                 )
             )
 
@@ -941,11 +1004,11 @@ class T006ExperimentHarness:
                     for _ in range(warmup_runs):
                         res_w, _ = execute_with_cpu_monitoring(cmd, env=native_env, timeout_s=self.timeout_s)
                         if res_w.returncode != 0:
-                            raise RuntimeError(f"Stage probe warmup {b_path.name} failed on {cid} (code {res_w.returncode}): {res_w.stderr}")
+                            raise RuntimeError(f"Stage probe warmup {b_path.name} failed on {cid} (code {res_w.returncode}): {res_w.error or res_w.stderr}")
                     for _ in range(measured_runs):
                         res, _ = execute_with_cpu_monitoring(cmd, env=native_env, timeout_s=self.timeout_s)
                         if res.returncode != 0:
-                            raise RuntimeError(f"Stage probe {b_path.name} failed on {cid} (code {res.returncode}): {res.stderr}")
+                            raise RuntimeError(f"Stage probe {b_path.name} failed on {cid} (code {res.returncode}): {res.error or res.stderr}")
                         times.append(res.wall_time_ms)
                     return statistics.median(times) if times else 0.0
 
@@ -1065,11 +1128,11 @@ class T006ExperimentHarness:
                 for _ in range(warmup_runs):
                     res_w, _ = execute_with_cpu_monitoring(interp_cmd, timeout_s=self.timeout_s)
                     if res_w.returncode != 0:
-                        raise RuntimeError(f"Baseline A (interpreter) warmup failed on {cid} (code {res_w.returncode}): {res_w.stderr}")
+                        raise RuntimeError(f"Baseline A (interpreter) warmup failed on {cid} (code {res_w.returncode}): {res_w.error or res_w.stderr}")
                 for _ in range(measured_runs):
                     res, _ = execute_with_cpu_monitoring(interp_cmd, timeout_s=self.timeout_s)
                     if res.returncode != 0:
-                        raise RuntimeError(f"Baseline A (interpreter) failed on {cid} (code {res.returncode}): {res.stderr}")
+                        raise RuntimeError(f"Baseline A (interpreter) failed on {cid} (code {res.returncode}): {res.error or res.stderr}")
                     interp_times.append(res.wall_time_ms)
                     interp_out = res.stdout
                     last_interp_res = res
@@ -1105,11 +1168,11 @@ class T006ExperimentHarness:
                 for _ in range(warmup_runs):
                     res_w, _ = execute_with_cpu_monitoring(native_cmd, env=native_env, timeout_s=self.timeout_s)
                     if res_w.returncode != 0:
-                        raise RuntimeError(f"Baseline B (native) warmup failed on {cid} (code {res_w.returncode}): {res_w.stderr}")
+                        raise RuntimeError(f"Baseline B (native) warmup failed on {cid} (code {res_w.returncode}): {res_w.error or res_w.stderr}")
                 for _ in range(measured_runs):
                     res, cpu = execute_with_cpu_monitoring(native_cmd, env=native_env, timeout_s=self.timeout_s)
                     if res.returncode != 0:
-                        raise RuntimeError(f"Baseline B (native) failed on {cid} (code {res.returncode}): {res.stderr}")
+                        raise RuntimeError(f"Baseline B (native) failed on {cid} (code {res.returncode}): {res.error or res.stderr}")
                     native_times.append(res.wall_time_ms)
                     native_out = res.stdout
                     last_cpu_cand = cpu
@@ -1159,6 +1222,10 @@ class T006ExperimentHarness:
                     },
                 )
 
+                cand_sha = compiler_dupe.source_sha256
+                cur_commit = get_git_commit()
+                cur_ts = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
                 results.append(
                     T006ExperimentResult(
                         experiment_id="T006-D",
@@ -1166,7 +1233,7 @@ class T006ExperimentHarness:
                         workload_name=f"Full dupe Pipeline on Corpus {cid}",
                         workload_level="D",
                         source_file=str(main_src),
-                        source_sha256=compiler_dupe.source_sha256,
+                        source_sha256=cand_sha,
                         workload_parameters={
                             "corpus_id": cid,
                             "profile": prof_name,
@@ -1176,6 +1243,10 @@ class T006ExperimentHarness:
                             "file_count": int(manifest_data.get("file_count", 0)),
                             "candidate_count": int(manifest_data.get("same_size_candidate_files", 0)),
                             "total_bytes": int(manifest_data.get("total_bytes", 0)),
+                            "candidate_source_sha256": cand_sha,
+                            "serial_source_sha256": None,
+                            "git_commit": cur_commit,
+                            "timestamp": cur_ts,
                         },
                         interpreter_measurement=meas_interp,
                         native_candidate_measurement=meas_native,
@@ -1191,6 +1262,10 @@ class T006ExperimentHarness:
                             "Serial comparison is against interpreter Baseline A; source-level serial control not applied to production src/*.j2 per immutability policy.",
                             "Native compilation provides workload-dependent speed differences, but these measurements alone do not establish automatic multi-core parallelism.",
                         ],
+                        candidate_source_sha256=cand_sha,
+                        serial_source_sha256=None,
+                        git_commit=cur_commit,
+                        timestamp=cur_ts,
                     )
                 )
             finally:

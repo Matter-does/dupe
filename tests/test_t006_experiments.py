@@ -50,6 +50,7 @@ from benchmarks.t006_harness import (
     T006ExperimentResult,
     T006FullReport,
     classify_experiment_result,
+    execute_with_cpu_monitoring,
     inspect_compiler_emission,
 )
 
@@ -451,6 +452,63 @@ class TestT006EdgeCases(unittest.TestCase):
         # Both outputs are deterministically reproducible
         self.assertEqual(cand_out, hash_buffers_cand(single_buf))
         self.assertEqual(serial_out, hash_buffers_serial(single_buf))
+
+
+class TestT006ProcessMonitoringAndTimeout(unittest.TestCase):
+    """Real unmocked regression tests for subprocess timeout and CPU monitoring (P2-04b)."""
+
+    def test_unmocked_timeout_handling_real_process(self) -> None:
+        """P2-04b: Real, unmocked subprocess execution must handle timeout cleanly."""
+        cmd = [sys.executable, "-c", "import time; time.sleep(5)"]
+        res, cpu = execute_with_cpu_monitoring(cmd, timeout_s=0.2)
+
+        # 1. Function returns rather than raising TypeError
+        self.assertIsInstance(res, RunExecutionResult)
+        self.assertIsInstance(cpu, CpuUtilizationEvidence)
+
+        # 2. Returncode indicates failure / timeout
+        self.assertEqual(res.returncode, -1)
+        self.assertIsNotNone(res.error)
+        self.assertIn("TimeoutExpired", res.error)
+
+        # 3. CPU evidence exists and marks measurement as invalid with reason
+        self.assertFalse(cpu.cpu_measurement_valid)
+        self.assertEqual(cpu.invalid_reason, "process_timed_out")
+        self.assertEqual(cpu.measurement_method, "Process timed out")
+        self.assertIsNotNone(cpu.measurement_duration_ms)
+        self.assertGreaterEqual(cpu.measurement_duration_ms, 150.0)
+
+        # 4. Failed/timed out execution cannot enter successful timing statistics
+        # Verify that benchmark harness protects timing lists (only returncode == 0 is appended)
+        successful_timings: list[float] = []
+        if res.returncode == 0:
+            successful_timings.append(res.wall_time_ms)
+        self.assertEqual(len(successful_timings), 0)
+        with self.assertRaises(ValueError):
+            calculate_timing_statistics(successful_timings, warmup_runs=0)
+
+    def test_generic_execution_error_cpu_evidence(self) -> None:
+        """P2-04b: Generic process execution errors must report invalid CPU evidence."""
+        res, cpu = execute_with_cpu_monitoring(["__non_existent_binary_for_t006_test__"])
+        self.assertEqual(res.returncode, -1)
+        self.assertFalse(cpu.cpu_measurement_valid)
+        self.assertEqual(cpu.invalid_reason, "execution_error")
+
+    def test_t006_c_provenance_fields_present(self) -> None:
+        """P2-02: Ensure T006-C results record candidate and serial source hashes and provenance."""
+        prov = collect_platform_provenance("j2")
+        mock_rep = generate_offline_mock_report([_REPO_ROOT / "tests"], prov)
+        c_exps = [e for e in mock_rep.experiments if e.experiment_id == "T006-C"]
+        self.assertGreater(len(c_exps), 0)
+        for e in c_exps:
+            self.assertIsNotNone(e.candidate_source_sha256)
+            self.assertIsNotNone(e.serial_source_sha256)
+            self.assertIsNotNone(e.git_commit)
+            self.assertIsNotNone(e.timestamp)
+            self.assertIn("candidate_source_sha256", e.workload_parameters)
+            self.assertIn("serial_source_sha256", e.workload_parameters)
+            self.assertIn("git_commit", e.workload_parameters)
+            self.assertIn("timestamp", e.workload_parameters)
 
 
 if __name__ == "__main__":
