@@ -1,73 +1,77 @@
 # Current Task
 
-**Task:** T006 — Automatic Parallelism Experiment and Evidence Collection (Deep-Critic Remediated)  
-**Status:** Remediated & Verified (P2-STALE resolved; ready for independent OpenCode release review)
+**Task:** T007 — Reusable Filesystem Analysis Pass for Checksum Inventory  
+**Status:** Implementation Complete & Locally Verified (Ready for Antigravity Deep-Critic & OpenCode Release Gate)
 
 ## Summary of Implementation & Results
-- **Execution Platform:**
-  - OS / Kernel: Darwin 24.6.0 (arm64 Apple Silicon)
-  - Hardware: 3 vCPUs, 7.0 GB RAM
-  - Toolchain: `j2 0.1.0` (`6fda8338791730cf7937362acd03e29247719e65785458e62988e1789c842e75`)
-  - CI Run: GitHub Actions run `34246767819` (`macos-15`, duration 11m 30s)
-  - Baseline Commit: `ce893b4cc8360df1f963d6d840c7f888ac075320`
 
-- **Overall Scientific Classification:** **CATEGORY C** (Native compilation effect only; no multi-core automatic parallelism observed in J2 0.1.0)
-- **Multi-Core Utilization:** Consistently **NO (<105% process CPU)** across all tested workloads where periodic sampling was statistically valid ($\ge 4$ samples).
-- **Compiler Inspection (`j2 emit-native`):** Emitted backend Rust code utilizes single-threaded thread-local static globals (`thread_local! static GLOBALS`) and standard sequential loops; no multi-threaded runtime primitives (`rayon`, `par_iter`, `thread::spawn`) were detected.
+### 1. Workload Architecture & Discovery Reuse
+- **Module:** `src/checksum.j2` (additive module).
+- **Core Functionality:** Implements the second read-only filesystem intelligence workload: **File Checksum Inventory**.
+- **Discovery Reuse:** Directly calls `discover(root)` from `src/scan.j2`. Reuses the recursive, depth-first directory traversal and safe metadata inspection without duplicating filesystem traversal or metadata collection code.
+- **Processing Kernel:** Iterates over discovered regular file records `[path, size]`, reads raw file bytes with `fs.read_bytes(path)`, computes exact cryptographic hashes with `hash.sha256(bytes)`, and records inventory entries `[path, size, digest]`.
+- **Determinism:** Discovery order is guaranteed deterministic by `scan.j2` sorting child names at every directory level via `sort(fs.list_dir(path))`. Checksum inventory strictly preserves this order.
 
-## Experimental Ladder Summary
+### 2. CLI Contract & Subcommand Dispatch
+- **CLI Surface:**
+  - `dupe <path> [--json]`: Reference exact-duplicate scan (100% frozen Phase 3 behavior preserved).
+  - `dupe checksum <path>`: Checksum inventory human-readable text output.
+  - `dupe checksum <path> --json`: Checksum inventory compact deterministic JSON.
+  - `dupe checksum --json <path>`: Checksum inventory compact deterministic JSON (positional independence for `--json`).
+  - `dupe checksum` / `dupe checksum --json`: Missing path prints usage message.
+- **Dispatch Implementation in `src/main.j2`:**
+  - Added `import "checksum.j2"`.
+  - Added helper `is_checksum_command(args)` which checks `args[1] == "checksum"`.
+  - When `args[1] == "checksum"`, delegates to `run_checksum(args)`.
+  - In all other cases, executes the unchanged reference duplicate-detection pass.
 
-### Level T006-A: Pure J2 Computational Control
-- **Workload:** Reduction `sum(collect(1..n))` (Candidate) vs Accumulator Loop with Loop-Carried Dependency (Serial-Equivalent Native Baseline)
-- **Classification:** **CATEGORY E / Evidence Grade C\*** (Reconciled: Candidate-vs-serial comparison is confounded by J2's built-in `sum()` runtime iterator fold optimization and does not establish automatic parallelism)
-- **Workload Sizes:** N = 100,000, 2,000,000, 5,000,000; boundary tests N = 0, 1, 32767, 32769
-- **Correctness:** 100% VALID mathematical match ($N(N+1)/2$) across all modes
-- **Measured Timings (Median):**
-  - N=100K: Interpreter 87.95 ms, Native Candidate 92.31 ms, Native Serial 910.53 ms (Candidate/Serial 9.86x, Native/Interp 0.95x)
-  - N=2M: Interpreter 103.20 ms, Native Candidate 102.84 ms, Native Serial 17,731.96 ms (Candidate/Serial 172.43x, Native/Interp 1.00x)
-  - N=5M: Interpreter 205.41 ms, Native Candidate 174.26 ms, Native Serial 42,249.23 ms (Candidate/Serial 242.45x, Native/Interp 1.18x)
+### 3. Output Formats
+- **Human-Readable Text Format:**
+  ```text
+  <digest>  <file_path>
+  ...
+  Total files: N, Total bytes: B
+  ```
+- **Machine-Readable JSON Format (Schema Version 1):**
+  ```json
+  {
+    "schema_version": 1,
+    "workload": "checksum_inventory",
+    "root": "...",
+    "summary": {
+      "total_files": N,
+      "total_bytes": B
+    },
+    "entries": [
+      {
+        "path": "...",
+        "size": S,
+        "sha256": "64-char lowercase hex"
+      }
+    ]
+  }
+  ```
 
-### Level T006-B: Pure In-Memory Hashing
-- **Workload:** Hashes K independent in-memory string buffers in RAM without filesystem access
-- **Configurations:** 10x1KB, 50x4KB, 100x16KB, 200x64KB (up to 12.8 MB total RAM); boundary tests: 0 bufs, 1 buf
-- **Correctness:** 100% VALID (Deterministic 64-char hexadecimal SHA-256 digests)
-- **Candidate vs Serial-Equivalent Speedup:** 0.39x to 1.07x (candidate generally slower or parity with serial chained control)
-- **Multi-Core Engaged:** NO (<105% CPU / insufficient samples)
-- **Classification:** CATEGORY D (Grade A: 3 configs) / CATEGORY E (Grade C: 1 config)
+### 4. Benchmark Harness Integration
+- Extended `benchmarks/harness.py`:
+  - Added `BaselineChecksumWorkloadMetrics` dataclass (`total_files`, `total_bytes`, `entries_count`).
+  - Added `extract_checksum_workload_metrics(parsed_json)`.
+  - Added `measure_checksum_corpus_baselines(corpus_path, warmup_runs, measured_runs)` to `BenchmarkHarness` to measure interpreter vs native binary on standard corpora with manifest isolation and direct bit-for-bit JSON equivalence checks.
+  - Added `ChecksumCorpusComparisonResult` dataclass.
 
-### Level T006-C: Filesystem Read + Hash
-- **Workload:** Direct `fs.read_bytes(path)` + `hash.sha256(bytes)` on real corpus trees (C1, C2, C4, C5, C6, C7; seed 12345, scale 0.01)
-- **Serial Control:** Cryptographically chained loop-carried dependency (`chained = fmt("{}:{}", prev_hash, file_digest)` + `hash.sha256(chained)`) with true data dependence (avalanche effect across iterations)
-- **Correctness:** 100% VALID across all corpora
-- **Candidate vs Serial-Equivalent Speedup:** 0.88x to 1.36x (average 1.10x)
-- **Multi-Core Engaged:** NO (<105% CPU / insufficient samples)
-- **Classification:** CATEGORY D (Grade A: C4, C6, C7) / CATEGORY E (Grade C: C1, C2, C5)
-
-### Level T006-D: Full dupe Pipeline
-- **Workload:** Production `dupe` end-to-end execution on standard corpora suite (C1, C2, C4, C5, C6, C7; fixed seed 12345, scale 0.01, preserving exact T005 corpus identities)
-- **Correctness:** 100% VALID (100% bit-for-bit direct JSON match and 100% manifest expected_result_digest agreement)
-- **Native vs Interpreter Speedup:** 0.70x to 1.18x (average 0.99x)
-- **Multi-Core Engaged:** NO (<105% CPU)
-- **Classification:** CATEGORY C (Grade A: C4, C7) / CATEGORY D (Grade A: C1, C2, C5, C6)
-
-### Operational Stage Breakdowns
-Estimated via standalone cumulative microbenchmark probes (`benchmarks/t006/stage_*.j2`) preserving production `src/*.j2` immutability. Negative or sub-noise-floor deltas ($\le 10\text{ ms}$) explicitly marked `"below_noise_floor"` and rendered as `N/A*` (not zero-clipped):
-- **C1 (500 files, 122 candidates):** Discovery 75.9 ms, Size Filter **2,192.2 ms** (~86% of total probe time), Read & Hash 191.8 ms, Grouping 80.8 ms (Dominant: **Size Filter O(N^2)**)
-- **C2 (100 files, 30 candidates):** Discovery 124.9 ms, Size Filter 181.2 ms, Read & Hash N/A*, Grouping N/A* (Dominant: **Size Filter O(N^2)**)
-- **C4 (100 files, 80 candidates):** Discovery 44.2 ms, Size Filter **101.6 ms**, Read & Hash 89.7 ms, Grouping 4.9 ms (Dominant: **Size Filter O(N^2)**)
-- **C5 (200 files, 200 candidates):** Discovery 35.9 ms, Size Filter 90.3 ms, Read & Hash 99.0 ms, Grouping **125.7 ms** (Dominant: **Group Duplicates**)
-- **C6 (100 files, 30 candidates):** Discovery **176.0 ms**, Size Filter 159.3 ms, Read & Hash 45.1 ms, Grouping N/A* (Dominant: **Discovery**)
-- **C7 (100 files, 30 candidates):** Discovery **128.0 ms**, Size Filter 116.7 ms, Read & Hash N/A*, Grouping 78.2 ms (Dominant: **Discovery**)
-
-## Verification Evidence
-- GitHub Actions CI Run `34246767819` (`macos-15` arm64): PASS (11m 30s)
-- T006 unit tests (`tests/test_t006_experiments.py`): 23/23 PASS (including real unmocked timeout and generic error tests)
-- Harness offline tests (`tests/test_benchmark_harness.py`): 11/11 PASS
-- Benchmark corpus tests (`tests/test_benchmark_corpus.py`): 14/14 PASS
-- Full test suite discovery (`tests/`): 48/48 PASS
-- Phase 4 differential offline self-tests (`tests/phase4_differential.py --offline`): PASS
-- Production immutability: `src/*.j2` remains 100% untouched (`git diff origin/main -- src/` strictly empty)
-- Artifacts synchronized: `benchmarks/results/t006_results.json`, `benchmarks/results/t006_report.md`
+### 5. Verification & Testing Evidence
+- **Dedicated T007 Test Suite (`tests/test_t007_checksum_inventory.py`):**
+  - 10 focused tests covering empty directory, single file, multiple files, nested directories, deterministic ordering, exact SHA-256 correctness against `hashlib.sha256`, byte totals, file counts, JSON schema conformance, argv parsing combinations, CLI dispatch separation, harness metrics extraction, and 0-byte file hashing.
+  - Result: **10/10 PASS** in 0.12s.
+- **Full Repository Test Suite (`python -m unittest discover -s tests`):**
+  - Result: **58/58 PASS** in 13.39s (48 existing + 10 T007 tests).
+- **Phase 4 Differential Offline Self-Tests (`python tests/phase4_differential.py --offline`):**
+  - Result: **PASS** (100% backward compatibility with frozen Phase 4 oracle and regression gates).
+- **Boundary Audit:**
+  - `src/scan.j2`, `src/hash.j2`, `src/group.j2`, `src/output.j2` remain strictly untouched.
+  - `benchmarks/results/t005_*` and `benchmarks/results/t006_*` remain strictly untouched.
+  - No parallelism claims made; independent read-and-hash workload established.
 
 ## Next Action
-Stop at T006 boundary. Do NOT begin T007. Ready for fresh independent OpenCode adversarial review.
+1. Conduct Antigravity deep-critic self-review.
+2. Await independent OpenCode release review.

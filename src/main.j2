@@ -7,6 +7,7 @@ import "scan.j2"
 import "hash.j2"
 import "group.j2"
 import "output.j2"
+import "checksum.j2"
 
 func usage() = {
     print("dupe PATH [--json]")
@@ -29,20 +30,34 @@ func json_mode(args) = {
     give false
 }
 
+func is_checksum_command(args) = {
+    if len(args) > 1 {
+        if args[1] == "checksum" {
+            give true
+        }
+    }
+    give false
+}
+
 args = proc.argv()
-root = find_root(args)
 
-if root == "" {
-    usage()
+if is_checksum_command(args) {
+    run_checksum(args)
 } else {
-    files = discover(root)
-    candidates = size_candidates(files)
-    hashed = hash_candidates(candidates)
-    groups = group_duplicates(hashed)
+    root = find_root(args)
 
-    if json_mode(args) {
-        emit_json(files, candidates, groups)
+    if root == "" {
+        usage()
     } else {
-        emit_human(files, candidates, groups)
+        files = discover(root)
+        candidates = size_candidates(files)
+        hashed = hash_candidates(candidates)
+        groups = group_duplicates(hashed)
+
+        if json_mode(args) {
+            emit_json(files, candidates, groups)
+        } else {
+            emit_human(files, candidates, groups)
+        }
     }
 }

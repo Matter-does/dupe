@@ -1,0 +1,116 @@
+# dupe checksum inventory module
+
+func checksum_usage() = {
+    print("dupe checksum PATH [--json]")
+    print("Compute SHA-256 checksum inventory of all regular files.")
+}
+
+func parse_checksum_args(args) = {
+    root := ""
+    is_json := false
+    skip_first := true
+    skip_subcmd := true
+
+    for arg in args {
+        if skip_first {
+            skip_first = false
+        } else {
+            if skip_subcmd {
+                skip_subcmd = false
+            } else {
+                if arg == "--json" {
+                    is_json = true
+                } else {
+                    if root == "" {
+                        root = arg
+                    }
+                }
+            }
+        }
+    }
+
+    give [root, is_json]
+}
+
+func compute_checksum_inventory(files) = {
+    entries := []
+
+    for file in files {
+        path = file[0]
+        size = file[1]
+        bytes = fs.read_bytes(path)
+        digest = hash.sha256(bytes)
+        entries = entries + [[path, size, digest]]
+    }
+
+    give entries
+}
+
+func checksum_total_bytes(entries) = {
+    total := 0
+    for entry in entries {
+        total = total + entry[1]
+    }
+    give total
+}
+
+func json_checksum_entry(entry) = {
+    p = json.stringify(entry[0])
+    s = json.stringify(entry[1])
+    d = json.stringify(entry[2])
+    give fmt("{\"path\":{},\"size\":{},\"sha256\":{}}", p, s, d)
+}
+
+func json_checksum_entries(entries) = {
+    body := ""
+    first := true
+
+    for entry in entries {
+        piece = json_checksum_entry(entry)
+        if first {
+            body = piece
+            first = false
+        } else {
+            body = fmt("{},{}", body, piece)
+        }
+    }
+
+    give body
+}
+
+func emit_checksum_json(root, entries, total_bytes) = {
+    total_files = len(entries)
+    root_json = json.stringify(root)
+    files_json = json.stringify(total_files)
+    bytes_json = json.stringify(total_bytes)
+    body = json_checksum_entries(entries)
+    doc = fmt("{\"schema_version\":1,\"workload\":\"checksum_inventory\",\"root\":{},\"summary\":{\"total_files\":{},\"total_bytes\":{}},\"entries\":[{}]}", root_json, files_json, bytes_json, body)
+    print(doc)
+}
+
+func emit_checksum_human(entries, total_bytes) = {
+    for entry in entries {
+        print(fmt("{}  {}", entry[2], entry[0]))
+    }
+    print(fmt("Total files: {}, Total bytes: {}", len(entries), total_bytes))
+}
+
+func run_checksum(args) = {
+    parsed = parse_checksum_args(args)
+    root = parsed[0]
+    is_json = parsed[1]
+
+    if root == "" {
+        checksum_usage()
+    } else {
+        files = discover(root)
+        entries = compute_checksum_inventory(files)
+        total_bytes = checksum_total_bytes(entries)
+
+        if is_json {
+            emit_checksum_json(root, entries, total_bytes)
+        } else {
+            emit_checksum_human(entries, total_bytes)
+        }
+    }
+}

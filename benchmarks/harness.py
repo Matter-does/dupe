@@ -326,6 +326,32 @@ def extract_workload_metrics(
     )
 
 
+@dataclass
+class BaselineChecksumWorkloadMetrics:
+    """Metrics extracted from dupe checksum inventory JSON output (T007)."""
+    total_files: int
+    total_bytes: int
+    entries_count: int
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+def extract_checksum_workload_metrics(
+    parsed_json: dict[str, Any]
+) -> BaselineChecksumWorkloadMetrics:
+    """Extract checksum inventory workload metrics from JSON output."""
+    summary = parsed_json.get("summary", {})
+    total_files = int(summary.get("total_files", 0))
+    total_bytes = int(summary.get("total_bytes", 0))
+    entries = parsed_json.get("entries", [])
+    return BaselineChecksumWorkloadMetrics(
+        total_files=total_files,
+        total_bytes=total_bytes,
+        entries_count=len(entries),
+    )
+
+
 def normalize_dupe_output_paths(
     dupe_json: dict[str, Any], corpus_root: Path
 ) -> dict[str, Any]:
@@ -394,6 +420,27 @@ class CorpusComparisonResult:
     files_per_sec_native: float
     candidates_per_sec_interpreter: float
     candidates_per_sec_native: float
+    mb_per_sec_interpreter: float
+    mb_per_sec_native: float
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass
+class ChecksumCorpusComparisonResult:
+    """Benchmark comparison result for Checksum Inventory workload (T007)."""
+    corpus_id: str
+    corpus_manifest_sha256: str
+    scale: float
+    seed: int
+    baseline_a_interpreter: BaselineMeasurement
+    baseline_b_native: BaselineMeasurement
+    direct_json_match: bool
+    native_speedup_factor: float
+    metrics: BaselineChecksumWorkloadMetrics
+    files_per_sec_interpreter: float
+    files_per_sec_native: float
     mb_per_sec_interpreter: float
     mb_per_sec_native: float
 
@@ -795,3 +842,189 @@ class BenchmarkHarness:
         finally:
             if manifest_isolated and manifest_temp.is_file():
                 shutil.move(str(manifest_temp), str(manifest_file))
+
+    def measure_checksum_corpus_baselines(
+        self,
+        corpus_path: Path,
+        warmup_runs: int = 1,
+        measured_runs: int = 3,
+        native_binary_path: Optional[Path] = None,
+    ) -> ChecksumCorpusComparisonResult:
+        """Measure Checksum Inventory pass (interpreter vs native binary) on a corpus (T007)."""
+        manifest_file = corpus_path / MANIFEST_FILENAME
+        manifest_sha256 = ""
+        manifest_id = corpus_path.name
+        manifest_scale = 1.0
+        manifest_seed = 0
+
+        if manifest_file.is_file():
+            is_valid, manifest, errors = self.verify_corpus(corpus_path)
+            if not is_valid:
+                raise ValueError(f"Corpus verification FAILED for '{corpus_path}': {errors}")
+            manifest_sha256 = hashlib.sha256(manifest_file.read_bytes()).hexdigest()
+            manifest_id = manifest.corpus_id
+            manifest_scale = manifest.scale
+            manifest_seed = manifest.seed
+
+        # Prepare native binary if not provided
+        bin_path = native_binary_path or (self.build_dir / "dupe")
+        build_time_ms: Optional[float] = None
+        if not bin_path.is_file():
+            build_time_ms, _ = self.build_native_binary(self.dupe_source, bin_path)
+
+        # Temporarily isolate manifest.json if present
+        manifest_temp = corpus_path.parent / f".{corpus_path.name}_{MANIFEST_FILENAME}.tmp"
+        manifest_isolated = False
+        if manifest_file.is_file():
+            shutil.move(str(manifest_file), str(manifest_temp))
+            manifest_isolated = True
+
+        try:
+            # Baseline A: Interpreter (`j2 --allow-fs src/main.j2 checksum <corpus> --json`)
+            interp_cmd = [
+                self.j2_bin,
+                "--allow-fs",
+                str(self.dupe_source),
+                "checksum",
+                str(corpus_path),
+                "--json",
+            ]
+
+            for w_i in range(warmup_runs):
+                w_res = execute_command_with_timing(interp_cmd, timeout_s=self.timeout_s)
+                if w_res.returncode != 0:
+                    raise RuntimeError(
+                        f"Checksum Baseline A (interpreter) warmup run {w_i+1}/{warmup_runs} failed on {corpus_path.name} "
+                        f"(code {w_res.returncode}):\n{w_res.stderr or w_res.error}"
+                    )
+
+            interp_times: list[float] = []
+            interp_last_res: Optional[RunExecutionResult] = None
+            for m_i in range(measured_runs):
+                res = execute_command_with_timing(interp_cmd, timeout_s=self.timeout_s)
+                if res.returncode != 0:
+                    raise RuntimeError(
+                        f"Checksum Baseline A (interpreter) measured run {m_i+1}/{measured_runs} failed on {corpus_path.name} "
+                        f"(code {res.returncode}):\n{res.stderr or res.error}"
+                    )
+                interp_times.append(res.wall_time_ms)
+                interp_last_res = res
+
+            interp_timing = calculate_timing_statistics(interp_times, warmup_runs=warmup_runs)
+            interp_json_str = interp_last_res.stdout.strip() if interp_last_res else ""
+            try:
+                interp_json = json.loads(interp_json_str)
+            except json.JSONDecodeError as exc:
+                raise ValueError(
+                    f"Checksum Baseline A returned invalid JSON:\n{interp_json_str}"
+                ) from exc
+
+            interp_metrics = extract_checksum_workload_metrics(interp_json)
+            interp_digest = hashlib.sha256(interp_json_str.encode("utf-8")).hexdigest()
+
+            meas_a = BaselineMeasurement(
+                baseline_id="Checksum_Baseline_A_Interpreter",
+                baseline_name="Checksum Inventory (Interpreter: j2 --allow-fs)",
+                command_line=interp_cmd,
+                environment_vars={},
+                timing=interp_timing,
+                output_digest=interp_digest,
+                success=True,
+            )
+
+            # Baseline B: Compiled Native Binary (`dupe checksum <corpus> --json`)
+            native_cmd = [str(bin_path), "checksum", str(corpus_path), "--json"]
+            native_env = {"J2_ALLOW_FS": "1"}
+
+            for w_i in range(warmup_runs):
+                w_res = execute_command_with_timing(
+                    native_cmd, env=native_env, timeout_s=self.timeout_s
+                )
+                if w_res.returncode != 0:
+                    raise RuntimeError(
+                        f"Checksum Baseline B (native) warmup run {w_i+1}/{warmup_runs} failed on {corpus_path.name} "
+                        f"(code {w_res.returncode}):\n{w_res.stderr or w_res.error}"
+                    )
+
+            native_times: list[float] = []
+            native_last_res: Optional[RunExecutionResult] = None
+            for m_i in range(measured_runs):
+                res = execute_command_with_timing(
+                    native_cmd, env=native_env, timeout_s=self.timeout_s
+                )
+                if res.returncode != 0:
+                    raise RuntimeError(
+                        f"Checksum Baseline B (native) measured run {m_i+1}/{measured_runs} failed on {corpus_path.name} "
+                        f"(code {res.returncode}):\n{res.stderr or res.error}"
+                    )
+                native_times.append(res.wall_time_ms)
+                native_last_res = res
+
+            native_timing = calculate_timing_statistics(native_times, warmup_runs=warmup_runs)
+            native_json_str = native_last_res.stdout.strip() if native_last_res else ""
+            try:
+                native_json = json.loads(native_json_str)
+            except json.JSONDecodeError as exc:
+                raise ValueError(
+                    f"Checksum Baseline B returned invalid JSON:\n{native_json_str}"
+                ) from exc
+
+            native_digest = hashlib.sha256(native_json_str.encode("utf-8")).hexdigest()
+
+            meas_b = BaselineMeasurement(
+                baseline_id="Checksum_Baseline_B_Native",
+                baseline_name="Checksum Inventory (Compiled Native: j2 build)",
+                command_line=native_cmd,
+                environment_vars=native_env,
+                timing=native_timing,
+                build_time_ms=build_time_ms,
+                output_digest=native_digest,
+                success=True,
+            )
+
+            direct_match = (interp_json_str == native_json_str)
+            if not direct_match:
+                raise ValueError(
+                    f"Checksum determinism violation on {corpus_path.name}: "
+                    f"Baseline A output != Baseline B output!\n"
+                    f"Interp: {interp_json_str}\nNative: {native_json_str}"
+                )
+
+            sec_a = interp_timing.median_ms / 1000.0
+            sec_b = native_timing.median_ms / 1000.0
+
+            files_sec_a = round(interp_metrics.total_files / sec_a, 2) if sec_a > 0 else 0.0
+            files_sec_b = round(interp_metrics.total_files / sec_b, 2) if sec_b > 0 else 0.0
+
+            mb_sec_a = (
+                round((interp_metrics.total_bytes / (1024 * 1024)) / sec_a, 2)
+                if sec_a > 0
+                else 0.0
+            )
+            mb_sec_b = (
+                round((interp_metrics.total_bytes / (1024 * 1024)) / sec_b, 2)
+                if sec_b > 0
+                else 0.0
+            )
+
+            speedup = round(sec_a / sec_b, 4) if sec_b > 0 else 0.0
+
+            return ChecksumCorpusComparisonResult(
+                corpus_id=manifest_id,
+                corpus_manifest_sha256=manifest_sha256,
+                scale=manifest_scale,
+                seed=manifest_seed,
+                baseline_a_interpreter=meas_a,
+                baseline_b_native=meas_b,
+                direct_json_match=direct_match,
+                native_speedup_factor=speedup,
+                metrics=interp_metrics,
+                files_per_sec_interpreter=files_sec_a,
+                files_per_sec_native=files_sec_b,
+                mb_per_sec_interpreter=mb_sec_a,
+                mb_per_sec_native=mb_sec_b,
+            )
+        finally:
+            if manifest_isolated and manifest_temp.is_file():
+                shutil.move(str(manifest_temp), str(manifest_file))
+
