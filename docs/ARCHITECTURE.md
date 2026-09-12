@@ -41,7 +41,7 @@ Analysis passes consume the shared discovered file records without repeating dis
 - **Pass A — Exact Duplicate Detection (Frozen Reference Workload):**
   Groups files by size, excludes unique sizes (count < 2), reads exact bytes for remaining candidates, computes SHA-256 digests, and groups matching digests into duplicate clusters. This workload is frozen as the baseline reference.
 - **Pass B — File Checksum Inventory (Additive Second Workload — T007):**
-  Processes discovered files, reads file bytes, computes SHA-256 digests, and emits a structured checksum inventory ledger. Implemented additively as an independent pass/module without refactoring or modifying frozen Phase 3 code.
+  Processes discovered files, reads file bytes, computes SHA-256 digests, and emits a structured checksum inventory ledger. Workload logic is isolated in `src/checksum.j2`. `src/main.j2` serves as the top-level CLI router dispatching subcommands (`dupe checksum <path>`), while the core Phase 3 duplicate detection implementation (`src/scan.j2`, `src/hash.j2`, `src/group.j2`, `src/output.j2`) remains 100% frozen.
 - **Future Passes:**
   Largest files, extension distributions, or directory storage statistics.
 

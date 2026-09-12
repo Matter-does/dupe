@@ -72,7 +72,7 @@ Total files: N, Total bytes: B
 ```
 
 ## Implementation Strategy & Freezing Rules
-1. **Additive Implementation:** T007 must be added in new additive files (e.g. `src/checksum.j2` or as a secondary entrypoint). It must **NOT** modify or refactor the frozen Phase 3 code in `src/main.j2`, `src/scan.j2`, etc.
+1. **Additive Implementation:** T007 workload logic is isolated in `src/checksum.j2`. `src/main.j2` acts as the unified top-level CLI router dispatching subcommands (`dupe checksum <path>`) while preserving the reference duplicate detection pass. It must NOT modify or refactor the frozen Phase 3 core pipeline code in `src/scan.j2`, `src/hash.j2`, `src/group.j2`, `src/output.j2`.
 2. **Deterministic Output:** Entries in the inventory ledger must preserve deterministic discovery order (or explicit path sorting).
 3. **Capability Contract:** Standalone compiled native execution requires runtime capability `J2_ALLOW_FS=1`.
 4. **Cross-Mode Equivalence:** Interpreter (`j2 --allow-fs`) and compiled native binary must produce bit-for-bit identical JSON output.
