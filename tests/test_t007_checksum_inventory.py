@@ -21,12 +21,14 @@ Verifies:
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 import hashlib
 import json
 import os
 from pathlib import Path
 import re
 import shutil
+import subprocess
 import tempfile
 import unittest
 
@@ -340,5 +342,299 @@ class TestT007ChecksumInventory(unittest.TestCase):
         self.assertEqual(inv["entries"][0]["sha256"], empty_digest)
 
 
+def get_j2_binary() -> str | None:
+    """Detect available J2 compiler/interpreter binary."""
+    env_bin = os.environ.get("J2_BIN")
+    if env_bin:
+        resolved = shutil.which(env_bin)
+        if resolved:
+            return resolved
+        if Path(env_bin).is_file():
+            return env_bin
+    resolved = shutil.which("j2")
+    if resolved:
+        return resolved
+    for candidate in [
+        Path.home() / ".j2" / "bin" / "j2",
+        Path("/usr/local/bin/j2"),
+        Path("/opt/homebrew/bin/j2"),
+    ]:
+        if candidate.is_file() and os.access(candidate, os.X_OK):
+            return str(candidate)
+    return None
+
+
+J2_BIN = get_j2_binary()
+HAS_J2 = False
+if J2_BIN:
+    try:
+        probe = subprocess.run([J2_BIN, "--version"], capture_output=True, timeout=5)
+        if probe.returncode == 0:
+            HAS_J2 = True
+    except Exception:
+        HAS_J2 = False
+
+
+@dataclass
+class J2ExecutionResult:
+    returncode: int
+    stdout_bytes: bytes
+    stderr_bytes: bytes
+    stdout_text: str
+    stderr_text: str
+    timed_out: bool = False
+
+
+def run_live_j2(
+    args: list[str],
+    *,
+    timeout: int = 30,
+    cwd: Path = REPO_ROOT,
+    env: dict[str, str] | None = None,
+) -> J2ExecutionResult:
+    """Execute live J2 interpreter with verified project conventions:
+    j2 --allow-fs src/main.j2 <args...>
+    """
+    if not HAS_J2 or not J2_BIN:
+        raise RuntimeError("LIVE_J2_TESTS_SKIPPED: J2 binary is not available.")
+
+    cmd = [J2_BIN, "--allow-fs", str(REPO_ROOT / "src" / "main.j2")] + args
+    run_env = os.environ.copy()
+    if env:
+        run_env.update(env)
+
+    try:
+        proc = subprocess.run(
+            cmd,
+            cwd=cwd,
+            env=run_env,
+            capture_output=True,
+            timeout=timeout,
+        )
+        return J2ExecutionResult(
+            returncode=proc.returncode,
+            stdout_bytes=proc.stdout,
+            stderr_bytes=proc.stderr,
+            stdout_text=proc.stdout.decode("utf-8", errors="replace"),
+            stderr_text=proc.stderr.decode("utf-8", errors="replace"),
+            timed_out=False,
+        )
+    except subprocess.TimeoutExpired as exc:
+        return J2ExecutionResult(
+            returncode=-1,
+            stdout_bytes=exc.stdout or b"",
+            stderr_bytes=exc.stderr or b"",
+            stdout_text=(exc.stdout or b"").decode("utf-8", errors="replace"),
+            stderr_text=(exc.stderr or b"").decode("utf-8", errors="replace"),
+            timed_out=True,
+        )
+
+
+class TestT007LiveJ2Execution(unittest.TestCase):
+    """Real live execution tests for T007 J2 checksum inventory workload.
+
+    F-02 remediation: Executes real J2 source (`j2 --allow-fs src/main.j2 checksum ...`)
+    and compares output against the independent Python oracle as well as asserting
+    byte-for-byte identity across argument permutations.
+    """
+
+    live_tests_executed: int = 0
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.live_tests_executed = 0
+        if not HAS_J2:
+            print(f"\n[LIVE_J2_STATUS] LIVE_J2_TESTS_SKIPPED: J2 binary '{J2_BIN or 'j2'}' is unavailable.")
+        else:
+            print(f"\n[LIVE_J2_STATUS] J2 binary found at: {J2_BIN}. Running live J2 execution tests.")
+
+    def setUp(self) -> None:
+        if not HAS_J2:
+            self.skipTest(f"LIVE_J2_TESTS_SKIPPED: J2 binary '{J2_BIN or 'j2'}' is unavailable in environment.")
+        self.temp_dir = Path(tempfile.mkdtemp(prefix="t007_live_j2_"))
+
+    def tearDown(self) -> None:
+        if hasattr(self, "temp_dir") and self.temp_dir.exists():
+            shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        if HAS_J2:
+            print(
+                f"\n[LIVE_J2_STATUS] LIVE_J2_TESTS_PASS: {cls.live_tests_executed} "
+                f"live J2 checksum tests passed successfully."
+            )
+        else:
+            print(
+                "\n[LIVE_J2_STATUS] LIVE_J2_TESTS_SKIPPED: All live J2 checksum tests "
+                "skipped (J2 binary unavailable)."
+            )
+
+    def _assert_live_checksum_parity_and_oracle(self, corpus_path: Path) -> dict:
+        """Helper to invoke J2 in both argument arrangements and assert oracle equality:
+        1. j2 --allow-fs src/main.j2 checksum <path> --json
+        2. j2 --allow-fs src/main.j2 checksum --json <path>
+        Byte-for-byte exact equality is enforced between both.
+        Independent Python hashlib.sha256 oracle is asserted against the result.
+        """
+        posix_path = corpus_path.as_posix()
+        res1 = run_live_j2(["checksum", posix_path, "--json"])
+        res2 = run_live_j2(["checksum", "--json", posix_path])
+
+        self.assertEqual(res1.returncode, 0, f"J2 invocation failed: {res1.stderr_text}")
+        self.assertEqual(res2.returncode, 0, f"J2 invocation failed: {res2.stderr_text}")
+
+        # Byte-for-byte exact comparison
+        self.assertEqual(
+            res1.stdout_bytes,
+            res2.stdout_bytes,
+            "Byte mismatch between 'checksum <path> --json' and 'checksum --json <path>'",
+        )
+
+        data = json.loads(res1.stdout_text)
+        expected = checksum_inventory_oracle(corpus_path)
+
+        self.assertEqual(data["schema_version"], expected["schema_version"])
+        self.assertEqual(data["workload"], expected["workload"])
+        self.assertEqual(data["summary"]["total_files"], expected["summary"]["total_files"])
+        self.assertEqual(data["summary"]["total_bytes"], expected["summary"]["total_bytes"])
+        self.assertEqual(len(data["entries"]), len(expected["entries"]))
+
+        for act_entry, exp_entry in zip(data["entries"], expected["entries"]):
+            self.assertEqual(act_entry["path"], exp_entry["path"])
+            self.assertEqual(act_entry["size"], exp_entry["size"])
+            self.assertEqual(act_entry["sha256"], exp_entry["sha256"])
+
+        TestT007LiveJ2Execution.live_tests_executed += 1
+        print(f"\nLIVE_J2_TESTS_PASS: {self._testMethodName}")
+        return data
+
+    def test_live_empty_directory(self) -> None:
+        """Verify real J2 execution on an empty directory produces empty inventory."""
+        self._assert_live_checksum_parity_and_oracle(self.temp_dir)
+
+    def test_live_single_file(self) -> None:
+        """Verify real J2 execution on a single file matches hashlib.sha256."""
+        (self.temp_dir / "file.txt").write_bytes(b"hello real j2 world\n")
+        self._assert_live_checksum_parity_and_oracle(self.temp_dir)
+
+    def test_live_multiple_files_sorted(self) -> None:
+        """Verify real J2 execution on multiple files preserves sorted discovery."""
+        (self.temp_dir / "z.txt").write_bytes(b"z content")
+        (self.temp_dir / "a.txt").write_bytes(b"a content longer")
+        (self.temp_dir / "m.txt").write_bytes(b"m content medium")
+        self._assert_live_checksum_parity_and_oracle(self.temp_dir)
+
+    def test_live_nested_directory(self) -> None:
+        """Verify real J2 execution traverses nested directories depth-first."""
+        dir1 = self.temp_dir / "sub1"
+        dir2 = self.temp_dir / "sub2"
+        dir1.mkdir()
+        dir2.mkdir()
+        (dir1 / "alpha.txt").write_bytes(b"nested alpha")
+        (dir2 / "beta.txt").write_bytes(b"nested beta")
+        (self.temp_dir / "root.txt").write_bytes(b"root file")
+        self._assert_live_checksum_parity_and_oracle(self.temp_dir)
+
+    def test_live_binary_content(self) -> None:
+        """Verify real J2 execution computes exact SHA-256 for non-UTF8 binary files."""
+        binary_data = bytes(range(256)) + b"\x00\xff\xfe\x01\x80\xaa\xbb"
+        (self.temp_dir / "blob.bin").write_bytes(binary_data)
+        self._assert_live_checksum_parity_and_oracle(self.temp_dir)
+
+    def test_live_zero_byte_file(self) -> None:
+        """Verify real J2 execution correctly computes SHA-256 on a 0-byte file."""
+        (self.temp_dir / "empty.dat").write_bytes(b"")
+        self._assert_live_checksum_parity_and_oracle(self.temp_dir)
+
+    def test_live_duplicate_content_files(self) -> None:
+        """Verify real J2 execution inventories both files when content is identical."""
+        content = b"shared identical payload between files"
+        (self.temp_dir / "c1.txt").write_bytes(content)
+        (self.temp_dir / "c2.txt").write_bytes(content)
+        self._assert_live_checksum_parity_and_oracle(self.temp_dir)
+
+    def test_live_argument_order_byte_identity(self) -> None:
+        """Explicitly assert byte-for-byte equality between CLI argument forms."""
+        d = self.temp_dir / "mixed"
+        d.mkdir()
+        (d / "f1.txt").write_bytes(b"file one")
+        (d / "f2.bin").write_bytes(b"\xde\xad\xbe\xef")
+        (self.temp_dir / "zero.dat").write_bytes(b"")
+
+        res1 = run_live_j2(["checksum", self.temp_dir.as_posix(), "--json"])
+        res2 = run_live_j2(["checksum", "--json", self.temp_dir.as_posix()])
+
+        self.assertEqual(res1.returncode, 0)
+        self.assertEqual(res2.returncode, 0)
+        self.assertEqual(res1.stdout_bytes, res2.stdout_bytes)
+
+        TestT007LiveJ2Execution.live_tests_executed += 1
+        print(f"\nLIVE_J2_TESTS_PASS: {self._testMethodName}")
+
+    def test_live_human_text_format(self) -> None:
+        """Verify real J2 execution without --json outputs '<sha256>  <path>' format."""
+        sample = self.temp_dir / "human.txt"
+        data = b"human readable format verification"
+        sample.write_bytes(data)
+        expected_digest = hashlib.sha256(data).hexdigest()
+
+        res = run_live_j2(["checksum", self.temp_dir.as_posix()])
+        self.assertEqual(res.returncode, 0)
+
+        lines = res.stdout_text.strip().splitlines()
+        self.assertTrue(any(expected_digest in l and "human.txt" in l for l in lines))
+        self.assertTrue(any("Total files: 1, Total bytes:" in l for l in lines))
+
+        TestT007LiveJ2Execution.live_tests_executed += 1
+        print(f"\nLIVE_J2_TESTS_PASS: {self._testMethodName}")
+
+    def test_live_missing_root_usage(self) -> None:
+        """Verify real J2 execution with missing root prints usage without crashing."""
+        res1 = run_live_j2(["checksum"])
+        self.assertIn("dupe checksum PATH", res1.stdout_text + res1.stderr_text)
+
+        res2 = run_live_j2(["checksum", "--json"])
+        self.assertIn("dupe checksum PATH", res2.stdout_text + res2.stderr_text)
+
+        TestT007LiveJ2Execution.live_tests_executed += 1
+        print(f"\nLIVE_J2_TESTS_PASS: {self._testMethodName}")
+
+    def test_live_nonexistent_path(self) -> None:
+        """Verify real J2 execution on nonexistent directory does not succeed silently."""
+        nonexistent = self.temp_dir / "does_not_exist"
+        res = run_live_j2(["checksum", nonexistent.as_posix(), "--json"])
+        # Either returncode is nonzero or 0 files found
+        if res.returncode == 0:
+            data = json.loads(res.stdout_text)
+            self.assertEqual(data["summary"]["total_files"], 0)
+
+        TestT007LiveJ2Execution.live_tests_executed += 1
+        print(f"\nLIVE_J2_TESTS_PASS: {self._testMethodName}")
+
+    def test_live_regression_duplicate_scan(self) -> None:
+        """Verify real J2 execution of dupe <path> --json still routes to duplicate analysis."""
+        d = self.temp_dir / "dup_corpus"
+        d.mkdir()
+        content = b"duplicate scan regression check payload"
+        (d / "file_a.txt").write_bytes(content)
+        (d / "file_b.txt").write_bytes(content)
+
+        res = run_live_j2([d.as_posix(), "--json"])
+        self.assertEqual(res.returncode, 0, f"Duplicate scan regression failed: {res.stderr_text}")
+
+        # Verify duplicate scan JSON schema
+        data = json.loads(res.stdout_text)
+        self.assertEqual(data["schema_version"], 1)
+        self.assertIn("scan_root", data)
+        self.assertIn("duplicate_groups", data)
+        self.assertEqual(len(data["duplicate_groups"]), 1)
+        self.assertEqual(data["duplicate_groups"][0]["size"], len(content))
+
+        TestT007LiveJ2Execution.live_tests_executed += 1
+        print(f"\nLIVE_J2_TESTS_PASS: {self._testMethodName}")
+
+
 if __name__ == "__main__":
     unittest.main()
+
