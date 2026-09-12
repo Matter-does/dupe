@@ -38,9 +38,11 @@ from benchmarks.generator.manifest import (
     format_deterministic_json,
 )
 from benchmarks.harness import (
+    BaselineChecksumWorkloadMetrics,
     BaselineMeasurement,
     BaselineWorkloadMetrics,
     BenchmarkHarness,
+    ChecksumCorpusComparisonResult,
     CorpusComparisonResult,
     FullBenchmarkReport,
     PlatformProvenance,
@@ -49,9 +51,11 @@ from benchmarks.harness import (
     TimingStatistics,
     calculate_timing_statistics,
     collect_platform_provenance,
+    extract_checksum_workload_metrics,
     extract_workload_metrics,
     normalize_dupe_output_paths,
 )
+from unittest.mock import MagicMock, patch
 from benchmarks.run_baselines import format_markdown_report
 
 
@@ -400,6 +404,121 @@ class TestBenchmarkHarness(unittest.TestCase):
             self.assertEqual(comp.seed, 99999)
             self.assertEqual(comp.to_dict()["seed"], 99999)
 
+    def test_measure_checksum_corpus_baselines(self) -> None:
+        """Verify BenchmarkHarness.measure_checksum_corpus_baselines() execution flow (T007)."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            corpus_root = Path(tmp_dir) / "test_corpus"
+            _, manifest = generate_corpus(C2_PROFILE, corpus_root, seed=12345, scale=0.01)
+            manifest_file = corpus_root / MANIFEST_FILENAME
+
+            harness = BenchmarkHarness(j2_bin="j2", build_dir=Path(tmp_dir) / "build")
+            harness.build_native_binary = MagicMock(return_value=(100.0, RunExecutionResult(0, 100.0, "", "")))
+
+            valid_json = json.dumps({
+                "schema_version": 1,
+                "workload": "checksum_inventory",
+                "root": str(corpus_root),
+                "summary": {"total_files": 2, "total_bytes": 2048},
+                "entries": [
+                    {"path": str(corpus_root / "f1.txt"), "size": 1024, "sha256": "1" * 64},
+                    {"path": str(corpus_root / "f2.txt"), "size": 1024, "sha256": "2" * 64},
+                ],
+            })
+
+            with patch("benchmarks.harness.execute_command_with_timing") as mock_exec:
+                mock_exec.return_value = RunExecutionResult(
+                    returncode=0,
+                    wall_time_ms=50.0,
+                    stdout=valid_json,
+                    stderr="",
+                )
+
+                fake_bin = Path(tmp_dir) / "build" / "dupe"
+                fake_bin.parent.mkdir(parents=True, exist_ok=True)
+                fake_bin.write_text("binary", encoding="utf-8")
+
+                result = harness.measure_checksum_corpus_baselines(
+                    corpus_path=corpus_root,
+                    warmup_runs=1,
+                    measured_runs=2,
+                    native_binary_path=fake_bin,
+                )
+
+                self.assertIsInstance(result, ChecksumCorpusComparisonResult)
+                self.assertEqual(result.corpus_id, "C2")
+                self.assertTrue(result.direct_json_match)
+                self.assertEqual(result.metrics.total_files, 2)
+                self.assertEqual(result.metrics.total_bytes, 2048)
+                self.assertEqual(result.metrics.entries_count, 2)
+                self.assertGreater(result.files_per_sec_interpreter, 0.0)
+                self.assertGreater(result.mb_per_sec_interpreter, 0.0)
+
+                # Verify manifest was restored after execution
+                self.assertTrue(manifest_file.is_file())
+
+                # Verify commands executed
+                calls = mock_exec.call_args_list
+                self.assertEqual(len(calls), 6)
+                interp_call_cmd = calls[0][0][0]
+                self.assertIn("checksum", interp_call_cmd)
+                self.assertIn("--json", interp_call_cmd)
+                native_call_cmd = calls[3][0][0]
+                self.assertIn("checksum", native_call_cmd)
+                self.assertIn("--json", native_call_cmd)
+                self.assertEqual(calls[3][1]["env"].get("J2_ALLOW_FS"), "1")
+
+    def test_measure_checksum_corpus_baselines_failures(self) -> None:
+        """Verify BenchmarkHarness.measure_checksum_corpus_baselines() failure and determinism checks."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            corpus_root = Path(tmp_dir) / "test_corpus"
+            corpus_root.mkdir(parents=True, exist_ok=True)
+
+            harness = BenchmarkHarness(j2_bin="j2", build_dir=Path(tmp_dir) / "build")
+            fake_bin = Path(tmp_dir) / "build" / "dupe"
+            fake_bin.parent.mkdir(parents=True, exist_ok=True)
+            fake_bin.write_text("binary", encoding="utf-8")
+
+            # 1. Determinism mismatch between interpreter and native
+            json_a = json.dumps({
+                "schema_version": 1, "workload": "checksum_inventory", "root": str(corpus_root),
+                "summary": {"total_files": 1, "total_bytes": 100},
+                "entries": [{"path": "a.txt", "size": 100, "sha256": "1" * 64}],
+            })
+            json_b = json.dumps({
+                "schema_version": 1, "workload": "checksum_inventory", "root": str(corpus_root),
+                "summary": {"total_files": 1, "total_bytes": 100},
+                "entries": [{"path": "a.txt", "size": 100, "sha256": "2" * 64}],
+            })
+
+            with patch("benchmarks.harness.execute_command_with_timing") as mock_exec:
+                mock_exec.side_effect = [
+                    RunExecutionResult(0, 10.0, json_a, ""),  # interp warmup
+                    RunExecutionResult(0, 10.0, json_a, ""),  # interp run 1
+                    RunExecutionResult(0, 10.0, json_b, ""),  # native warmup
+                    RunExecutionResult(0, 10.0, json_b, ""),  # native run 1
+                ]
+                with self.assertRaises(ValueError) as ctx:
+                    harness.measure_checksum_corpus_baselines(
+                        corpus_path=corpus_root,
+                        warmup_runs=1,
+                        measured_runs=1,
+                        native_binary_path=fake_bin,
+                    )
+                self.assertIn("Checksum determinism violation", str(ctx.exception))
+
+            # 2. Subprocess exit code failure
+            with patch("benchmarks.harness.execute_command_with_timing") as mock_exec:
+                mock_exec.return_value = RunExecutionResult(1, 10.0, "", "Fatal error")
+                with self.assertRaises(RuntimeError) as ctx:
+                    harness.measure_checksum_corpus_baselines(
+                        corpus_path=corpus_root,
+                        warmup_runs=1,
+                        measured_runs=1,
+                        native_binary_path=fake_bin,
+                    )
+                self.assertIn("failed", str(ctx.exception).lower())
+
 
 if __name__ == "__main__":
     unittest.main()
+
