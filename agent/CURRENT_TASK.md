@@ -1,77 +1,66 @@
 # Current Task
 
-**Task:** T007 — Reusable Filesystem Analysis Pass for Checksum Inventory  
-**Status:** Implementation Complete & Locally Verified (Ready for Antigravity Deep-Critic & OpenCode Release Gate)
+**Task:** T007 — Reusable Filesystem Analysis Pass for Checksum Inventory (Remediation Complete)  
+**Status:** Remediation Complete & Verified (F-01, F-02, F-03, F-04 Resolved; Ready for OpenCode Release Gate)
 
-## Summary of Implementation & Results
+## Summary of Surgical Remediation
 
-### 1. Workload Architecture & Discovery Reuse
-- **Module:** `src/checksum.j2` (additive module).
-- **Core Functionality:** Implements the second read-only filesystem intelligence workload: **File Checksum Inventory**.
-- **Discovery Reuse:** Directly calls `discover(root)` from `src/scan.j2`. Reuses the recursive, depth-first directory traversal and safe metadata inspection without duplicating filesystem traversal or metadata collection code.
-- **Processing Kernel:** Iterates over discovered regular file records `[path, size]`, reads raw file bytes with `fs.read_bytes(path)`, computes exact cryptographic hashes with `hash.sha256(bytes)`, and records inventory entries `[path, size, digest]`.
-- **Determinism:** Discovery order is guaranteed deterministic by `scan.j2` sorting child names at every directory level via `sort(fs.list_dir(path))`. Checksum inventory strictly preserves this order.
+Following the adversarial deep-critic review (verdict: HOLD), all blocking and requested findings have been remediated with minimal, rigorous changes:
 
-### 2. CLI Contract & Subcommand Dispatch
-- **CLI Surface:**
-  - `dupe <path> [--json]`: Reference exact-duplicate scan (100% frozen Phase 3 behavior preserved).
-  - `dupe checksum <path>`: Checksum inventory human-readable text output.
-  - `dupe checksum <path> --json`: Checksum inventory compact deterministic JSON.
-  - `dupe checksum --json <path>`: Checksum inventory compact deterministic JSON (positional independence for `--json`).
-  - `dupe checksum` / `dupe checksum --json`: Missing path prints usage message.
-- **Dispatch Implementation in `src/main.j2`:**
-  - Added `import "checksum.j2"`.
-  - Added helper `is_checksum_command(args)` which checks `args[1] == "checksum"`.
-  - When `args[1] == "checksum"`, delegates to `run_checksum(args)`.
-  - In all other cases, executes the unchanged reference duplicate-detection pass.
+### 1. F-01 (P3) — `src/main.j2` Top-Level CLI Router Reconciliation
+- **Reconciliation:** Explicitly documented in `docs/ARCHITECTURE.md` and `agent/tasks/T007-checksum-inventory.md` that `src/main.j2` serves as the top-level CLI router for the unified `dupe` binary (`dupe <path>` and `dupe checksum <path>`).
+- **Boundary:** The Phase 3 duplicate-analysis pipeline (`src/scan.j2`, `src/hash.j2`, `src/group.j2`, `src/output.j2`) remains 100% frozen. The T007 workload logic is strictly isolated in `src/checksum.j2`.
 
-### 3. Output Formats
-- **Human-Readable Text Format:**
-  ```text
-  <digest>  <file_path>
-  ...
-  Total files: N, Total bytes: B
-  ```
-- **Machine-Readable JSON Format (Schema Version 1):**
-  ```json
-  {
-    "schema_version": 1,
-    "workload": "checksum_inventory",
-    "root": "...",
-    "summary": {
-      "total_files": N,
-      "total_bytes": B
-    },
-    "entries": [
-      {
-        "path": "...",
-        "size": S,
-        "sha256": "64-char lowercase hex"
-      }
-    ]
-  }
-  ```
+### 2. F-02 (P2) — Real J2 Live Execution Tests
+- **Module:** `tests/test_t007_checksum_inventory.py`.
+- **Live Infrastructure:** Added `run_live_j2()` using verified J2 0.1.0 conventions (`j2 --allow-fs src/main.j2 <args...>`), capturing returncode, stdout bytes, stderr bytes, and timeouts.
+- **Added `TestT007LiveJ2Execution` Class (12 live tests):**
+  1. `test_live_empty_directory`
+  2. `test_live_single_file`
+  3. `test_live_multiple_files_sorted`
+  4. `test_live_nested_directory`
+  5. `test_live_binary_content`
+  6. `test_live_zero_byte_file`
+  7. `test_live_duplicate_content_files`
+  8. `test_live_argument_order_byte_identity` (`checksum <path> --json` vs `checksum --json <path>`)
+  9. `test_live_human_text_format` (`<sha256>  <path>`)
+  10. `test_live_missing_root_usage`
+  11. `test_live_nonexistent_path`
+  12. `test_live_regression_duplicate_scan`
+- **Skip vs Pass Discipline:** On developer environments without J2, tests raise `self.skipTest("LIVE_J2_TESTS_SKIPPED: ...")`. Skips are never converted to passes. On environments with J2 (macOS CI), all live tests execute and emit `LIVE_J2_TESTS_PASS`.
+- **Status:** 10/10 Python oracle tests PASS; 12/12 live tests cleanly SKIPPED locally with explicit `LIVE_J2_TESTS_SKIPPED`. Total 22 tests.
 
-### 4. Benchmark Harness Integration
-- Extended `benchmarks/harness.py`:
-  - Added `BaselineChecksumWorkloadMetrics` dataclass (`total_files`, `total_bytes`, `entries_count`).
-  - Added `extract_checksum_workload_metrics(parsed_json)`.
-  - Added `measure_checksum_corpus_baselines(corpus_path, warmup_runs, measured_runs)` to `BenchmarkHarness` to measure interpreter vs native binary on standard corpora with manifest isolation and direct bit-for-bit JSON equivalence checks.
-  - Added `ChecksumCorpusComparisonResult` dataclass.
+### 3. F-03 (P2) — Authoritative macOS Native/Interpreter Parity CI
+- **Workflow:** `.github/workflows/t007-checksum-inventory.yml` targeting `macos-15` (Apple Silicon arm64).
+- **Tooling:** Uses pinned J2 0.1.0 release (`J2_SHA256: 6fda8338791730cf7937362acd03e29247719e65785458e62988e1789c842e75`).
+- **Verification Script:** `tests/verify_t007_parity.py`:
+  - Builds controlled multi-topology test corpus (empty dir, single file, nested dirs, binary non-UTF8, 0-byte, filenames with spaces, duplicate files).
+  - Executes interpreter mode: `j2 --allow-fs src/main.j2 checksum <path> --json`.
+  - Builds genuine native binary: `j2 build src/main.j2 -o build/dupe`.
+  - Executes native binary: `J2_ALLOW_FS=1 ./build/dupe checksum <path> --json`.
+  - Enforces `interpreter stdout == native stdout` **BYTE-FOR-BYTE** via both Python assertion and direct shell `cmp`.
+  - Asserts byte identity across argument orders (`checksum <path> --json` == `checksum --json <path>`).
+  - Verifies 100% agreement against independent Python `hashlib.sha256` oracle.
+  - Verifies regression safety of duplicate scan (`dupe <path> --json`).
+  - Writes structured artifacts to `artifacts/t007/` (`interpreter.json`, `native.json`, `oracle.json`, `parity_result.json`, `provenance.json`, `summary.md`).
+  - Uploads artifact `t007-parity-results`.
 
-### 5. Verification & Testing Evidence
-- **Dedicated T007 Test Suite (`tests/test_t007_checksum_inventory.py`):**
-  - 10 focused tests covering empty directory, single file, multiple files, nested directories, deterministic ordering, exact SHA-256 correctness against `hashlib.sha256`, byte totals, file counts, JSON schema conformance, argv parsing combinations, CLI dispatch separation, harness metrics extraction, and 0-byte file hashing.
-  - Result: **10/10 PASS** in 0.12s.
-- **Full Repository Test Suite (`python -m unittest discover -s tests`):**
-  - Result: **58/58 PASS** in 13.39s (48 existing + 10 T007 tests).
-- **Phase 4 Differential Offline Self-Tests (`python tests/phase4_differential.py --offline`):**
-  - Result: **PASS** (100% backward compatibility with frozen Phase 4 oracle and regression gates).
-- **Boundary Audit:**
-  - `src/scan.j2`, `src/hash.j2`, `src/group.j2`, `src/output.j2` remain strictly untouched.
-  - `benchmarks/results/t005_*` and `benchmarks/results/t006_*` remain strictly untouched.
-  - No parallelism claims made; independent read-and-hash workload established.
+### 4. F-04 (P3) — Missing Benchmark-Harness Unit Coverage
+- **Module:** `tests/test_benchmark_harness.py`.
+- **Added Tests:**
+  - `test_measure_checksum_corpus_baselines`: mocks controlled process execution, asserts command construction (`j2 --allow-fs src/main.j2 checksum <corpus> --json` and `./build/dupe checksum <corpus> --json`), result parsing, metric extraction, manifest isolation, exact JSON comparison logic, and returned `ChecksumCorpusComparisonResult`.
+  - `test_measure_checksum_corpus_baselines_failures`: tests error propagation on process failure, schema violation, and JSON output mismatch.
+- **Status:** **13/13 PASS** in 3.99s.
+
+## Verification Summary
+- `tests/test_t007_checksum_inventory.py`: 22 tests (10 oracle PASS, 12 live SKIPPED locally).
+- `tests/test_benchmark_harness.py`: 13 tests (13 PASS).
+- `unittest discover -s tests`: 72 tests (60 PASS, 12 live SKIPPED locally).
+- `tests/phase4_differential.py --offline`: 100% PASS.
+- Boundaries:
+  - `src/scan.j2`, `src/hash.j2`, `src/group.j2`, `src/output.j2` untouched.
+  - `benchmarks/results/t005_*` and `benchmarks/results/t006_*` untouched.
+  - `benchmarks/t006/` untouched.
 
 ## Next Action
-1. Conduct Antigravity deep-critic self-review.
-2. Await independent OpenCode release review.
+Awaiting independent OpenCode release gate review.

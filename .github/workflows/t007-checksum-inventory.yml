@@ -1,0 +1,131 @@
+name: T007 Checksum Inventory Parity
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'benchmarks/**'
+      - '.github/workflows/t007-checksum-inventory.yml'
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'benchmarks/**'
+      - '.github/workflows/t007-checksum-inventory.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  J2_VERSION: 0.1.0
+  J2_SHA256: 6fda8338791730cf7937362acd03e29247719e65785458e62988e1789c842e75
+
+jobs:
+  macos-parity:
+    name: T007 native/interpreter parity on macOS Apple Silicon (arm64)
+    runs-on: macos-15
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Verify runner architecture
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Architecture: $(uname -m)"
+          test "$(uname -m)" = "arm64"
+
+      - name: Install exact J2 0.1.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          d="$RUNNER_TEMP/j2"
+          mkdir -p "$d"
+          cd "$d"
+          curl -fsSL --retry 3 --retry-delay 2 -o j2.tgz \
+            "https://github.com/JasnamSinghArora/j2/releases/download/v${J2_VERSION}/j2-${J2_VERSION}-aarch64-apple-darwin.tar.gz"
+          printf '%s  j2.tgz\n' "$J2_SHA256" | shasum -a 256 -c -
+          tar -xzf j2.tgz
+          s="$(find "$d" -type f -name install.sh -print -quit)"
+          test -n "$s"
+          cd "$(dirname "$s")"
+          chmod +x install.sh
+          ./install.sh
+          echo "$HOME/.j2/bin" >> "$GITHUB_PATH"
+
+      - name: Verify exact J2 version
+        shell: bash
+        run: |
+          set -euo pipefail
+          v="$(j2 --version)"
+          echo "Detected J2 version: $v"
+          test "$v" = "j2 0.1.0"
+
+      - name: Verify source formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          j2 fmt -w src/*.j2
+          git diff --stat
+          git diff --exit-code src/
+
+      - name: Run unit test suite with live J2 execution
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest -v tests/test_t007_checksum_inventory.py
+          python3 -m unittest -v tests/test_benchmark_harness.py
+          python3 -m unittest discover -s tests -v
+
+      - name: Build genuine native dupe binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          j2 build src/main.j2 -o build/dupe
+          test -x build/dupe
+          echo "Built native binary:"
+          ls -la build/dupe
+
+      - name: Run authoritative macOS parity and oracle verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tests/verify_t007_parity.py --native-bin build/dupe --output-dir artifacts/t007
+
+      - name: Direct shell assertion (byte-for-byte exact cmp)
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Verifying cmp artifacts/t007/interpreter.json artifacts/t007/native.json..."
+          cmp artifacts/t007/interpreter.json artifacts/t007/native.json
+          echo "BYTE-FOR-BYTE EXACT EQUALITY VERIFIED BY CMP: PASS"
+
+      - name: Publish Markdown summary to step summary
+        if: always()
+        shell: bash
+        run: |
+          if [ -f artifacts/t007/summary.md ]; then
+            cat artifacts/t007/summary.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload T007 parity artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: t007-parity-results
+          path: artifacts/t007/
+          if-no-files-found: error
