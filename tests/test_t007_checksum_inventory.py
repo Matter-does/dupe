@@ -623,13 +623,21 @@ class TestT007LiveJ2Execution(unittest.TestCase):
         res = run_live_j2([d.as_posix(), "--json"])
         self.assertEqual(res.returncode, 0, f"Duplicate scan regression failed: {res.stderr_text}")
 
-        # Verify duplicate scan JSON schema
+        # Verify duplicate scan JSON schema matching frozen Phase 3 contract
         data = json.loads(res.stdout_text)
-        self.assertEqual(data["schema_version"], 1)
-        self.assertIn("scan_root", data)
-        self.assertIn("duplicate_groups", data)
+        self.assertEqual(
+            set(data.keys()),
+            {"files_scanned", "hash_candidates", "duplicate_groups", "reclaimable_bytes"},
+        )
+        self.assertEqual(data["files_scanned"], 2)
+        self.assertEqual(data["hash_candidates"], 2)
         self.assertEqual(len(data["duplicate_groups"]), 1)
-        self.assertEqual(data["duplicate_groups"][0]["size"], len(content))
+        group = data["duplicate_groups"][0]
+        self.assertEqual(set(group.keys()), {"hash", "size", "files", "reclaimable_bytes"})
+        self.assertEqual(group["size"], len(content))
+        self.assertEqual(len(group["files"]), 2)
+        self.assertEqual(group["reclaimable_bytes"], len(content))
+        self.assertEqual(data["reclaimable_bytes"], len(content))
 
         TestT007LiveJ2Execution.live_tests_executed += 1
         print(f"\nLIVE_J2_TESTS_PASS: {self._testMethodName}")
