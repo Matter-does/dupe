@@ -1,7 +1,7 @@
 # Current Task
 
 **Task:** T006 — Automatic Parallelism Experiment and Evidence Collection (Deep-Critic Remediated)  
-**Status:** Completed & Deep-Critic Remediated (Ready for independent OpenCode release review)
+**Status:** Remediated & Verified (P2-STALE resolved; ready for independent OpenCode release review)
 
 ## Summary of Implementation & Results
 - **Execution Platform:**

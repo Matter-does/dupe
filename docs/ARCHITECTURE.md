@@ -81,7 +81,7 @@ New analysis passes should consume the common discovered-file representation wit
 
 ## Verified Execution & Parallelism Characteristics (T006 Findings)
 Empirical evidence from T006 on macOS 15 Apple Silicon (`macos-15`, arm64, 3 vCPUs) establishes:
-1. **Compilation Speedup:** Standalone native compilation (`j2 build`) provides moderate execution acceleration (up to 1.45x) via machine code emission and reduced bytecode dispatch overhead.
+1. **Compilation Speedup:** Standalone native compilation (`j2 build`) provides moderate execution acceleration (up to 1.18x) via machine code emission and reduced bytecode dispatch overhead.
 2. **Execution Concurrency:** No sustained multi-core CPU utilization was observed under the configured sampling methodology across tested workloads (process CPU utilization bounded <105%; emitted backend source uses thread-local globals without multi-threaded runtime primitives).
 3. **Pipeline Bottlenecks:** Pipeline performance is dominated by the pairwise $O(N^2)$ candidate size filter in metadata-heavy corpora (e.g. C1) and SHA-256 hashing in candidate-dense corpora (e.g. C2). Warm-state repeated runs are consistent with OS page-cache effects reducing storage wait.
 

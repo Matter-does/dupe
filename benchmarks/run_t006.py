@@ -30,6 +30,7 @@ from benchmarks.generator.manifest import MANIFEST_FILENAME
 from benchmarks.generator.profiles import NAMED_PROFILES, CorpusProfile
 from benchmarks.harness import (
     BaselineMeasurement,
+    BaselineWorkloadMetrics,
     PlatformProvenance,
     TimingStatistics,
     calculate_timing_statistics,
@@ -75,11 +76,25 @@ def synthesize_research_answers(
     )
 
     # Q2: Measurably faster in compiled native mode
+    level_d_speedups = [
+        (e.speedup_native_over_interpreter, e.workload_parameters.get("corpus_id", e.variant_id))
+        for e in experiments
+        if e.workload_level == "D" and e.speedup_native_over_interpreter > 0
+    ]
     native_speedups = [e.speedup_native_over_interpreter for e in experiments if e.speedup_native_over_interpreter > 0]
     avg_speedup = round(sum(native_speedups) / len(native_speedups), 2) if native_speedups else 1.0
+
+    if level_d_speedups:
+        best_sp, best_name = max(level_d_speedups, key=lambda x: x[0])
+        max_desc = f"up to {best_sp:.2f}x in {best_name}"
+    elif native_speedups:
+        max_desc = f"up to {max(native_speedups):.2f}x"
+    else:
+        max_desc = "up to 1.00x"
+
     q2_answer = (
-        f"Yes. Compiled native execution was faster in compute-intensive workloads (e.g. up to 1.45x in C6 "
-        f"and 1.15x in C2, with an average native speedup of {avg_speedup:.2f}x across tested workloads). "
+        f"Yes, but workload-dependent. Compiled native execution was faster in select workloads (e.g. {max_desc}, "
+        f"with an average native speedup of {avg_speedup:.2f}x across tested workloads). "
         f"However, this advantage is attributable to machine-code compilation and reduced interpreter dispatch "
         f"overhead rather than multi-threaded parallelism."
     )
@@ -87,9 +102,9 @@ def synthesize_research_answers(
         question_number=2,
         question="Did execution become measurably faster in compiled native mode?",
         answer=q2_answer,
-        evidence_grade="A",
+        evidence_grade="B",
         supporting_artifact="Empirical wall-clock timing comparisons across Level A, B, C, and D workloads",
-        limitations="Speedup measures total process execution time; includes process startup and memory initialization.",
+        limitations="Speedup measures total process execution time including startup; short-run noise (~±30%) affects small speedup ratios.",
     )
 
     # Q3: Consistency across repetitions
@@ -115,9 +130,10 @@ def synthesize_research_answers(
     # Q4: Operational phase variance
     q4_answer = (
         "Under the standalone cumulative stage-probe model, performance variance across corpus types was "
-        "concentrated in pairwise size filtering for large corpora (~88% in C1) and read & hash for candidate-dense "
-        "corpora (~41% in C2). Micro-stage durations below the ~10 ms process invocation noise floor (e.g. read/hash in C7 or "
-        "grouping in C6) cannot be reliably separated without internal runtime instrumentation."
+        "concentrated in pairwise size filtering for large corpora (~86% in C1, 2,192.2 ms out of 2,540.6 ms total). "
+        "In candidate-dense corpora (e.g. C2), pairwise candidate size filtering also dominated valid probe time (181.2 ms), "
+        "while sub-stage durations below the ~10 ms process invocation noise floor (such as read/hash in C2/C7 or grouping in C2/C6) "
+        "yielded non-positive deltas marked as below noise floor (N/A*) and cannot be reliably separated without internal runtime instrumentation."
     )
     q4 = ResearchQuestionAnswer(
         question_number=4,
@@ -146,8 +162,8 @@ def synthesize_research_answers(
     # Q6: Scaling plateau dimensions
     q6_answer = (
         "Scaling plateaued primarily with file count due to the O(N^2) pairwise size filtering algorithm in `scan.j2`. "
-        "At file counts >= 500, metadata collection and pairwise size comparison consume disproportionate time "
-        "under the current algorithm, whereas hashing scales linearly with candidate count and total candidate bytes."
+        "At file counts >= 500 (e.g. C1), metadata collection and pairwise size comparison consume disproportionate time "
+        "(~86% of execution time) under the current algorithm, whereas hashing scales linearly with candidate count and total candidate bytes."
     )
     q6 = ResearchQuestionAnswer(
         question_number=6,
@@ -160,10 +176,10 @@ def synthesize_research_answers(
 
     # Q7: Reproducibility across CI and developer hardware
     q7_answer = (
-        f"The qualitative finding—native compilation advantage without sustained multi-core speedup over serial "
-        f"controls—was observed on the authoritative macOS CI environment (Apple Silicon, 3 vCPUs). Cross-hardware "
-        f"reproducibility is not fully established as authoritative since comparable developer-hardware measurements "
-        f"are not preserved in this dataset."
+        f"The qualitative finding—workload-dependent native speed differences (avg {avg_speedup:.2f}x, 2/6 >= 1.05x, "
+        f"beneficiaries vary run-to-run) without sustained multi-core speedup over serial controls—was observed on the "
+        f"authoritative macOS CI environment (Apple Silicon, 3 vCPUs). Cross-hardware reproducibility is not fully "
+        f"established as authoritative since comparable developer-hardware measurements are not preserved in this dataset."
     )
     q7 = ResearchQuestionAnswer(
         question_number=7,
@@ -321,10 +337,10 @@ def format_t006_markdown_report(report: T006FullReport) -> str:
     # Scientific Conclusions
     lines.append("## Scientific Conclusions")
     lines.append("")
-    lines.append("1. **Native Compilation Benefit:** Native execution provides workload-dependent speedup (up to 1.45x in compute-heavy paths) over bytecode interpreter execution by removing interpreter bytecode dispatch overhead and leveraging optimized LLVM native machine code generation.")
+    lines.append("1. **Native Compilation Benefit:** Native execution provides workload-dependent speedup (up to 1.18x in compute-heavy paths) over bytecode interpreter execution by removing interpreter bytecode dispatch overhead and leveraging optimized LLVM native machine code generation.")
     lines.append("2. **Automatic-Parallelism Evidence:** No sustained multi-core CPU utilization was observed under the configured sampling methodology across any tested level (T006-A arithmetic reduction, T006-B in-memory hashing, T006-C filesystem read+hash, or T006-D full pipeline). Emitted backend code under `j2 emit-native` shows single-threaded iterative loops with `thread_local! static GLOBALS` rather than multi-threaded concurrency runtime primitives (`rayon`, `thread::spawn`, `par_iter`).")
     lines.append("3. **Filesystem / I/O Effects:** Warm repeated runs are consistent with OS page-cache effects reducing physical disk wait, shifting execution to CPU computation (SHA-256 evaluation and pairwise candidate filtering) without privileged kernel cache eviction on macOS CI runners.")
-    lines.append("4. **Workload-Size Effects:** The pairwise O(N^2) candidate size filtering in `scan.j2` scales quadratically with file count, consuming approximately 88% of execution time under the standalone cumulative stage-probe model for 500-file corpora (C1).")
+    lines.append("4. **Workload-Size Effects:** The pairwise O(N^2) candidate size filtering in `scan.j2` scales quadratically with file count, consuming approximately 86% of execution time under the standalone cumulative stage-probe model for 500-file corpora (C1).")
     lines.append("5. **What Remains Unproven:** Internal compiler dependency analysis heuristics and potential automatic parallelism under future J2 releases or unverified lowering modes remain unproven. Under J2 0.1.0 and tested loop formulations, no automatic parallel speedup was observed.")
     lines.append("")
 
@@ -548,7 +564,7 @@ def generate_offline_mock_report(
         research_answers=answers,
         overall_classification="CATEGORY C",
         headline_conclusions=[
-            "Native execution provides workload-dependent speedup (up to 1.45x) over bytecode interpreter due to compiled machine code.",
+            "Native execution provides workload-dependent speedup (up to 1.18x) over bytecode interpreter due to compiled machine code.",
             "No sustained multi-core CPU utilization was observed under the configured sampling methodology across any tested level in J2 0.1.0.",
             "J2 backend emission under j2 emit-native produces single-threaded loops using thread_local! static GLOBALS without multi-threaded runtime primitives.",
         ],
@@ -556,6 +572,82 @@ def generate_offline_mock_report(
             "J2 0.1.0 internal parallelism lowering heuristics are opaque without public compiler flags.",
             "Filesystem cache state is inferred through warm repeated runs rather than privileged OS kernel cache eviction.",
         ],
+    )
+
+
+def load_t006_report(path: Path) -> T006FullReport:
+    """Load and reconstruct a T006FullReport dataclass instance from JSON."""
+    data = json.loads(path.read_text(encoding="utf-8"))
+    prov = PlatformProvenance(**data["provenance"])
+    experiments = []
+    for ed in data.get("experiments", []):
+        def make_meas(md: Optional[dict[str, Any]]) -> Optional[BaselineMeasurement]:
+            if md is None:
+                return None
+            timing = TimingStatistics(**md["timing"])
+            m_data = dict(md["metrics"]) if md.get("metrics") else None
+            metrics = BaselineWorkloadMetrics(**m_data) if m_data else None
+            return BaselineMeasurement(
+                baseline_id=md["baseline_id"],
+                baseline_name=md["baseline_name"],
+                command_line=md["command_line"],
+                environment_vars=md["environment_vars"],
+                timing=timing,
+                output_digest=md["output_digest"],
+                metrics=metrics,
+                build_time_ms=md.get("build_time_ms"),
+                success=md.get("success", True),
+                error_message=md.get("error_message"),
+            )
+
+        comp_d = dict(ed["evidence"]["compiler"]) if ed.get("evidence", {}).get("compiler") else None
+        compiler = CompilerInspectionEvidence(**comp_d) if comp_d else None
+        cpu_d = dict(ed["evidence"]["cpu"]) if ed.get("evidence", {}).get("cpu") else None
+        cpu = CpuUtilizationEvidence(**cpu_d) if cpu_d else None
+        ev = ObservabilityEvidence(
+            compiler=compiler,
+            cpu=cpu,
+            profiler=ed.get("evidence", {}).get("profiler"),
+            determinism=ed.get("evidence", {}).get("determinism"),
+        )
+
+        experiments.append(T006ExperimentResult(
+            experiment_id=ed["experiment_id"],
+            variant_id=ed["variant_id"],
+            workload_name=ed["workload_name"],
+            workload_level=ed["workload_level"],
+            source_file=ed["source_file"],
+            source_sha256=ed["source_sha256"],
+            workload_parameters=ed["workload_parameters"],
+            interpreter_measurement=make_meas(ed.get("interpreter_measurement")),
+            native_candidate_measurement=make_meas(ed.get("native_candidate_measurement")),
+            native_serial_measurement=make_meas(ed.get("native_serial_measurement")),
+            speedup_native_over_interpreter=ed["speedup_native_over_interpreter"],
+            speedup_candidate_over_serial=ed["speedup_candidate_over_serial"],
+            correctness_verified=ed["correctness_verified"],
+            evidence=ev,
+            evidence_grade=ed["evidence_grade"],
+            classification=ed["classification"],
+            limitations=ed["limitations"],
+            candidate_source_sha256=ed.get("candidate_source_sha256"),
+            serial_source_sha256=ed.get("serial_source_sha256"),
+            git_commit=ed.get("git_commit"),
+            timestamp=ed.get("timestamp"),
+        ))
+
+    stage_breakdowns = [StageBreakdownResult(**bd) for bd in data.get("stage_breakdowns", [])]
+    research_answers = [ResearchQuestionAnswer(**qa) for qa in data.get("research_answers", [])]
+    return T006FullReport(
+        schema_version=data["schema_version"],
+        task_id=data["task_id"],
+        timestamp_utc=data["timestamp_utc"],
+        provenance=prov,
+        experiments=experiments,
+        stage_breakdowns=stage_breakdowns,
+        research_answers=research_answers,
+        overall_classification=data["overall_classification"],
+        headline_conclusions=data["headline_conclusions"],
+        unresolved_limitations=data["unresolved_limitations"],
     )
 
 
@@ -571,17 +663,40 @@ def main() -> int:
     parser.add_argument("--out", default="benchmarks/results/t006_results.json", help="Path for JSON output")
     parser.add_argument("--report", default="benchmarks/results/t006_report.md", help="Path for Markdown report")
     parser.add_argument("--offline", action="store_true", help="Run in offline mock mode without invoking real J2 binary")
+    parser.add_argument(
+        "--regenerate-report",
+        action="store_true",
+        help="Regenerate Markdown report and update synthesized answers from existing results JSON without re-running experiments",
+    )
 
     args = parser.parse_args()
-
-    provenance = collect_platform_provenance(args.j2_bin if not args.offline else "j2")
-    active_experiments = [x.strip().upper() for x in args.experiments.split(",") if x.strip()]
-    corpora_ids = [c.strip() for c in args.corpora.split(",") if c.strip()]
 
     out_json = Path(args.out).resolve()
     out_report = Path(args.report).resolve()
     out_json.parent.mkdir(parents=True, exist_ok=True)
     out_report.parent.mkdir(parents=True, exist_ok=True)
+
+    if args.regenerate_report:
+        if not out_json.is_file():
+            print(f"Error: JSON results file '{out_json}' does not exist.", file=sys.stderr)
+            return 1
+        print(f"[*] Loading results from {out_json}...")
+        report = load_t006_report(out_json)
+        report.research_answers = synthesize_research_answers(
+            report.experiments, report.stage_breakdowns, report.provenance
+        )
+        report.headline_conclusions = [
+            f"Overall classification: {report.overall_classification}.",
+            "Native execution provides workload-dependent speedup (up to 1.18x) over bytecode interpreter due to compiled machine code.",
+            "No sustained multi-core CPU utilization was observed under the configured sampling methodology across any tested level in J2 0.1.0.",
+            "Emitted backend code under `j2 emit-native` shows single-threaded iterative loops with `thread_local! static GLOBALS` rather than multi-threaded concurrency runtime primitives.",
+        ]
+        out_json.write_text(report.to_json(indent=2), encoding="utf-8")
+        md_content = format_t006_markdown_report(report)
+        out_report.write_text(md_content, encoding="utf-8")
+        print(f"[+] Successfully refreshed results JSON: {out_json}")
+        print(f"[+] Successfully regenerated Markdown report: {out_report}")
+        return 0
 
     # Prepare corpus directories
     corpora_base = _REPO_ROOT / "benchmarks" / "corpora"
@@ -668,7 +783,7 @@ def main() -> int:
             overall_classification=overall_class,
             headline_conclusions=[
                 f"Overall classification: {overall_class}.",
-                "Native execution provides workload-dependent speedup (up to 1.45x) over bytecode interpreter due to compiled machine code.",
+                "Native execution provides workload-dependent speedup (up to 1.18x) over bytecode interpreter due to compiled machine code.",
                 "No sustained multi-core CPU utilization was observed under the configured sampling methodology across any tested level in J2 0.1.0.",
                 "Emitted backend code under `j2 emit-native` shows single-threaded iterative loops with `thread_local! static GLOBALS` rather than multi-threaded concurrency runtime primitives.",
             ],

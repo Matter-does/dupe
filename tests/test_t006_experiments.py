@@ -227,7 +227,7 @@ class TestT006ScientificReportingAndCorpusIdentity(unittest.TestCase):
         rq_map = {q["question_number"]: q for q in data.get("research_answers", [])}
 
         self.assertEqual(rq_map[1]["evidence_grade"], "A")
-        self.assertEqual(rq_map[2]["evidence_grade"], "A")
+        self.assertEqual(rq_map[2]["evidence_grade"], "B")  # Workload-dependent speedup with short-run noise
         self.assertEqual(rq_map[3]["evidence_grade"], "A")
         self.assertEqual(rq_map[4]["evidence_grade"], "B")  # Standalone stage probe approximation
         self.assertEqual(rq_map[5]["evidence_grade"], "B")  # Warm repeated run page cache inference

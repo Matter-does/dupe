@@ -103,10 +103,10 @@
 - **Limitations:** Inspection is based on regex pattern matching against known Rust concurrency primitives in emitted backend source; does not inspect internal compiler IR before emission.
 
 ### Question 2: Did execution become measurably faster in compiled native mode?
-- **Direct Answer:** Yes. Compiled native execution was faster in compute-intensive workloads (e.g. up to 1.45x in C6 and 1.15x in C2, with an average native speedup of 0.99x across tested workloads). However, this advantage is attributable to machine-code compilation and reduced interpreter dispatch overhead rather than multi-threaded parallelism.
-- **Evidence Grade:** `A`
+- **Direct Answer:** Yes, but workload-dependent. Compiled native execution was faster in select workloads (e.g. up to 1.18x in C4, with an average native speedup of 0.99x across tested workloads). However, this advantage is attributable to machine-code compilation and reduced interpreter dispatch overhead rather than multi-threaded parallelism.
+- **Evidence Grade:** `B`
 - **Supporting Artifact:** Empirical wall-clock timing comparisons across Level A, B, C, and D workloads
-- **Limitations:** Speedup measures total process execution time; includes process startup and memory initialization.
+- **Limitations:** Speedup measures total process execution time including startup; short-run noise (~±30%) affects small speedup ratios.
 
 ### Question 3: Was the observed speedup consistent across repetitions?
 - **Direct Answer:** Yes. Native execution timings demonstrated low variance across repeated runs (average standard deviation 47.77 ms). Timing differences between candidate and serial controls were reproducible within measured standard error.
@@ -115,7 +115,7 @@
 - **Limitations:** Measurements conducted in controlled CI environment; background runner noise kept minimal.
 
 ### Question 4: Which specific operational phase (discovery, read, hash, grouping/output) exhibited performance variance?
-- **Direct Answer:** Under the standalone cumulative stage-probe model, performance variance across corpus types was concentrated in pairwise size filtering for large corpora (~88% in C1) and read & hash for candidate-dense corpora (~41% in C2). Micro-stage durations below the ~10 ms process invocation noise floor (e.g. read/hash in C7 or grouping in C6) cannot be reliably separated without internal runtime instrumentation.
+- **Direct Answer:** Under the standalone cumulative stage-probe model, performance variance across corpus types was concentrated in pairwise size filtering for large corpora (~86% in C1, 2,192.2 ms out of 2,540.6 ms total). In candidate-dense corpora (e.g. C2), pairwise candidate size filtering also dominated valid probe time (181.2 ms), while sub-stage durations below the ~10 ms process invocation noise floor (such as read/hash in C2/C7 or grouping in C2/C6) yielded non-positive deltas marked as below noise floor (N/A*) and cannot be reliably separated without internal runtime instrumentation.
 - **Evidence Grade:** `B`
 - **Supporting Artifact:** Isolated stage microbenchmark probes (`benchmarks/t006/stage_*.j2`)
 - **Limitations:** Sub-stage timings are estimated via standalone cumulative stage probes rather than internal production instrumentation.
@@ -127,21 +127,21 @@
 - **Limitations:** Direct OS page-cache eviction controls are privileged on macOS; behavior characterized via warm repeated run protocol.
 
 ### Question 6: At what workload dimensions (file count, file size, candidate density) did scaling plateau?
-- **Direct Answer:** Scaling plateaued primarily with file count due to the O(N^2) pairwise size filtering algorithm in `scan.j2`. At file counts >= 500, metadata collection and pairwise size comparison consume disproportionate time under the current algorithm, whereas hashing scales linearly with candidate count and total candidate bytes.
+- **Direct Answer:** Scaling plateaued primarily with file count due to the O(N^2) pairwise size filtering algorithm in `scan.j2`. At file counts >= 500 (e.g. C1), metadata collection and pairwise size comparison consume disproportionate time (~86% of execution time) under the current algorithm, whereas hashing scales linearly with candidate count and total candidate bytes.
 - **Evidence Grade:** `A`
 - **Supporting Artifact:** Cross-corpus scaling data (C1 through C7) and Level B buffer scaling
 - **Limitations:** Evaluated across standard profile dimensions; full O(N^2) scaling limit visible at scale >= 0.1.
 
 ### Question 7: Is the observed behavior reproducible across CI and developer hardware?
-- **Direct Answer:** The qualitative finding—native compilation advantage without sustained multi-core speedup over serial controls—was observed on the authoritative macOS CI environment (Apple Silicon, 3 vCPUs). Cross-hardware reproducibility is not fully established as authoritative since comparable developer-hardware measurements are not preserved in this dataset.
+- **Direct Answer:** The qualitative finding—workload-dependent native speed differences (avg 0.99x, 2/6 >= 1.05x, beneficiaries vary run-to-run) without sustained multi-core speedup over serial controls—was observed on the authoritative macOS CI environment (Apple Silicon, 3 vCPUs). Cross-hardware reproducibility is not fully established as authoritative since comparable developer-hardware measurements are not preserved in this dataset.
 - **Evidence Grade:** `B`
 - **Supporting Artifact:** Platform provenance metadata, CPU utilization sampling, and cross-platform execution records
 - **Limitations:** Authoritative measurements were executed on an Apple Silicon macOS runner; developer hardware logs were not formally integrated into this benchmark run.
 
 ## Scientific Conclusions
 
-1. **Native Compilation Benefit:** Native execution provides workload-dependent speedup (up to 1.45x in compute-heavy paths) over bytecode interpreter execution by removing interpreter bytecode dispatch overhead and leveraging optimized LLVM native machine code generation.
+1. **Native Compilation Benefit:** Native execution provides workload-dependent speedup (up to 1.18x in compute-heavy paths) over bytecode interpreter execution by removing interpreter bytecode dispatch overhead and leveraging optimized LLVM native machine code generation.
 2. **Automatic-Parallelism Evidence:** No sustained multi-core CPU utilization was observed under the configured sampling methodology across any tested level (T006-A arithmetic reduction, T006-B in-memory hashing, T006-C filesystem read+hash, or T006-D full pipeline). Emitted backend code under `j2 emit-native` shows single-threaded iterative loops with `thread_local! static GLOBALS` rather than multi-threaded concurrency runtime primitives (`rayon`, `thread::spawn`, `par_iter`).
 3. **Filesystem / I/O Effects:** Warm repeated runs are consistent with OS page-cache effects reducing physical disk wait, shifting execution to CPU computation (SHA-256 evaluation and pairwise candidate filtering) without privileged kernel cache eviction on macOS CI runners.
-4. **Workload-Size Effects:** The pairwise O(N^2) candidate size filtering in `scan.j2` scales quadratically with file count, consuming approximately 88% of execution time under the standalone cumulative stage-probe model for 500-file corpora (C1).
+4. **Workload-Size Effects:** The pairwise O(N^2) candidate size filtering in `scan.j2` scales quadratically with file count, consuming approximately 86% of execution time under the standalone cumulative stage-probe model for 500-file corpora (C1).
 5. **What Remains Unproven:** Internal compiler dependency analysis heuristics and potential automatic parallelism under future J2 releases or unverified lowering modes remain unproven. Under J2 0.1.0 and tested loop formulations, no automatic parallel speedup was observed.

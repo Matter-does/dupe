@@ -452,7 +452,7 @@ Recursive Discovery → FileRecord[] → Parallel Read & SHA-256 → Emitted Man
 ## 18. T006 Empirical Automatic Parallelism Findings (macOS 15 Apple Silicon arm64)
 
 ### 18.1 Overview & Methodology
-Task T006 evaluated J2's automatic parallelism across an explicit 4-stage experimental ladder in GitHub Actions CI run `34051835154` on `macos-15` (Apple Silicon arm64, 3 vCPUs, 7.0 GB RAM) using verified toolchain `j2 0.1.0`.
+Task T006 evaluated J2's automatic parallelism across an explicit 4-stage experimental ladder in GitHub Actions CI run `34246767819` on `macos-15` (Apple Silicon arm64, 3 vCPUs, 7.0 GB RAM) using verified toolchain `j2 0.1.0`.
 
 To separate native compilation benefits from genuine multi-core parallelism, candidate parallelizable implementations were compared against:
 1. Interpreter execution (Baseline A);
@@ -470,12 +470,12 @@ To separate native compilation benefits from genuine multi-core parallelism, can
 | **T006-D** | Full dupe Pipeline (C1–C7) | PASS | **CATEGORY C / D** (Grade A)† | 0.70x–1.18x | N/A | NO (<105% on C1/C5) |
 
 > \* **T006-A Confounding Note:** T006-A candidate-vs-serial speedup (9.86x–242.45x) is driven by J2's built-in `sum()` runtime iterator fold optimization in native Rust versus an interpreted J2 loop with loop-carried variable reassignment, rather than automatic parallelism. Native candidate was not consistently faster than interpreter (0.95x–1.18x).  
-> ‡ **T006-B Variance Note:** 3 of 4 buffer configs classified as Category D (0.39x–0.82x; candidate slower than serial control), 1 config classified as Category E (1.07x).  
-> § **T006-C Corrected Serial Control Note:** Measured using genuine cryptographic loop-carried chaining (`chained = fmt("{}:{}", prev_hash, file_digest); d = hash.sha256(chained); prev_hash = d`). 3 of 6 corpora classified as Category D (C4: 1.02x, C6: 1.03x, C7: 0.88x; Grade A), 3 corpora classified as Category E (C1: 1.17x, C2: 1.36x, C5: 1.13x; Grade C due to insufficient CPU samples). Average speedup was 1.10x with zero compiler parallel constructs and zero multi-core engagement.  
+> ‡ **T006-B Variance Note:** 3 of 4 buffer configs classified as Category D (0.39x–0.82x; candidate slower than serial control), 1 config classified as Category E (1.07x). Serial chained control copies each buffer into an intermediate string, introducing an allocation overhead confound in the serial baseline (conservative direction).  
+> § **T006-C Corrected Serial Control Note:** Measured using genuine cryptographic loop-carried chaining (`chained = fmt("{}:{}", prev_hash, file_digest); d = hash.sha256(chained); prev_hash = d`). 3 of 6 corpora classified as Category D (C4: 1.02x, C6: 1.03x, C7: 0.88x; Grade A), 3 corpora classified as Category E (C1: 1.17x, C2: 1.36x, C5: 1.13x; Grade C due to insufficient CPU samples). Average speedup was 1.10x with zero compiler parallel constructs and zero multi-core engagement; C2 1.36x candidate win reflects serial-side extra hash work and short-run noise rather than parallelism, properly classified Category E.  
 > † **T006-D Variance Note:** 2 of 6 corpora exhibited native compilation advantage (C4: 1.18x, C7: 1.08x; Category C), while 4 of 6 exhibited no significant benefit or slight slowdown (C1: 1.00x, C2: 0.70x, C5: 0.87x, C6: 0.94x; Category D). Average native speedup across all Level D corpora was 0.99x.
 
 ### 18.3 Key Empirical Conclusions
-1. **No Sustained Multi-Core Parallelism Observed (Category C):** Across long-running workloads where CPU sampling captured sufficient samples (e.g. C1 with 24 samples), process CPU utilization sampling showed no sustained multi-core engagement (<105% process CPU on a 3-vCPU host). For microbenchmarks (<200 ms), sampling yielded insufficient sample counts (<4), which are explicitly reported as insufficient rather than as evidence of single-threadedness.
+1. **No Sustained Multi-Core Parallelism Observed (Category C):** Across long-running workloads where CPU sampling captured sufficient samples (e.g. C1 with 22 samples), process CPU utilization sampling showed no sustained multi-core engagement (<105% process CPU on a 3-vCPU host). For microbenchmarks (<200 ms), sampling yielded insufficient sample counts (<4), which are explicitly reported as insufficient rather than as evidence of single-threadedness.
 2. **Native Compilation Advantage:** Native compiled binaries provide workload-dependent speedup over the bytecode interpreter (average 0.99x across Level D, up to 1.18x in C4). This advantage stems from avoiding interpreter bytecode dispatch and leveraging LLVM machine codegen optimization.
 3. **Compiler Backend Emission:** `j2 emit-native` produces sequential loops using thread-local static globals (`thread_local! static GLOBALS`). Explicit multi-threaded runtime primitives (`rayon`, `par_iter`, `thread::spawn`) were not observed in the emitted backend for J2 0.1.0.
 4. **Dominant Pipeline Bottlenecks:**
