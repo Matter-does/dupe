@@ -18,7 +18,7 @@ Filesystem analysis presents a unique systems challenge: it combines OS director
 
 Based on direct, reproducible evidence from this repository:
 
-1. **Native Filesystem Access:** J2 provides built-in capability-gated filesystem primitives (`fs.list_dir`, `fs.read_file`, `fs.file_size`, `fs.is_file`, `fs.is_dir`, `fs.is_symlink`) that allow expressing traversal and inspection directly without C bindings or foreign function interfaces.
+1. **Native Filesystem Access:** J2 provides built-in capability-gated filesystem primitives (`fs.list_dir`, `fs.read_bytes`, `fs.read_file`, `fs.metadata`, `fs.is_file`, `fs.is_dir`) that allow expressing traversal and inspection directly without C bindings or foreign function interfaces.
 2. **Native Compilation:** J2 compiles pure source code (`src/main.j2`) directly into standalone Mach-O arm64 machine code (`j2 build`), eliminating bytecode interpreter dispatch overhead and accelerating compute-intensive hashing loops by up to 1.18x.
 3. **Deterministic Behavior:** J2's standard data structures and deterministic iteration enable byte-for-byte identical output between interpreter execution and native machine code across all workloads.
 4. **Engineering Value:** Developing `dupe` in J2 demonstrated how a declarative, functional-inspired language with capability sandboxing (`--allow-fs` / `J2_ALLOW_FS=1`) can structure a multi-stage data processing pipeline while preserving a 100% frozen core engine across CLI and desktop GUI interfaces.
@@ -61,7 +61,7 @@ deterministic checksum ledger
 ### Architectural Responsibilities
 - **Authoritative Engine (J2):** 100% of filesystem traversal, candidate filtering, SHA-256 hashing, duplicate grouping, and ledger calculation resides in J2 (`src/main.j2`, `src/checksum.j2`, `src/scan.j2`, `src/hash.j2`, `src/group.j2`, `src/output.j2`).
 - **Presentation Layer (CLI & GUI):** The CLI (`dupe`) and lightweight desktop GUI (`python -m gui`) act strictly as presentation shells. The GUI invokes the engine via `EngineAdapter` and parses its standard JSON output, duplicating zero engine logic.
-- **Verification Authority:** Correctness is established through automated differential fuzzing (`tests/phase4_differential.py`), an independent Python standard library `hashlib.sha256` oracle (`tests/test_checksum_oracle.py`), native vs. interpreter parity checks, and GitHub Actions CI.
+- **Verification Authority:** Correctness is established through automated differential fuzzing (`tests/phase4_differential.py`), an independent Python standard library `hashlib.sha256` oracle (`tests/test_t007_checksum_inventory.py`), native vs. interpreter parity checks, and GitHub Actions CI.
 
 ---
 
@@ -101,7 +101,7 @@ python -m gui --target demo_corpus
 # 5. Run automated demonstration verification
 python tests/verify_t010_demo.py --native-bin build/dupe --output-dir artifacts/t010
 
-# 6. Run full test suite (124+ tests)
+# 6. Run full test suite (132 tests)
 python -m unittest discover -s tests -v
 ```
 
@@ -112,10 +112,11 @@ python -m unittest discover -s tests -v
 The repository enforces objective correctness across multiple independent gates:
 
 - **Phase 4 Correctness:** 13 seed corpora and 4 regression fixtures tested against an independent Python reference model with 100% agreement.
-- **T007 Checksum Inventory:** Comprehensive cryptographic validation against Python's `hashlib.sha256` oracle across all discovered regular files.
-- **T008 CLI Contract:** 37 automated tests verifying subcommand routing, argument handling, usage diagnostics, and error codes.
-- **T009 GUI Shell:** 25 automated unit and adapter tests verifying background thread isolation, model transformation, and zero engine logic duplication.
-- **T010 Deterministic Demo:** Fixed 8-file corpus ground truth (5 candidates, 2 duplicate groups, 456 reclaimable bytes, 5,258 total bytes) verified end-to-end.
+- **T007 Checksum Inventory:** Comprehensive cryptographic validation against Python's `hashlib.sha256` oracle across all discovered regular files (22 tests in `tests/test_t007_checksum_inventory.py`).
+- **T008 CLI Contract:** 20 automated tests in `tests/test_t008_cli_polish.py` verifying subcommand routing, argument handling, usage diagnostics, and error codes.
+- **T009 GUI Shell:** 22 automated unit and adapter tests in `tests/test_t009_gui_shell.py` verifying background thread isolation, model transformation, and zero engine logic duplication.
+- **T010 Deterministic Demo:** Fixed 8-file corpus ground truth (5 candidates, 2 duplicate groups, 456 reclaimable bytes, 5,258 total bytes) verified end-to-end (10 tests in `tests/test_t010_demo.py`).
+- **T011 Package Integrity:** 8 automated packaging and boundary tests in `tests/test_t011_final_package.py`.
 - **Native / Interpreter Parity:** Automated `cmp` assertions verify byte-for-byte identical stdout between native machine code and interpreter.
 - **Independent SHA-256 Oracle:** J2 cryptographic output is validated against non-circular standard library hash calculations.
 

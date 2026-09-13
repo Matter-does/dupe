@@ -25,6 +25,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from tests.demo_corpus import (
+    DEMO_CORPUS_SPEC,
     EXPECTED_CANDIDATES_COUNT,
     EXPECTED_FILES_COUNT,
     EXPECTED_GROUPS_COUNT,
@@ -63,6 +64,27 @@ class TestT011FinalPackage(unittest.TestCase):
             doc_path = REPO_ROOT / rel_path
             self.assertTrue(doc_path.is_file(), f"Required documentation file missing: {rel_path}")
             self.assertGreater(doc_path.stat().st_size, 100, f"Documentation file {rel_path} appears empty")
+
+        # P2-01: Verify FINAL_EVIDENCE contains all authoritative demo corpus files
+        evidence_text = (REPO_ROOT / "docs" / "FINAL_EVIDENCE.md").read_text(encoding="utf-8")
+        for rel_path, _ in DEMO_CORPUS_SPEC:
+            self.assertIn(rel_path, evidence_text, f"Authoritative demo file {rel_path} missing from FINAL_EVIDENCE.md")
+
+        # P2-02 & P2-04: Verify absence of dead evidence paths and unverified APIs
+        dead_references = [
+            "test_checksum_oracle",
+            "test_t007_checksum.py",
+            "test_t008_cli.py",
+            "test_cli_contract.py",
+            "test_t009_gui.py",
+            "t008-cli-contract.yml",
+            "fs.file_size",
+            "fs.is_symlink",
+        ]
+        for rel_path in ["README.md", "docs/VALIDATION.md", "docs/FINAL_EVIDENCE.md", "docs/SUBMISSION_CHECKLIST.md"]:
+            doc_content = (REPO_ROOT / rel_path).read_text(encoding="utf-8")
+            for dead in dead_references:
+                self.assertNotIn(dead, doc_content, f"Prohibited dead reference or unverified API '{dead}' in {rel_path}")
 
     def test_readme_structure_and_no_stale_phases(self) -> None:
         readme_path = REPO_ROOT / "README.md"
