@@ -125,3 +125,26 @@ dupe help | --help | -h
   - `--json`: Emits compact, deterministic, machine-readable JSON. Flag placement before or after the target path is supported symmetrically.
   - `--help`, `-h`, `help`: Displays workload and option guidance.
 
+## Desktop GUI Shell (T009)
+
+A lightweight desktop graphical interface is provided over the engine:
+
+```bash
+python -m gui
+```
+
+Options:
+```bash
+python -m gui --target /path/to/dir --workload duplicate
+python -m gui --target /path/to/dir --workload checksum
+python -m gui --help
+```
+
+The GUI shell is thin and non-blocking:
+- Native directory picker (`Browse...`)
+- Workload toggling between **Duplicate Scan** and **Checksum Inventory**
+- Asynchronous background engine execution with indeterminate progress indicator
+- Summary metric cards and scrollable hierarchical results / ledger view
+- Preserves 100% of underlying J2 engine correctness and error codes
+
+

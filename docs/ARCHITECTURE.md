@@ -92,3 +92,10 @@ The unified CLI router in `src/main.j2` dispatches commands while isolating work
 - `dupe help | --help | -h` / `dupe checksum help | --help | -h`: Context-aware usage guidance.
 - Validation: Missing required path arguments or unexpected multiple paths fail deterministically with explicit diagnostics and usage output. Invalid or nonexistent paths propagate J2 filesystem runtime errors (`RuntimeError` from `fs.list_dir`) with a non-zero process exit code.
 
+## Desktop GUI Shell (T009)
+The lightweight GUI shell (`gui/app.py`) wraps the engine without reimplementing analysis logic:
+- `EngineAdapter` (`gui/adapter.py`) manages command construction, asynchronous background execution (`threading.Thread`), exit-code/stdout/stderr capture, and established JSON parsing.
+- `ViewModels` (`gui/view_models.py`) transform engine output into presentation models for both duplicate and checksum workloads.
+- The user interface is built using standard library `tkinter`/`ttk` for zero external dependencies.
+
+
