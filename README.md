@@ -141,10 +141,79 @@ python -m gui --help
 ```
 
 The GUI shell is thin and non-blocking:
-- Native directory picker (`Browse...`)
+- Native directory picker (`Browse...`) and quick-fill (`Load Demo Corpus`)
 - Workload toggling between **Duplicate Scan** and **Checksum Inventory**
+- Engine resolution transparency: displays active J2 engine mode in window header
 - Asynchronous background engine execution with indeterminate progress indicator
 - Summary metric cards and scrollable hierarchical results / ledger view
 - Preserves 100% of underlying J2 engine correctness and error codes
+
+---
+
+## Hackathon Demo (T010)
+
+`dupe` demonstrates how a real-world filesystem analysis workload executes under J2, exposing both a unified CLI and a responsive desktop GUI while preserving 100% engine purity in J2.
+
+### Architecture Separation
+
+- **Authoritative Engine:** J2 (`src/main.j2`, `src/checksum.j2`, `src/scan.j2`, `src/hash.j2`, `src/group.j2`, `src/output.j2`) handles 100% of filesystem traversal, candidate filtering, SHA-256 hashing, duplicate grouping, and ledger calculation.
+- **Presentation Layer:** CLI (`dupe`) and lightweight Python/Tk GUI (`python -m gui`) act strictly as presentation shells over the engine.
+- **Verification Authority:** Automated tests (`tests/test_t010_demo.py`), independent Python `hashlib.sha256` oracles, native/interpreter parity checks, and GitHub Actions CI.
+
+### 1. Generate the Representative Demo Corpus
+Generate a compact (5,258 bytes, 8 files), deterministic, multi-topology demonstration corpus:
+
+```bash
+python tests/demo_corpus.py --output demo_corpus
+```
+
+Expected Ground Truth:
+- **8 regular files** across nested directories (`documents/`, `images/`, `archive/old_backup/`, `notes/`) and 1 empty directory.
+- **Exact Duplicate Scan:** 8 files scanned, 5 hash candidates (100B and 256B), 2 duplicate groups, **456 bytes reclaimable**.
+- **Checksum Inventory:** 8 files, **5,258 total bytes** with 100% verified SHA-256 digests.
+
+### 2. Run Canonical CLI Demonstrations
+
+**Exact Duplicate Detection:**
+```bash
+# Standalone native binary (macOS 15 Apple Silicon):
+./build/dupe demo_corpus
+./build/dupe demo_corpus --json
+
+# Or J2 interpreter:
+j2 --allow-fs src/main.j2 demo_corpus
+j2 --allow-fs src/main.j2 demo_corpus --json
+```
+
+**Checksum Inventory:**
+```bash
+# Standalone native binary:
+./build/dupe checksum demo_corpus
+./build/dupe checksum demo_corpus --json
+
+# Or J2 interpreter:
+j2 --allow-fs src/main.j2 checksum demo_corpus
+j2 --allow-fs src/main.j2 checksum demo_corpus --json
+```
+
+### 3. Launch Desktop GUI Demonstration
+```bash
+python -m gui --target demo_corpus
+```
+- Click **Analyze Directory** to trigger asynchronous background engine execution.
+- Toggle between **Exact Duplicate Scan** and **Checksum Inventory** to inspect metric cards and treeviews.
+- Click **Load Demo Corpus** at any time to instantly target or generate the demonstration corpus.
+
+### 4. Reproduce Verification
+Run the authoritative end-to-end verification script:
+
+```bash
+# With native binary:
+python tests/verify_t010_demo.py --native-bin build/dupe --output-dir artifacts/t010
+
+# Run full test suite (124 tests):
+python -m unittest discover -s tests -v
+```
+
 
 

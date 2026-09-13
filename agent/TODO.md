@@ -10,8 +10,8 @@
 - [x] T006 — Automatic-parallelism experiment and evidence collection
 - [x] T007 — Reusable filesystem analysis pass for a second read-only workload
 - [x] T008 — CLI/product surface polish (OPENCODE PASS — RELEASE READY)
-- [ ] T009 — Lightweight GUI shell over the engine (Implementation Complete — Ready for Adversarial Review)
-- [ ] T010 — Demo workload and benchmark presentation
+- [x] T009 — Lightweight GUI shell over the engine (OPENCODE PASS — T009 RELEASE READY)
+- [ ] T010 — Demo workload and benchmark presentation (Implementation Complete — Ready for Adversarial Review)
 - [ ] T011 — Final CI/documentation/submission package
 
 ## Ordering rule

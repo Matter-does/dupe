@@ -1,39 +1,50 @@
 # Current Task
 
-**Task:** T009 — Lightweight GUI Shell Over the Existing dupe Engine  
+**Task:** T010 — Demonstration / Integration Polish  
 **Status:** Implementation Complete — Ready for Adversarial Review  
 
 ## Summary of Implementation
 
-T009 provides a clean, responsive, and lightweight desktop GUI shell over the existing `dupe` filesystem intelligence engine without duplicating analysis logic or disturbing frozen Phase 3 algorithms:
+T010 turns the already-working `dupe` system into a clean, deterministic, hackathon-demonstration-ready product surface without changing the underlying engine algorithms or reopening previously frozen milestones:
 
-### 1. Architectural Separation
-- **GUI View (`gui/app.py`):** Tkinter/ttk desktop interface with native directory picker, workload mode selection, action triggers, status feedback, summary metric cards, and hierarchical/tabular result treeviews.
-- **Engine Adapter (`gui/adapter.py`):** Encapsulates command line construction conforming to the T008 contract (`dupe <path> --json`, `dupe checksum <path> --json`), non-blocking asynchronous execution (`threading.Thread`), exit-code, stdout, and stderr capture, and established JSON parsing.
-- **View Models (`gui/view_models.py`):** Decoupled data representations (`DuplicateViewModel`, `ChecksumViewModel`) providing human-readable number and byte formatters.
-- **Zero Analysis Reimplementation:** 100% of discovery, file filtering, hashing, duplicate grouping, checksum computing, and deterministic ordering remain inside the J2 engine.
+### 1. Representative Demonstration Corpus (`tests/demo_corpus.py`)
+- Compact, multi-topology, deterministic test corpus (8 regular files, 1 empty directory, nested subdirectories, total size: 5,258 bytes).
+- Ground truth:
+  - Exact Duplicate Scan: 8 files scanned, 5 candidates (100B and 256B), 2 duplicate groups, 456 reclaimable bytes.
+  - Checksum Inventory: 8 files, 5,258 bytes, 100% verified SHA-256 digests.
+- Callable via CLI (`python tests/demo_corpus.py --output demo_corpus`) and as a library (`create_demo_corpus`).
 
-### 2. Supported Workload Workflows
-- **Exact Duplicate Scan:** Displays high-level summary cards (Files Scanned, Hash Candidates, Duplicate Groups, Reclaimable Space) and an expandable hierarchical tree showing duplicate file clusters and individual member paths.
-- **Checksum Inventory:** Displays summary metrics (Total Files, Total Bytes, Ledger Status) and a structured table of files with SHA-256 digests.
+### 2. GUI Demonstration Polish (`gui/app.py`)
+- Engine Resolution Badge: Displays `Engine: J2 Native (build/dupe)` vs `Engine: J2 Interpreter (j2)` in the window header to visually prove that the GUI is a presentation shell delegating to J2.
+- Interactive Demo Loading: `Load Demo Corpus` button automatically loads or generates `demo_corpus` with one click.
+- Workload Guidance: Dynamic description label explaining what each workload does when selected.
+- Zero Analysis Logic Added: 100% pure presentation wrapper delegating to `EngineAdapter`.
 
-### 3. UI Responsiveness & Error Handling
-- **Non-blocking Execution:** The engine is invoked on a background daemon thread, with thread-safe UI updates dispatched via `root.after()`. The UI never freezes during scans.
-- **Error Surfacing:** Nonexistent paths, permission errors, and malformed outputs display a prominent error banner with the exact process exit code and stderr diagnostics.
+### 3. Demonstration Verification Harness (`tests/verify_t010_demo.py`)
+- Authoritative end-to-end verification script executing:
+  1. Deterministic demo corpus generation
+  2. Native CLI duplicate scan
+  3. Native CLI checksum inventory
+  4. Native vs Interpreter parity (byte-for-byte exact JSON equality)
+  5. Independent Python `hashlib.sha256` oracle verification across all entries
+  6. GUI `EngineAdapter` live invocations and ViewModel parsing
+  7. Structured portable artifact generation (`summary.md`, `provenance.json`, `demo_verification_result.json`) in `artifacts/t010/`.
 
-## Verification Evidence
-- `tests/test_t009_gui_shell.py`: 22 tests (10 adapter unit tests, 3 view-model tests, 6 headless GUI component tests, 3 live integration tests cleanly skipped locally when J2 is unavailable).
-- Full local test suite: **114 tests** (88 PASS, 26 cleanly SKIPPED locally with explicit markers).
+### 4. Tests & CI
+- `tests/test_t010_demo.py`: 10 tests (corpus determinism, tamper detection, view model ground truth parsing, GUI demo integration, live J2 execution).
+- Full local test suite: **124 tests** (96 PASS, 28 cleanly SKIPPED locally with explicit markers).
 - Phase 4 offline self-tests: **PASS** (`tests/phase4_differential.py --offline`).
-- Native verification script: `tests/verify_t009_gui.py`.
-- Dedicated CI workflow: `.github/workflows/t009-gui-shell.yml` on macOS 15 Apple Silicon arm64 with J2 0.1.0.
+- Dedicated CI workflow: `.github/workflows/t010-demo.yml` on macOS 15 Apple Silicon arm64 with pinned J2 0.1.0.
+
+### 5. Documentation (`README.md`)
+- Added comprehensive "Hackathon Demo (T010)" section detailing corpus generation, canonical duplicate and checksum commands, GUI usage, and verification reproduction.
 
 ## Non-Negotiable Boundaries Audit
 - `src/scan.j2`: UNTOUCHED (0 diff lines).
 - `src/hash.j2`: UNTOUCHED (0 diff lines).
 - `src/group.j2`: UNTOUCHED (0 diff lines).
 - `src/output.j2`: UNTOUCHED (0 diff lines).
+- `benchmarks/`: UNTOUCHED (0 diff lines).
 - `benchmarks/results/t005_*`: UNTOUCHED (0 diff lines).
 - `benchmarks/results/t006_*`: UNTOUCHED (0 diff lines).
-- `benchmarks/t006/*`: UNTOUCHED (0 diff lines).
-- T007 & T008 CLI contracts: UNTOUCHED & FULLY PRESERVED.
+- T007, T008, T009 contracts & tests: UNTOUCHED & FULLY PRESERVED.
