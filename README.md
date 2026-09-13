@@ -96,11 +96,32 @@ Final    Demo + documentation            LATER
 
 Do not invent J2 syntax or APIs. Verify uncertain behavior against the pinned compiler with an executable probe, and record important discoveries in the repository.
 
-## Current CLI
+## CLI Usage
 
 ```text
-dupe PATH
-dupe PATH --json
+dupe PATH [--json]
+dupe checksum PATH [--json]
+dupe help | --help | -h
 ```
 
-Future interfaces must be specified and verified before implementation.
+### Workloads
+- **Duplicate Detection (default):**
+  ```bash
+  dupe /path/to/dir
+  dupe /path/to/dir --json
+  dupe --json /path/to/dir
+  ```
+  Recursively discovers regular files, prefilters by size, computes exact SHA-256 digests for candidates, groups duplicates, and reports reclaimable bytes.
+
+- **Checksum Inventory:**
+  ```bash
+  dupe checksum /path/to/dir
+  dupe checksum /path/to/dir --json
+  dupe checksum --json /path/to/dir
+  ```
+  Recursively enumerates all regular files and produces a complete SHA-256 inventory ledger with file sizes and total bytes.
+
+- **Help & Options:**
+  - `--json`: Emits compact, deterministic, machine-readable JSON. Flag placement before or after the target path is supported symmetrically.
+  - `--help`, `-h`, `help`: Displays workload and option guidance.
+

@@ -85,3 +85,10 @@ Empirical evidence from T006 on macOS 15 Apple Silicon (`macos-15`, arm64, 3 vCP
 2. **Execution Concurrency:** No sustained multi-core CPU utilization was observed under the configured sampling methodology across tested workloads (process CPU utilization bounded <105%; emitted backend source uses thread-local globals without multi-threaded runtime primitives).
 3. **Pipeline Bottlenecks:** Pipeline performance is dominated by the pairwise $O(N^2)$ candidate size filter in metadata-heavy corpora (e.g. C1) and SHA-256 hashing in candidate-dense corpora (e.g. C2). Warm-state repeated runs are consistent with OS page-cache effects reducing storage wait.
 
+## Command Layer & CLI Surface (T008)
+The unified CLI router in `src/main.j2` dispatches commands while isolating workload pipelines:
+- `dupe PATH [--json]` / `dupe [--json] PATH`: Default duplicate detection workload.
+- `dupe checksum PATH [--json]` / `dupe checksum [--json] PATH`: Checksum inventory workload (`src/checksum.j2`).
+- `dupe help | --help | -h` / `dupe checksum help | --help | -h`: Context-aware usage guidance.
+- Validation: Missing required path arguments or unexpected multiple paths fail deterministically with explicit diagnostics and usage output. Invalid or nonexistent paths propagate J2 filesystem runtime errors (`RuntimeError` from `fs.list_dir`) with a non-zero process exit code.
+
