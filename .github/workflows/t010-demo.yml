@@ -1,0 +1,155 @@
+name: T010 Demonstration & Integration Verification
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'gui/**'
+      - 'src/**'
+      - 'tests/**'
+      - '.github/workflows/t010-demo.yml'
+  pull_request:
+    paths:
+      - 'gui/**'
+      - 'src/**'
+      - 'tests/**'
+      - '.github/workflows/t010-demo.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  J2_VERSION: 0.1.0
+  J2_SHA256: 6fda8338791730cf7937362acd03e29247719e65785458e62988e1789c842e75
+
+jobs:
+  macos-demo-verification:
+    name: T010 Demo on macOS Apple Silicon (arm64)
+    runs-on: macos-15
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Verify runner architecture
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Architecture: $(uname -m)"
+          test "$(uname -m)" = "arm64"
+
+      - name: Install exact J2 0.1.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          d="$RUNNER_TEMP/j2"
+          mkdir -p "$d"
+          cd "$d"
+          curl -fsSL --retry 3 --retry-delay 2 -o j2.tgz \
+            "https://github.com/JasnamSinghArora/j2/releases/download/v${J2_VERSION}/j2-${J2_VERSION}-aarch64-apple-darwin.tar.gz"
+          printf '%s  j2.tgz\n' "$J2_SHA256" | shasum -a 256 -c -
+          tar -xzf j2.tgz
+          s="$(find "$d" -type f -name install.sh -print -quit)"
+          test -n "$s"
+          cd "$(dirname "$s")"
+          chmod +x install.sh
+          ./install.sh
+          echo "$HOME/.j2/bin" >> "$GITHUB_PATH"
+
+      - name: Verify exact J2 version
+        shell: bash
+        run: |
+          set -euo pipefail
+          v="$(j2 --version)"
+          echo "Detected J2 version: $v"
+          test "$v" = "j2 0.1.0"
+
+      - name: Verify source formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          j2 fmt -w src/*.j2
+          git diff --stat
+          git diff --exit-code src/
+
+      - name: Verify frozen Phase 3 files unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code src/scan.j2 src/hash.j2 src/group.j2 src/output.j2
+
+      - name: Run full regression test suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest -v tests/test_t010_demo.py
+          python3 -m unittest -v tests/test_t009_gui_shell.py
+          python3 -m unittest -v tests/test_t008_cli_polish.py
+          python3 -m unittest -v tests/test_t007_checksum_inventory.py
+          python3 -m unittest discover -s tests -v
+
+      - name: Build genuine native dupe binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          j2 build src/main.j2 -o build/dupe
+          test -x build/dupe
+          echo "Built native binary:"
+          ls -la build/dupe
+
+      - name: Run authoritative T010 demo verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tests/verify_t010_demo.py --native-bin build/dupe --output-dir artifacts/t010
+
+      - name: Verify canonical demonstration commands against generated corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/canonical_demo
+          python3 tests/demo_corpus.py --output build/canonical_demo/corpus --clean
+
+          echo "1. Native duplicate detection:"
+          J2_ALLOW_FS=1 ./build/dupe build/canonical_demo/corpus --json > build/canonical_demo/dup_native.json
+
+          echo "2. Native checksum inventory:"
+          J2_ALLOW_FS=1 ./build/dupe checksum build/canonical_demo/corpus --json > build/canonical_demo/chk_native.json
+
+          echo "3. Interpreter duplicate detection:"
+          j2 --allow-fs src/main.j2 build/canonical_demo/corpus --json > build/canonical_demo/dup_interp.json
+
+          echo "4. Interpreter checksum inventory:"
+          j2 --allow-fs src/main.j2 checksum build/canonical_demo/corpus --json > build/canonical_demo/chk_interp.json
+
+          echo "5. Assert parity:"
+          cmp build/canonical_demo/dup_native.json build/canonical_demo/dup_interp.json
+          cmp build/canonical_demo/chk_native.json build/canonical_demo/chk_interp.json
+          echo "Canonical demonstration CLI commands verified with 100% parity."
+
+      - name: Publish Markdown summary to step summary
+        if: always()
+        shell: bash
+        run: |
+          if [ -f artifacts/t010/summary.md ]; then
+            cat artifacts/t010/summary.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload T010 demo artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: t010-demo-results
+          path: artifacts/t010/
+          if-no-files-found: error
