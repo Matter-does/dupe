@@ -9,25 +9,33 @@ import "group.j2"
 import "output.j2"
 import "checksum.j2"
 
-func usage() = {
-    print("dupe PATH [--json]")
-    print("Find exact duplicate files and report reclaimable bytes.")
-}
-
-func find_root(args) = {
-    if len(args) < 2 {
-        give ""
+func is_help_flag(arg) = {
+    if arg == "--help" {
+        give true
     }
-    give args[1]
-}
-
-func json_mode(args) = {
-    for arg in args {
-        if arg == "--json" {
-            give true
-        }
+    if arg == "-h" {
+        give true
+    }
+    if arg == "help" {
+        give true
     }
     give false
+}
+
+func usage() = {
+    print("dupe — filesystem intelligence engine")
+    print("")
+    print("Usage:")
+    print("  dupe PATH [--json]")
+    print("  dupe checksum PATH [--json]")
+    print("  dupe help | --help | -h")
+    print("")
+    print("Workloads:")
+    print("  duplicate (default)  Scan for exact duplicate files and report reclaimable bytes.")
+    print("  checksum             Compute SHA-256 checksum inventory of all regular files.")
+    print("")
+    print("Options:")
+    print("  --json               Emit deterministic, machine-readable JSON output.")
 }
 
 func is_checksum_command(args) = {
@@ -39,25 +47,85 @@ func is_checksum_command(args) = {
     give false
 }
 
+func parse_duplicate_args(args) = {
+    root := ""
+    is_json := false
+    is_help := false
+    extra_count := 0
+    skip_first := true
+
+    for arg in args {
+        if skip_first {
+            skip_first = false
+        } else {
+            if is_help_flag(arg) {
+                is_help = true
+            } else {
+                if arg == "--json" {
+                    is_json = true
+                } else {
+                    if root == "" {
+                        root = arg
+                    } else {
+                        extra_count = extra_count + 1
+                    }
+                }
+            }
+        }
+    }
+
+    give [root, is_json, extra_count, is_help]
+}
+
+func find_root(args) = {
+    parsed = parse_duplicate_args(args)
+    give parsed[0]
+}
+
+func json_mode(args) = {
+    parsed = parse_duplicate_args(args)
+    give parsed[1]
+}
+
 args = proc.argv()
 
 if is_checksum_command(args) {
     run_checksum(args)
 } else {
-    root = find_root(args)
+    parsed = parse_duplicate_args(args)
+    root = parsed[0]
+    is_json = parsed[1]
+    extra_count = parsed[2]
+    is_help = parsed[3]
 
-    if root == "" {
+    if is_help {
         usage()
     } else {
-        files = discover(root)
-        candidates = size_candidates(files)
-        hashed = hash_candidates(candidates)
-        groups = group_duplicates(hashed)
-
-        if json_mode(args) {
-            emit_json(files, candidates, groups)
+        if len(args) < 2 {
+            usage()
         } else {
-            emit_human(files, candidates, groups)
+            if extra_count > 0 {
+                print("Error: Multiple paths or unexpected arguments specified.")
+                print("")
+                usage()
+            } else {
+                if root == "" {
+                    print("Error: Missing required path argument.")
+                    print("")
+                    usage()
+                } else {
+                    files = discover(root)
+                    candidates = size_candidates(files)
+                    hashed = hash_candidates(candidates)
+                    groups = group_duplicates(hashed)
+
+                    if is_json {
+                        emit_json(files, candidates, groups)
+                    } else {
+                        emit_human(files, candidates, groups)
+                    }
+                }
+            }
         }
     }
 }

@@ -1,13 +1,36 @@
 # dupe checksum inventory module
 
+func is_checksum_help_flag(arg) = {
+    if arg == "--help" {
+        give true
+    }
+    if arg == "-h" {
+        give true
+    }
+    if arg == "help" {
+        give true
+    }
+    give false
+}
+
 func checksum_usage() = {
-    print("dupe checksum PATH [--json]")
-    print("Compute SHA-256 checksum inventory of all regular files.")
+    print("dupe — checksum inventory")
+    print("")
+    print("Usage:")
+    print("  dupe checksum PATH [--json]")
+    print("")
+    print("Description:")
+    print("  Compute SHA-256 checksum inventory of all regular files.")
+    print("")
+    print("Options:")
+    print("  --json               Emit deterministic, machine-readable JSON output.")
 }
 
 func parse_checksum_args(args) = {
     root := ""
     is_json := false
+    is_help := false
+    extra_count := 0
     skip_first := true
     skip_subcmd := true
 
@@ -18,18 +41,24 @@ func parse_checksum_args(args) = {
             if skip_subcmd {
                 skip_subcmd = false
             } else {
-                if arg == "--json" {
-                    is_json = true
+                if is_checksum_help_flag(arg) {
+                    is_help = true
                 } else {
-                    if root == "" {
-                        root = arg
+                    if arg == "--json" {
+                        is_json = true
+                    } else {
+                        if root == "" {
+                            root = arg
+                        } else {
+                            extra_count = extra_count + 1
+                        }
                     }
                 }
             }
         }
     }
 
-    give [root, is_json]
+    give [root, is_json, extra_count, is_help]
 }
 
 func compute_checksum_inventory(files) = {
@@ -99,18 +128,30 @@ func run_checksum(args) = {
     parsed = parse_checksum_args(args)
     root = parsed[0]
     is_json = parsed[1]
+    extra_count = parsed[2]
+    is_help = parsed[3]
 
-    if root == "" {
+    if is_help {
         checksum_usage()
     } else {
-        files = discover(root)
-        entries = compute_checksum_inventory(files)
-        total_bytes = checksum_total_bytes(entries)
-
-        if is_json {
-            emit_checksum_json(root, entries, total_bytes)
+        if extra_count > 0 {
+            print("Error: Multiple paths or unexpected arguments specified for checksum.")
+            print("")
+            checksum_usage()
         } else {
-            emit_checksum_human(entries, total_bytes)
+            if root == "" {
+                checksum_usage()
+            } else {
+                files = discover(root)
+                entries = compute_checksum_inventory(files)
+                total_bytes = checksum_total_bytes(entries)
+
+                if is_json {
+                    emit_checksum_json(root, entries, total_bytes)
+                } else {
+                    emit_checksum_human(entries, total_bytes)
+                }
+            }
         }
     }
 }
