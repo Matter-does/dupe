@@ -37,6 +37,8 @@ verification:
   full_test_suite: pass (92 tests total)
   phase4_offline_tests: pass
   boundaries_audit: pass (zero diffs on T005, T006, and frozen Phase 3 core files)
+  github_actions_t008_ci: pass (Run ID 34738106640 on macOS-15 arm64 Apple Silicon)
+  github_actions_all_runs: pass (J2 CI 34738106754, T005 34738106743, Phase 4 34738106712, T007 34738106678, T008 34738106640)
 
 next_action:
   - Submit T008 for adversarial review.

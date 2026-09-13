@@ -18,6 +18,12 @@ Key accomplishments:
 - `tests/test_benchmark_harness.py`: **13/13 PASS**.
 - `python -m unittest discover -s tests`: **92 tests** (69 PASS, 23 SKIPPED locally).
 - `python tests/phase4_differential.py --offline`: **PASS**.
+- **GitHub Actions Live macOS-15 arm64 runs:**
+  - `T008 CLI Polish Parity` (Run ID `34738106640`): **PASS** (100% green: 92/92 tests pass, live J2 interpreter + native binary parity, argument symmetry, byte-for-byte exact cmp).
+  - `T007 Checksum Inventory Parity` (Run ID `34738106678`): **PASS**.
+  - `Phase 4 Correctness` (Run ID `34738106712`): **PASS**.
+  - `T005 Baseline Benchmark` (Run ID `34738106743`): **PASS**.
+  - `J2 CI` (Run ID `34738106754`): **PASS**.
 
 ---
 
