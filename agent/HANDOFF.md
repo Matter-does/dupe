@@ -1,29 +1,29 @@
 # Agent Handoff
 
 ## Current State
-Task **T008 — CLI / Product Surface Polish** implementation is complete and locally verified.
+Task **T009 — Lightweight GUI Shell Over the Existing dupe Engine** implementation is complete and locally verified.
 
 Key accomplishments:
-1. **Help & Usage Surface:** Added professional usage text and help flag handling (`--help`, `-h`, `help`) across top-level and checksum subcommands.
-2. **Argument Symmetry:** Both duplicate and checksum modes now symmetrically support `--json` before or after target paths (`dupe <path> --json` == `dupe --json <path>`).
-3. **Validation Discipline:** Missing arguments and multiple/unexpected arguments now fail deterministically with informative error messages. Nonexistent paths fail with non-zero exit status.
-4. **Test & CI Suite:** Added `tests/test_t008_cli_polish.py` (20 tests), `tests/verify_t008_polish.py`, and CI workflow `.github/workflows/t008-cli-polish.yml`.
-5. **Frozen Preservation:** Frozen Phase 3 core files (`src/scan.j2`, `src/hash.j2`, `src/group.j2`, `src/output.j2`) and historical benchmark results (`benchmarks/results/t005_*`, `t006_*`) are 100% untouched.
+1. **Authoritative Specification:** Defined full technical contract in `agent/tasks/T009-gui-shell.md`.
+2. **Architecture & Decoupling:**
+   - GUI View in `gui/app.py` built on standard Python `tkinter`/`ttk` for zero external dependencies.
+   - `EngineAdapter` in `gui/adapter.py` constructs exact CLI commands (`dupe <path> --json`, `dupe checksum <path> --json`), runs them asynchronously in a daemon thread, and parses JSON output.
+   - `ViewModels` in `gui/view_models.py` decouple engine data structures from UI rendering.
+   - Zero analysis logic duplicated: 100% of discovery, hashing, clustering, and ledger calculation is delegated to the authoritative J2 engine.
+3. **UX & Error Discipline:** Responsive status indicators, indeterminate progress bar during execution, summary metric badges, and clear error banners preserving returncode and raw stderr.
+4. **Test Suite:** Added `tests/test_t009_gui_shell.py` (22 tests) and live verification script `tests/verify_t009_gui.py`.
+5. **CI Automation:** Added `.github/workflows/t009-gui-shell.yml` targeting macOS 15 Apple Silicon arm64 with pinned J2 0.1.0.
+6. **Boundary Preservation:** Frozen Phase 3 core files (`src/scan.j2`, `src/hash.j2`, `src/group.j2`, `src/output.j2`) and historical benchmark results (`benchmarks/results/t005_*`, `t006_*`) are 100% untouched.
 
 ---
 
 ## 1. Test Verification Evidence
-- `tests/test_t008_cli_polish.py`: **20 tests** (9 unit PASS, 11 live SKIPPED locally with reason `LIVE_J2_TESTS_SKIPPED`).
+- `tests/test_t009_gui_shell.py`: **22 tests** (19 unit/gui PASS, 3 live SKIPPED locally with reason `LIVE_J2_TESTS_SKIPPED`).
+- `tests/test_t008_cli_polish.py`: **20 tests** (9 unit PASS, 11 live SKIPPED locally).
 - `tests/test_t007_checksum_inventory.py`: **22 tests** (10 unit PASS, 12 live SKIPPED locally).
 - `tests/test_benchmark_harness.py`: **13/13 PASS**.
-- `python -m unittest discover -s tests`: **92 tests** (69 PASS, 23 SKIPPED locally).
+- `python -m unittest discover -s tests`: **114 tests** (88 PASS, 26 SKIPPED locally).
 - `python tests/phase4_differential.py --offline`: **PASS**.
-- **GitHub Actions Live macOS-15 arm64 runs:**
-  - `T008 CLI Polish Parity` (Run ID `34738106640`): **PASS** (100% green: 92/92 tests pass, live J2 interpreter + native binary parity, argument symmetry, byte-for-byte exact cmp).
-  - `T007 Checksum Inventory Parity` (Run ID `34738106678`): **PASS**.
-  - `Phase 4 Correctness` (Run ID `34738106712`): **PASS**.
-  - `T005 Baseline Benchmark` (Run ID `34738106743`): **PASS**.
-  - `J2 CI` (Run ID `34738106754`): **PASS**.
 
 ---
 
@@ -39,6 +39,7 @@ Key accomplishments:
 ---
 
 ## 3. What Should the Next Agent Do?
-1. Conduct adversarial review of T008 product surface and CI results.
-2. Verify all acceptance criteria are met.
-3. Do NOT start T009 until T008 is formally released.
+1. Perform mandatory Antigravity adversarial self-critic review.
+2. Confirm GitHub Actions CI run for `.github/workflows/t009-gui-shell.yml` is green.
+3. OpenCode will perform independent final release review for T009.
+4. Do NOT start T010 until T009 is released.
