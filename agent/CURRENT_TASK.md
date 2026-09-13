@@ -1,43 +1,32 @@
 # Current Task
 
-**Task:** T010 — Demonstration / Integration Polish  
-**Status:** Implementation Complete — Ready for Adversarial Review  
+**Task:** T011 — Final Submission Package  
+**Status:** Implementation Complete — Awaiting Final Adversarial Review and Independent Gate  
+
+---
 
 ## Summary of Implementation
 
-T010 turns the already-working `dupe` system into a clean, deterministic, hackathon-demonstration-ready product surface without changing the underlying engine algorithms or reopening previously frozen milestones:
+T011 delivers the authoritative, evaluator-ready packaging, documentation, evidence matrix, and automated release gates for the J2 Hackathon submission:
 
-### 1. Representative Demonstration Corpus (`tests/demo_corpus.py`)
-- Compact, multi-topology, deterministic test corpus (8 regular files, 1 empty directory, nested subdirectories, total size: 5,258 bytes).
-- Ground truth:
-  - Exact Duplicate Scan: 8 files scanned, 5 candidates (100B and 256B), 2 duplicate groups, 456 reclaimable bytes.
-  - Checksum Inventory: 8 files, 5,258 bytes, 100% verified SHA-256 digests.
-- Callable via CLI (`python tests/demo_corpus.py --output demo_corpus`) and as a library (`create_demo_corpus`).
+### 1. Authoritative Specification (`agent/tasks/T011-final-package.md`)
+- Technical release contract defining purpose, scope, hard non-negotiable boundaries, submission requirements, canonical demonstration workflow, empirical evidence standards, reproducibility criteria, and release exit criteria.
 
-### 2. GUI Demonstration Polish (`gui/app.py`)
-- Engine Resolution Badge: Displays `Engine: J2 Native (build/dupe)` vs `Engine: J2 Interpreter (j2)` in the window header to visually prove that the GUI is a presentation shell delegating to J2.
-- Interactive Demo Loading: `Load Demo Corpus` button automatically loads or generates `demo_corpus` with one click.
-- Workload Guidance: Dynamic description label explaining what each workload does when selected.
-- Zero Analysis Logic Added: 100% pure presentation wrapper delegating to `EngineAdapter`.
+### 2. Evaluator Portal & Documentation Suite
+- `README.md`: Primary evaluator front door answering: What is this?, Why this exists, Why J2, Architecture diagrams (CLI, GUI, J2 engine, Checksum pipeline), Features, Demo shortest path, Multi-gate verification, Platform matrix, Honest limitations, and Final status.
+- `docs/VALIDATION.md`: Exhaustive Claim → Verification Evidence matrix covering all 11 core architectural and correctness claims with Grade A evidence links.
+- `docs/FINAL_EVIDENCE.md`: Repository-portable final evidence register recording platform provenance, ground truth metrics, differential results, parity evidence, and milestone audit states.
+- `docs/SUBMISSION_CHECKLIST.md`: Comprehensive release readiness audit checklist across Repository, Build, Correctness, Product, Architecture, Documentation, and Gate sections.
 
-### 3. Demonstration Verification Harness (`tests/verify_t010_demo.py`)
-- Authoritative end-to-end verification script executing:
-  1. Deterministic demo corpus generation
-  2. Native CLI duplicate scan
-  3. Native CLI checksum inventory
-  4. Native vs Interpreter parity (byte-for-byte exact JSON equality)
-  5. Independent Python `hashlib.sha256` oracle verification across all entries
-  6. GUI `EngineAdapter` live invocations and ViewModel parsing
-  7. Structured portable artifact generation (`summary.md`, `provenance.json`, `demo_verification_result.json`) in `artifacts/t010/`.
+### 3. Packaging & Integrity Test Coverage
+- `tests/test_t011_final_package.py`: 8 automated unit tests verifying submission files, README structure, lack of stale roadmap text, absence of personal paths, frozen core boundary integrity against baseline `630eb1f91e9e5134ba6351fddaccc697d2a56888`, pinned J2 constants, and GUI zero-dependency guarantee.
+- `tests/verify_t011_final_release.py`: Standalone synthesis harness generating `final_release_evidence.json` and `final_release_summary.md`.
 
-### 4. Tests & CI
-- `tests/test_t010_demo.py`: 10 tests (corpus determinism, tamper detection, view model ground truth parsing, GUI demo integration, live J2 execution).
-- Full local test suite: **124 tests** (96 PASS, 28 cleanly SKIPPED locally with explicit markers).
-- Phase 4 offline self-tests: **PASS** (`tests/phase4_differential.py --offline`).
-- Dedicated CI workflow: `.github/workflows/t010-demo.yml` on macOS 15 Apple Silicon arm64 with pinned J2 0.1.0.
+### 4. Authoritative Final Release Workflow (`.github/workflows/t011-final-release.yml`)
+- Targets macOS 15 Apple Silicon (`macos-15`, arm64) with pinned J2 0.1.0 (`6fda8338791730cf7937362acd03e29247719e65785458e62988e1789c842e75`).
+- Runs end-to-end release gate: formatting check, frozen core diff audit, complete test suite (132 tests), Phase 4 differential correctness, native binary build, T010 demo verification, T011 evidence synthesis, canonical evaluator command smoke tests, and upload of `t011-final-release-evidence` artifact.
 
-### 5. Documentation (`README.md`)
-- Added comprehensive "Hackathon Demo (T010)" section detailing corpus generation, canonical duplicate and checksum commands, GUI usage, and verification reproduction.
+---
 
 ## Non-Negotiable Boundaries Audit
 - `src/scan.j2`: UNTOUCHED (0 diff lines).
@@ -47,4 +36,10 @@ T010 turns the already-working `dupe` system into a clean, deterministic, hackat
 - `benchmarks/`: UNTOUCHED (0 diff lines).
 - `benchmarks/results/t005_*`: UNTOUCHED (0 diff lines).
 - `benchmarks/results/t006_*`: UNTOUCHED (0 diff lines).
-- T007, T008, T009 contracts & tests: UNTOUCHED & FULLY PRESERVED.
+- T001–T010 contracts, tests, and evidence: COMPLETED / FROZEN / RELEASE READY.
+
+---
+
+## Next Steps
+1. Antigravity Final Adversarial Red-Team Review across all 20 attack vectors.
+2. Final release gate.
