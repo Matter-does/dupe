@@ -211,8 +211,8 @@ def main() -> int:
         oracle_passed = False
         if ref_dupe:
             files_scanned = ref_dupe.get("files_scanned", 0)
-            candidates_hashed = ref_dupe.get("candidates_hashed", 0)
-            groups = ref_dupe.get("groups", [])
+            candidates_hashed = ref_dupe.get("hash_candidates", 0)
+            groups = ref_dupe.get("duplicate_groups", [])
             reclaimable = ref_dupe.get("reclaimable_bytes", 0)
 
             assert files_scanned == EXPECTED_FILES_COUNT, f"Expected {EXPECTED_FILES_COUNT} files, got {files_scanned}"
@@ -222,9 +222,10 @@ def main() -> int:
             print("Duplicate Ground Truth Assertions: PASS")
 
         if ref_check:
-            files_processed = ref_check.get("files_processed", 0)
-            total_bytes = ref_check.get("total_bytes", 0)
-            files_ledger = ref_check.get("files", [])
+            summary = ref_check.get("summary", {})
+            files_processed = summary.get("total_files", 0)
+            total_bytes = summary.get("total_bytes", 0)
+            files_ledger = ref_check.get("entries", [])
 
             assert files_processed == EXPECTED_FILES_COUNT, f"Expected {EXPECTED_FILES_COUNT} files, got {files_processed}"
             assert total_bytes == EXPECTED_TOTAL_BYTES, f"Expected {EXPECTED_TOTAL_BYTES} bytes, got {total_bytes}"
