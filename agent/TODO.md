@@ -8,8 +8,8 @@
 - [x] T004 — Benchmark corpus specification and generator
 - [x] T005 — J2 interpreter/native baseline benchmark
 - [x] T006 — Automatic-parallelism experiment and evidence collection
-- [ ] T007 — Reusable filesystem analysis pass for a second read-only workload
-- [ ] T008 — CLI/product surface polish
+- [x] T007 — Reusable filesystem analysis pass for a second read-only workload
+- [ ] T008 — CLI/product surface polish (Implementation Complete — Ready for Adversarial Review)
 - [ ] T009 — Lightweight GUI shell over the engine
 - [ ] T010 — Demo workload and benchmark presentation
 - [ ] T011 — Final CI/documentation/submission package

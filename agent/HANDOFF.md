@@ -1,35 +1,38 @@
 # Agent Handoff
 
 ## Current State
-Task **T007 — Reusable Filesystem Checksum Inventory** remediation is complete and locally verified.
-Findings F-01, F-02, F-03, and F-04 have been resolved with minimal, rigorous changes:
-- **F-01**: `src/main.j2` top-level CLI router reconciliation documented in `docs/ARCHITECTURE.md` and `agent/tasks/T007-checksum-inventory.md`.
-- **F-02**: Real J2 execution tests added to `tests/test_t007_checksum_inventory.py` (`TestT007LiveJ2Execution` with 12 live tests). Explicitly reports `LIVE_J2_TESTS_SKIPPED` on machines without J2 and `LIVE_J2_TESTS_PASS` on machines with J2.
-- **F-03**: Authoritative macOS Apple Silicon arm64 CI workflow added at `.github/workflows/t007-checksum-inventory.yml` and `tests/verify_t007_parity.py` asserting byte-for-byte exact equality between interpreter and native binary outputs, full Python oracle verification, duplicate scan regression, and artifact upload to `t007-parity-results`.
-- **F-04**: Harness unit test coverage for `measure_checksum_corpus_baselines()` added to `tests/test_benchmark_harness.py`.
+Task **T008 — CLI / Product Surface Polish** implementation is complete and locally verified.
+
+Key accomplishments:
+1. **Help & Usage Surface:** Added professional usage text and help flag handling (`--help`, `-h`, `help`) across top-level and checksum subcommands.
+2. **Argument Symmetry:** Both duplicate and checksum modes now symmetrically support `--json` before or after target paths (`dupe <path> --json` == `dupe --json <path>`).
+3. **Validation Discipline:** Missing arguments and multiple/unexpected arguments now fail deterministically with informative error messages. Nonexistent paths fail with non-zero exit status.
+4. **Test & CI Suite:** Added `tests/test_t008_cli_polish.py` (20 tests), `tests/verify_t008_polish.py`, and CI workflow `.github/workflows/t008-cli-polish.yml`.
+5. **Frozen Preservation:** Frozen Phase 3 core files (`src/scan.j2`, `src/hash.j2`, `src/group.j2`, `src/output.j2`) and historical benchmark results (`benchmarks/results/t005_*`, `t006_*`) are 100% untouched.
 
 ---
 
 ## 1. Test Verification Evidence
-- `tests/test_t007_checksum_inventory.py`: **22 tests** (10 oracle PASS, 12 live SKIPPED locally with reason `LIVE_J2_TESTS_SKIPPED`).
+- `tests/test_t008_cli_polish.py`: **20 tests** (9 unit PASS, 11 live SKIPPED locally with reason `LIVE_J2_TESTS_SKIPPED`).
+- `tests/test_t007_checksum_inventory.py`: **22 tests** (10 unit PASS, 12 live SKIPPED locally).
 - `tests/test_benchmark_harness.py`: **13/13 PASS**.
-- `python -m unittest discover -s tests`: **72 tests** (60 PASS, 12 SKIPPED locally).
+- `python -m unittest discover -s tests`: **92 tests** (69 PASS, 23 SKIPPED locally).
 - `python tests/phase4_differential.py --offline`: **PASS**.
 
 ---
 
 ## 2. Boundary Status
-- `src/scan.j2`, `src/hash.j2`, `src/group.j2`, `src/output.j2`: **100% untouched**.
-- `benchmarks/results/t005_*`: **100% untouched**.
-- `benchmarks/results/t006_*`: **100% untouched**.
-- `benchmarks/t006/`: **100% untouched**.
-- No speculative parallel APIs added.
-- No automatic parallelism claims made.
+- `src/scan.j2`: **100% untouched**
+- `src/hash.j2`: **100% untouched**
+- `src/group.j2`: **100% untouched**
+- `src/output.j2`: **100% untouched**
+- `benchmarks/results/t005_*`: **100% untouched**
+- `benchmarks/results/t006_*`: **100% untouched**
+- `benchmarks/t006/`: **100% untouched**
 
 ---
 
 ## 3. What Should the Next Agent Do?
-1. Conduct independent OpenCode release review.
-2. Verify all findings (F-01, F-02, F-03, F-04) are resolved.
-3. Do NOT modify T005 or T006 artifacts.
-4. Do NOT start T008 without explicit authorization.
+1. Conduct adversarial review of T008 product surface and CI results.
+2. Verify all acceptance criteria are met.
+3. Do NOT start T009 until T008 is formally released.
