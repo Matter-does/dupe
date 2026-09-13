@@ -43,6 +43,16 @@ class DupeApp:
         self.status_var = tk.StringVar(value="Ready. Select a directory to analyze.")
         self.is_running = False
 
+        # Resolve engine mode to display in UI header
+        try:
+            mode_tuple = self.adapter.resolve_engine_mode()
+            if isinstance(mode_tuple, (tuple, list)) and len(mode_tuple) >= 1:
+                self.engine_mode = str(mode_tuple[0])
+            else:
+                self.engine_mode = "interpreter"
+        except Exception:
+            self.engine_mode = "interpreter"
+
         # Metrics display variables
         self.metric_1_title = tk.StringVar(value="Files Scanned")
         self.metric_1_val = tk.StringVar(value="—")
@@ -52,6 +62,7 @@ class DupeApp:
         self.metric_3_val = tk.StringVar(value="—")
         self.metric_4_title = tk.StringVar(value="Reclaimable Space")
         self.metric_4_val = tk.StringVar(value="—")
+        self.workload_desc_var = tk.StringVar(value="")
 
         # Current view models
         self.last_result: EngineResult | None = None
@@ -73,6 +84,8 @@ class DupeApp:
         self.style.configure("TFrame", background="#f8f9fa")
         self.style.configure("Header.TLabel", font=("Helvetica", 14, "bold"), background="#f8f9fa", foreground="#212529")
         self.style.configure("SubHeader.TLabel", font=("Helvetica", 9), background="#f8f9fa", foreground="#6c757d")
+        self.style.configure("EngineBadge.TLabel", font=("Helvetica", 8, "bold"), background="#e7f1ff", foreground="#0d6efd", padding=4)
+        self.style.configure("Desc.TLabel", font=("Helvetica", 8, "italic"), background="#f8f9fa", foreground="#495057")
         self.style.configure("Section.TLabelframe", background="#f8f9fa", padding=10)
         self.style.configure("Section.TLabelframe.Label", font=("Helvetica", 10, "bold"), foreground="#495057")
 
@@ -94,8 +107,19 @@ class DupeApp:
         header_frame = ttk.Frame(main_container)
         header_frame.pack(fill=tk.X, pady=(0, 10))
 
-        title_lbl = ttk.Label(header_frame, text="dupe — Filesystem Intelligence Engine", style="Header.TLabel")
-        title_lbl.pack(anchor=tk.W)
+        title_row = ttk.Frame(header_frame)
+        title_row.pack(fill=tk.X)
+
+        title_lbl = ttk.Label(title_row, text="dupe — Filesystem Intelligence Engine", style="Header.TLabel")
+        title_lbl.pack(side=tk.LEFT)
+
+        engine_desc = "J2 Native (build/dupe)" if self.engine_mode == "native" else "J2 Interpreter (j2)"
+        self.engine_badge = ttk.Label(
+            title_row,
+            text=f"Engine: {engine_desc}",
+            style="EngineBadge.TLabel",
+        )
+        self.engine_badge.pack(side=tk.RIGHT)
 
         sub_lbl = ttk.Label(
             header_frame,
@@ -117,6 +141,9 @@ class DupeApp:
 
         self.path_entry = ttk.Entry(path_row, textvariable=self.path_var)
         self.path_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 8))
+
+        self.demo_btn = ttk.Button(path_row, text="Load Demo Corpus", command=self.on_load_demo_corpus)
+        self.demo_btn.pack(side=tk.RIGHT, padx=(4, 0))
 
         self.browse_btn = ttk.Button(path_row, text="Browse...", command=self.on_browse)
         self.browse_btn.pack(side=tk.RIGHT)
@@ -145,6 +172,15 @@ class DupeApp:
             command=self._on_workload_change,
         )
         self.rb_chk.pack(side=tk.LEFT)
+
+        # Workload description note
+        self.workload_desc_lbl = ttk.Label(
+            controls_group,
+            textvariable=self.workload_desc_var,
+            style="Desc.TLabel",
+            wraplength=800,
+        )
+        self.workload_desc_lbl.pack(anchor=tk.W, padx=(2, 0), pady=(4, 2))
 
         # 3. Action & Status Bar Frame
         action_row = ttk.Frame(main_container)
@@ -232,6 +268,10 @@ class DupeApp:
         self._hide_error()
 
         if mode == "duplicate":
+            self.workload_desc_var.set(
+                "Exact Duplicate Scan: Discovers files, prefilters by size, hashes candidates with SHA-256, "
+                "groups duplicate clusters, and reports reclaimable storage."
+            )
             self.metric_1_title.set("Files Scanned")
             self.metric_2_title.set("Hash Candidates")
             self.metric_3_title.set("Duplicate Groups")
@@ -255,6 +295,10 @@ class DupeApp:
                 self._reset_metrics()
 
         elif mode == "checksum":
+            self.workload_desc_var.set(
+                "Checksum Inventory: Discovers all regular files and produces a comprehensive cryptographic "
+                "SHA-256 audit ledger."
+            )
             self.metric_1_title.set("Total Regular Files")
             self.metric_2_title.set("Total Scanned Bytes")
             self.metric_3_title.set("Ledger Entries")
@@ -288,6 +332,18 @@ class DupeApp:
         selected = filedialog.askdirectory(title="Select Directory to Analyze")
         if selected:
             self.set_target_path(selected)
+
+    def on_load_demo_corpus(self) -> None:
+        """Helper to quickly load or generate the deterministic demo corpus."""
+        demo_dir = Path("demo_corpus").resolve()
+        if not demo_dir.exists():
+            try:
+                from tests.demo_corpus import create_demo_corpus
+                create_demo_corpus(demo_dir)
+            except Exception:
+                pass
+        self.set_target_path(str(demo_dir))
+        self.status_var.set(f"Demo corpus loaded: {demo_dir} (8 regular files, 5,258 total bytes)")
 
     def set_target_path(self, path_str: str) -> None:
         """Programmatically set the target directory path."""
@@ -405,6 +461,7 @@ class DupeApp:
         if running:
             self.analyze_btn.configure(state=tk.DISABLED)
             self.browse_btn.configure(state=tk.DISABLED)
+            self.demo_btn.configure(state=tk.DISABLED)
             self.path_entry.configure(state=tk.DISABLED)
             self.rb_dup.configure(state=tk.DISABLED)
             self.rb_chk.configure(state=tk.DISABLED)
@@ -415,6 +472,7 @@ class DupeApp:
             self.progress_bar.pack_forget()
             self.analyze_btn.configure(state=tk.NORMAL)
             self.browse_btn.configure(state=tk.NORMAL)
+            self.demo_btn.configure(state=tk.NORMAL)
             self.path_entry.configure(state=tk.NORMAL)
             self.rb_dup.configure(state=tk.NORMAL)
             self.rb_chk.configure(state=tk.NORMAL)
