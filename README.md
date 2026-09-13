@@ -2,218 +2,159 @@
 
 **J2-native filesystem intelligence engine**
 
-`dupe` is a read-only filesystem analysis project written primarily in J2. Exact duplicate detection is the first real workload. The broader goal is to study how a real filesystem-analysis pipeline behaves under J2's automatic parallelism.
-
-This is deliberately **not** a feature-for-feature clone of established duplicate managers. The duplicate scanner is our correctness/reference workload; the hackathon contribution is the J2-native execution model, reproducible experiments, and evidence about what automatic parallelism actually does.
-
-## Product model
-
-```text
-filesystem
-    ↓
-discovery + metadata
-    ↓
-reusable file records
-    ↓
-analysis passes
- ┌──┴───────────┬───────────────┐
- │              │               │
-duplicates   largest files   statistics
-    ↓
- deterministic result model
-    ↓
- human / JSON output
-```
-
-The first analysis pass is exact duplicate detection:
-
-1. recursively discover regular files
-2. collect safe metadata
-3. reduce candidates by file size
-4. hash only files that can have duplicates
-5. group equal SHA-256 digests
-6. calculate reclaimable bytes
-7. emit deterministic output
-
-No destructive deletion is part of the current product.
-
-## Why this project exists
-
-Duplicate detection is already a mature software category. Projects such as dupeGuru and other modern duplicate finders provide substantial user-facing features and, in some cases, their own explicit parallel implementations.
-
-`dupe` therefore uses the category as a useful workload rather than claiming that duplicate detection itself is novel.
-
-The central question is:
-
-> **Can J2 express a useful filesystem-analysis workload as independent operations, and what does its automatic parallelism actually achieve on reproducible real-world-shaped workloads?**
-
-Performance claims are made only from controlled measurements.
-
-## Development model
-
-Development is performed on Windows. J2 native compilation and the reproducible execution/benchmark environment run in GitHub Actions on macOS Apple Silicon because the pinned public J2 0.1.0 release provides the required binary there.
-
-The J2 version and checksum are pinned in CI. See the workflow files and `docs/J2-API-0.1.0.md`.
-
-## Repository-first agent workflow
-
-The repository is the durable project state. Agents must not depend on the full ChatGPT conversation to continue work.
-
-Read first:
-
-```text
-AGENTS.md
-docs/PROJECT.md
-docs/ARCHITECTURE.md
-docs/J2-API-0.1.0.md
-agent/CURRENT_TASK.md
-agent/CHECKPOINT.md
-agent/HANDOFF.md
-```
-
-Agent roles:
-
-- **Antigravity:** primary implementation.
-- **OpenCode:** persistent terminal continuation/fallback.
-- **Claude Code through OmniRouter:** adversarial architecture/correctness/J2/benchmark review.
-- **GLM-5:** independent second opinion or implementation/review.
-- **ChatGPT:** research, architecture, specification, task decomposition, and evidence synthesis.
-- **GitHub Actions:** reproducible verification authority.
-
-See `docs/HACKATHON.md` and `docs/AGENT-HARNESS.md`.
-
-## Current phases
-
-```text
-Phase 3  MVP                              COMPLETE / FROZEN
-Phase 4  Differential correctness        COMPLETE / FROZEN
-Phase 5  Performance / J2 research       NEXT
-Phase 6  Product surface                 LATER
-Final    Demo + documentation            LATER
-```
-
-## Important rule
-
-Do not invent J2 syntax or APIs. Verify uncertain behavior against the pinned compiler with an executable probe, and record important discoveries in the repository.
-
-## CLI Usage
-
-```text
-dupe PATH [--json]
-dupe checksum PATH [--json]
-dupe help | --help | -h
-```
-
-### Workloads
-- **Duplicate Detection (default):**
-  ```bash
-  dupe /path/to/dir
-  dupe /path/to/dir --json
-  dupe --json /path/to/dir
-  ```
-  Recursively discovers regular files, prefilters by size, computes exact SHA-256 digests for candidates, groups duplicates, and reports reclaimable bytes.
-
-- **Checksum Inventory:**
-  ```bash
-  dupe checksum /path/to/dir
-  dupe checksum /path/to/dir --json
-  dupe checksum --json /path/to/dir
-  ```
-  Recursively enumerates all regular files and produces a complete SHA-256 inventory ledger with file sizes and total bytes.
-
-- **Help & Options:**
-  - `--json`: Emits compact, deterministic, machine-readable JSON. Flag placement before or after the target path is supported symmetrically.
-  - `--help`, `-h`, `help`: Displays workload and option guidance.
-
-## Desktop GUI Shell (T009)
-
-A lightweight desktop graphical interface is provided over the engine:
-
-```bash
-python -m gui
-```
-
-Options:
-```bash
-python -m gui --target /path/to/dir --workload duplicate
-python -m gui --target /path/to/dir --workload checksum
-python -m gui --help
-```
-
-The GUI shell is thin and non-blocking:
-- Native directory picker (`Browse...`) and quick-fill (`Load Demo Corpus`)
-- Workload toggling between **Duplicate Scan** and **Checksum Inventory**
-- Engine resolution transparency: displays active J2 engine mode in window header
-- Asynchronous background engine execution with indeterminate progress indicator
-- Summary metric cards and scrollable hierarchical results / ledger view
-- Preserves 100% of underlying J2 engine correctness and error codes
+`dupe` is a read-only filesystem analysis project written primarily in J2. It implements exact duplicate file detection and cryptographic checksum inventory workloads to study how a real-world, I/O- and compute-bound filesystem analysis pipeline behaves under J2's native compilation and execution model.
 
 ---
 
-## Hackathon Demo (T010)
+## Why this exists
 
-`dupe` demonstrates how a real-world filesystem analysis workload executes under J2, exposing both a unified CLI and a responsive desktop GUI while preserving 100% engine purity in J2.
+Duplicate-file detection is a mature software domain with established utilities (e.g., dupeGuru, fclones). Rather than attempting to clone features such as deletion rules, media similarity, or custom cache daemons, `dupe` treats filesystem duplicate analysis as a disciplined, real-world benchmark workload.
 
-### Architecture Separation
+Filesystem analysis presents a unique systems challenge: it combines OS directory traversal, metadata inspection, candidate reduction, sequential file reading, and cryptographic SHA-256 hashing. `dupe` investigates how cleanly these operations can be expressed as independent transformations in J2, and empirically evaluates what J2's native compilation and execution achieve on reproducible corpora.
 
-- **Authoritative Engine:** J2 (`src/main.j2`, `src/checksum.j2`, `src/scan.j2`, `src/hash.j2`, `src/group.j2`, `src/output.j2`) handles 100% of filesystem traversal, candidate filtering, SHA-256 hashing, duplicate grouping, and ledger calculation.
-- **Presentation Layer:** CLI (`dupe`) and lightweight Python/Tk GUI (`python -m gui`) act strictly as presentation shells over the engine.
-- **Verification Authority:** Automated tests (`tests/test_t010_demo.py`), independent Python `hashlib.sha256` oracles, native/interpreter parity checks, and GitHub Actions CI.
+---
 
-### 1. Generate the Representative Demo Corpus
-Generate a compact (5,258 bytes, 8 files), deterministic, multi-topology demonstration corpus:
+## Why J2
 
-```bash
-python tests/demo_corpus.py --output demo_corpus
+Based on direct, reproducible evidence from this repository:
+
+1. **Native Filesystem Access:** J2 provides built-in capability-gated filesystem primitives (`fs.list_dir`, `fs.read_file`, `fs.file_size`, `fs.is_file`, `fs.is_dir`, `fs.is_symlink`) that allow expressing traversal and inspection directly without C bindings or foreign function interfaces.
+2. **Native Compilation:** J2 compiles pure source code (`src/main.j2`) directly into standalone Mach-O arm64 machine code (`j2 build`), eliminating bytecode interpreter dispatch overhead and accelerating compute-intensive hashing loops by up to 1.18x.
+3. **Deterministic Behavior:** J2's standard data structures and deterministic iteration enable byte-for-byte identical output between interpreter execution and native machine code across all workloads.
+4. **Engineering Value:** Developing `dupe` in J2 demonstrated how a declarative, functional-inspired language with capability sandboxing (`--allow-fs` / `J2_ALLOW_FS=1`) can structure a multi-stage data processing pipeline while preserving a 100% frozen core engine across CLI and desktop GUI interfaces.
+
+---
+
+## Architecture
+
+The project maintains a strict, one-way dependency architecture:
+
+```text
+User
+ │
+ ├── CLI
+ │    └── src/main.j2
+ │
+ └── GUI
+      └── Python/Tk
+           │
+           ▼
+      EngineAdapter
+           │
+           ▼
+      J2 CLI / Engine
+           │
+           ▼
+   scan → hash → group → output
 ```
 
-Expected Ground Truth:
-- **8 regular files** across nested directories (`documents/`, `images/`, `archive/old_backup/`, `notes/`) and 1 empty directory.
-- **Exact Duplicate Scan:** 8 files scanned, 5 hash candidates (100B and 256B), 2 duplicate groups, **456 bytes reclaimable**.
-- **Checksum Inventory:** 8 files, **5,258 total bytes** with 100% verified SHA-256 digests.
+For the checksum inventory workload:
 
-### 2. Run Canonical CLI Demonstrations
+```text
+src/main.j2
+    ↓
+src/checksum.j2
+    ↓
+deterministic checksum ledger
+```
 
-**Exact Duplicate Detection:**
+### Architectural Responsibilities
+- **Authoritative Engine (J2):** 100% of filesystem traversal, candidate filtering, SHA-256 hashing, duplicate grouping, and ledger calculation resides in J2 (`src/main.j2`, `src/checksum.j2`, `src/scan.j2`, `src/hash.j2`, `src/group.j2`, `src/output.j2`).
+- **Presentation Layer (CLI & GUI):** The CLI (`dupe`) and lightweight desktop GUI (`python -m gui`) act strictly as presentation shells. The GUI invokes the engine via `EngineAdapter` and parses its standard JSON output, duplicating zero engine logic.
+- **Verification Authority:** Correctness is established through automated differential fuzzing (`tests/phase4_differential.py`), an independent Python standard library `hashlib.sha256` oracle (`tests/test_checksum_oracle.py`), native vs. interpreter parity checks, and GitHub Actions CI.
+
+---
+
+## Features
+
+- **Exact Duplicate Detection:** Discovers regular files, prefilters candidates by file size (skipping unique sizes before reading bytes), computes SHA-256 digests for candidates, groups matching digests, and calculates reclaimable space.
+- **Cryptographic Checksum Inventory:** Recursively enumerates all regular files and produces a sorted, deterministic SHA-256 inventory ledger with file sizes and total bytes.
+- **Unified Command Router:** Dispatches workloads (`dupe PATH` vs. `dupe checksum PATH`), supports `--json` symmetrically before or after paths, provides context-aware `--help`, and fails cleanly with non-zero exit codes on invalid input.
+- **Lightweight Desktop GUI:** Built with Python standard library `tkinter`/`ttk` (zero external pip dependencies). Features non-blocking asynchronous execution, metric summary cards, and scrollable results treeviews.
+- **Dual Execution Modes:** Runs seamlessly via J2 interpreter (`j2 --allow-fs`) or standalone native binary (`build/dupe`).
+
+---
+
+## Demo
+
+The canonical evaluator demonstration flow takes under 2 minutes:
+
 ```bash
+# 1. Generate the deterministic demonstration corpus (8 files, 5,258 bytes)
+python tests/demo_corpus.py --output demo_corpus
+
+# 2. Run duplicate detection demo (CLI)
 # Standalone native binary (macOS 15 Apple Silicon):
 ./build/dupe demo_corpus
-./build/dupe demo_corpus --json
-
 # Or J2 interpreter:
 j2 --allow-fs src/main.j2 demo_corpus
-j2 --allow-fs src/main.j2 demo_corpus --json
-```
 
-**Checksum Inventory:**
-```bash
+# 3. Run checksum inventory demo (CLI)
 # Standalone native binary:
 ./build/dupe checksum demo_corpus
-./build/dupe checksum demo_corpus --json
-
 # Or J2 interpreter:
 j2 --allow-fs src/main.j2 checksum demo_corpus
-j2 --allow-fs src/main.j2 checksum demo_corpus --json
-```
 
-### 3. Launch Desktop GUI Demonstration
-```bash
+# 4. Launch Desktop GUI demonstration
 python -m gui --target demo_corpus
-```
-- Click **Analyze Directory** to trigger asynchronous background engine execution.
-- Toggle between **Exact Duplicate Scan** and **Checksum Inventory** to inspect metric cards and treeviews.
-- Click **Load Demo Corpus** at any time to instantly target or generate the demonstration corpus.
 
-### 4. Reproduce Verification
-Run the authoritative end-to-end verification script:
-
-```bash
-# With native binary:
+# 5. Run automated demonstration verification
 python tests/verify_t010_demo.py --native-bin build/dupe --output-dir artifacts/t010
 
-# Run full test suite (124 tests):
+# 6. Run full test suite (124+ tests)
 python -m unittest discover -s tests -v
 ```
 
+---
 
+## Verification
 
+The repository enforces objective correctness across multiple independent gates:
+
+- **Phase 4 Correctness:** 13 seed corpora and 4 regression fixtures tested against an independent Python reference model with 100% agreement.
+- **T007 Checksum Inventory:** Comprehensive cryptographic validation against Python's `hashlib.sha256` oracle across all discovered regular files.
+- **T008 CLI Contract:** 37 automated tests verifying subcommand routing, argument handling, usage diagnostics, and error codes.
+- **T009 GUI Shell:** 25 automated unit and adapter tests verifying background thread isolation, model transformation, and zero engine logic duplication.
+- **T010 Deterministic Demo:** Fixed 8-file corpus ground truth (5 candidates, 2 duplicate groups, 456 reclaimable bytes, 5,258 total bytes) verified end-to-end.
+- **Native / Interpreter Parity:** Automated `cmp` assertions verify byte-for-byte identical stdout between native machine code and interpreter.
+- **Independent SHA-256 Oracle:** J2 cryptographic output is validated against non-circular standard library hash calculations.
+
+See [`docs/VALIDATION.md`](docs/VALIDATION.md) for the complete Claim-to-Evidence matrix and [`docs/FINAL_EVIDENCE.md`](docs/FINAL_EVIDENCE.md) for detailed test metrics.
+
+---
+
+## Platform Matrix
+
+```text
+AUTHORITATIVE J2 VALIDATION:
+    macOS 15 Apple Silicon (aarch64-apple-darwin / arm64)
+    Official J2 0.1.0 release compiler and native runtime
+
+GENERAL GUI SHELL CODE:
+    Standard Python 3.10+ / Tkinter compatibility
+    Runs across macOS, Linux, and Windows where Python/Tk is installed
+```
+
+*Note:* Official J2 0.1.0 compiler binaries are distributed exclusively for macOS Apple Silicon. On other operating systems, the test suite cleanly detects the missing J2 binary and skips live J2 compiler tests while running 100% of Python, adapter, GUI, and reference model tests.
+
+---
+
+## Limitations
+
+In the interest of rigorous scientific and engineering honesty:
+
+1. **J2 0.1.0 Platform Availability:** J2 0.1.0 has only been compiled and released for Apple Silicon macOS. Linux, Windows, and Intel macOS compiler builds are not yet provided upstream.
+2. **Single-Threaded Runtime in 0.1.0:** While J2 language specifications anticipate automatic loop parallelization, empirical measurements in T006 demonstrated that J2 0.1.0 emitted single-threaded native instructions (bounded <105% CPU). Standalone native compilation yields up to 1.18x speedup over the interpreter via machine code generation, but multi-core scaling was not observed in this release.
+3. **Read-Only Safety Boundary:** `dupe` deliberately does not implement file deletion, symlinking, or filesystem modification. Destructive actions are outside the project charter.
+4. **In-Memory Candidate Model:** Candidate grouping and size prefiltering are performed in-memory. The engine is optimized for typical filesystem structures, not petabyte-scale out-of-core streaming deduplication.
+5. **GUI Display Server:** The Python/Tk GUI requires an active desktop window environment (Cocoa on macOS, X11/Wayland on Linux, DWM on Windows) for interactive usage, though all GUI logic and adapter models are 100% testable in headless CI.
+
+---
+
+## Final Status
+
+- **Frozen Releases:** T001 through T010 completed, validated, and frozen.
+- **Frozen Core Boundary:** `src/scan.j2`, `src/hash.j2`, `src/group.j2`, and `src/output.j2` preserved with zero modifications.
+- **Historical Benchmarks:** `benchmarks/` and T005/T006 evidence preserved with zero modifications.
+- **Milestone T011:** Final submission packaging, comprehensive documentation, and automated release verification complete.
+- **Release Verdict:** Engineering state is frozen at the final verified commit upon passing the authoritative CI release gate.
