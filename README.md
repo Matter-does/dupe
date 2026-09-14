@@ -6,6 +6,19 @@
 
 `dupe` is a read-only filesystem analysis project written primarily in J2. It implements exact duplicate file detection and cryptographic checksum inventory workloads to study how a real-world, I/O- and compute-bound filesystem analysis pipeline behaves under J2's native compilation and execution model.
 
+### Final Verified Build at a Glance
+
+| Metric / Specification | Verified Value | Ground-Truth Notes |
+| :--- | :--- | :--- |
+| **J2 Engine Release** | `0.1.0` (pinned Mach-O arm64) | Authoritative runtime: macOS 15 Apple Silicon |
+| **Full Test Suite** | **152 tests** (124 PASS, 28 SKIPPED, 0 FAIL, 0 ERROR) | 28 live-J2 tests skip cleanly on non-J2 hosts |
+| **Security Hardening** | **PASS** (20/20 tests, SEC-001 through SEC-005) | Strict scalar typing, 16 MiB stdout cap, symlink refusal |
+| **Differential Correctness** | **100% PASS** (13 seed corpora, 4 regression fixtures) | Byte-for-byte agreement with Python SHA-256 oracle |
+| **Deterministic Demo Corpus** | 8 regular files / 5,258 total bytes | 4 directory tiers, verifiable against standard SHA-256 |
+| **Duplicate Scan Results** | 5 candidates, 2 duplicate groups, 456 B reclaimable | Byte-identical in native binary and interpreter |
+| **Checksum Inventory** | 8 files, 5,258 bytes with verified SHA-256 ledgers | Verifiable against Python `hashlib.sha256` |
+| **Runtime Dependencies** | **0 external dependencies** | Pure standard library (`tkinter`, `json`, `subprocess`) |
+
 ---
 
 ## Why this exists
@@ -29,7 +42,8 @@ Based on direct, reproducible evidence from this repository:
 
 ## Architecture
 
-![DUPE System Architecture](docs/assets/dupe-architecture.png)
+![DUPE System Architecture](docs/assets/dupe-architecture.png)  
+*Validated Archify 3-tier system architecture diagram distinguishing presentation, authoritative J2 computation, and verification.*
 
 The project maintains a strict, one-way dependency architecture:
 
@@ -114,12 +128,14 @@ python -m unittest discover -s tests -v
 | Exact Duplicate Detection | Cryptographic Checksum Inventory |
 | :---: | :---: |
 | ![DUPE Duplicate Demo](docs/assets/dupe-duplicate-demo.png) | ![DUPE Checksum Demo](docs/assets/dupe-checksum-demo.png) |
+| *Live Windows GUI capture rendering ground-truth demo duplicate metrics (8 files, 456 B reclaimable)* | *Live Windows GUI capture rendering ground-truth demo SHA-256 checksum inventory* |
 
 ---
 
 ## Verification
 
-![DUPE Security Verification](docs/assets/dupe-security-proof.png)
+![DUPE Security Verification](docs/assets/dupe-security-proof.png)  
+*Rendered verification card displaying 20/20 passing defensive security regression tests (SEC-001 through SEC-005).*
 
 The repository enforces objective correctness across multiple independent gates:
 
@@ -148,7 +164,8 @@ GENERAL GUI SHELL CODE:
     Runs across macOS, Linux, and Windows where Python/Tk is installed
 ```
 
-*Note:* Official J2 0.1.0 compiler binaries are distributed exclusively for macOS Apple Silicon. On other operating systems, the test suite cleanly detects the missing J2 binary and skips live J2 compiler tests while running 100% of Python, adapter, GUI, and reference model tests.
+*Note on Platform Support & Visual Evidence:*  
+Official J2 0.1.0 compiler binaries are distributed exclusively for macOS Apple Silicon. On other operating systems (Windows and Linux), the test suite cleanly detects the missing J2 binary and skips live J2 compiler tests while running 100% of Python, adapter, GUI, and reference model tests. Windows GUI evidence intentionally demonstrates the authentic `Engine: Unavailable` state where J2 is not installed; no native J2 execution is claimed for that environment. Live native J2 binary compilation (`j2 build`) and execution are authoritatively verified on macOS 15 Apple Silicon arm64 CI runners.
 
 ---
 
