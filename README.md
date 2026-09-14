@@ -147,7 +147,7 @@ In the interest of rigorous scientific and engineering honesty:
 1. **J2 0.1.0 Platform Availability:** J2 0.1.0 has only been compiled and released for Apple Silicon macOS. Linux, Windows, and Intel macOS compiler builds are not yet provided upstream.
 2. **Single-Threaded Runtime in 0.1.0:** While J2 language specifications anticipate automatic loop parallelization, empirical measurements in T006 demonstrated that J2 0.1.0 emitted single-threaded native instructions (bounded <105% CPU). Standalone native compilation yields up to 1.18x speedup over the interpreter via machine code generation, but multi-core scaling was not observed in this release.
 3. **Read-Only Safety Boundary:** `dupe` deliberately does not implement file deletion, symlinking, or filesystem modification. Destructive actions are outside the project charter.
-4. **In-Memory Candidate Model:** Candidate grouping and size prefiltering are performed in-memory. The engine is optimized for typical filesystem structures, not petabyte-scale out-of-core streaming deduplication.
+4. **In-Memory Candidate Model & $O(N^2)$ Pairwise Filter (SEC-003):** Candidate grouping and size prefiltering are performed in-memory with pairwise candidate reduction in J2 exhibiting $O(N^2)$ worst-case characteristics on corpora with many identical file sizes. The engine is optimized for typical filesystem structures, not petabyte-scale out-of-core streaming deduplication; tested bounds demonstrate stable, bounded execution under practical workloads.
 5. **GUI Display Server:** The Python/Tk GUI requires an active desktop window environment (Cocoa on macOS, X11/Wayland on Linux, DWM on Windows) for interactive usage, though all GUI logic and adapter models are 100% testable in headless CI.
 
 ---
@@ -158,4 +158,5 @@ In the interest of rigorous scientific and engineering honesty:
 - **Frozen Core Boundary:** `src/scan.j2`, `src/hash.j2`, `src/group.j2`, and `src/output.j2` preserved with zero modifications.
 - **Historical Benchmarks:** `benchmarks/` and T005/T006 evidence preserved with zero modifications.
 - **Milestone T011:** Final submission packaging, comprehensive documentation, and automated release verification complete.
+- **Milestone T012:** Post-release defensive security hardening complete (SEC-001 through SEC-005 remediated and verified with zero frozen core diffs).
 - **Release Verdict:** Engineering state is frozen at the final verified commit upon passing the authoritative CI release gate.

@@ -24,6 +24,9 @@ from typing import Any, Callable
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
+DEFAULT_MAX_OUTPUT_BYTES = int(os.environ.get("DUPE_MAX_OUTPUT_BYTES", str(16 * 1024 * 1024)))
+
+
 @dataclass(frozen=True)
 class EngineResult:
     """Structured result returned by the dupe engine adapter."""
@@ -48,10 +51,12 @@ class EngineAdapter:
         native_bin: Path | str | None = None,
         j2_bin: Path | str | None = None,
         main_j2: Path | str | None = None,
+        max_output_bytes: int = DEFAULT_MAX_OUTPUT_BYTES,
     ) -> None:
         self.native_bin = Path(native_bin).resolve() if native_bin else (REPO_ROOT / "build" / "dupe")
         self.j2_bin = str(j2_bin) if j2_bin else (os.environ.get("J2_BIN") or shutil.which("j2") or "j2")
         self.main_j2 = Path(main_j2).resolve() if main_j2 else (REPO_ROOT / "src" / "main.j2")
+        self.max_output_bytes = max_output_bytes
 
     def has_native_binary(self) -> bool:
         """Check whether genuine native compiled binary is available."""
@@ -72,15 +77,14 @@ class EngineAdapter:
         Priority:
         1. Native binary (build/dupe)
         2. J2 interpreter (j2 --allow-fs src/main.j2)
+        3. Unavailable (neither executable is present on disk)
         """
         if self.has_native_binary():
             return "native", [str(self.native_bin)]
         if self.has_j2_interpreter() and self.main_j2.is_file():
             return "interpreter", [str(self.j2_bin), "--allow-fs", str(self.main_j2)]
-        # Fallback to direct native binary path if set
-        if self.native_bin:
-            return "native", [str(self.native_bin)]
-        return "interpreter", [str(self.j2_bin), "--allow-fs", str(self.main_j2)]
+        fallback_cmd = [str(self.native_bin)] if self.native_bin else [str(self.j2_bin), "--allow-fs", str(self.main_j2)]
+        return "unavailable", fallback_cmd
 
     def build_command(self, workload: str, target_path: str) -> list[str]:
         """Construct exact command line arguments according to T008 CLI contract.
@@ -104,6 +108,7 @@ class EngineAdapter:
         *,
         timeout: int = 300,
         env: dict[str, str] | None = None,
+        max_output_bytes: int | None = None,
     ) -> EngineResult:
         """Execute dupe engine synchronously and parse structured JSON results."""
         target_str = str(target_path).strip()
@@ -127,6 +132,7 @@ class EngineAdapter:
         if env:
             run_env.update(env)
 
+        limit = max_output_bytes if max_output_bytes is not None else self.max_output_bytes
         start_time = time.perf_counter()
         try:
             proc = subprocess.run(
@@ -137,8 +143,26 @@ class EngineAdapter:
                 timeout=timeout,
             )
             duration = time.perf_counter() - start_time
-            stdout_text = proc.stdout.decode("utf-8", errors="replace").strip()
-            stderr_text = proc.stderr.decode("utf-8", errors="replace").strip()
+
+            raw_out = proc.stdout if isinstance(proc.stdout, bytes) else proc.stdout.encode("utf-8")
+            raw_err = proc.stderr if isinstance(proc.stderr, bytes) else proc.stderr.encode("utf-8")
+
+            if len(raw_out) > limit:
+                return EngineResult(
+                    success=False,
+                    workload=workload,
+                    target_path=target_str,
+                    returncode=-1,
+                    data=None,
+                    raw_stdout="",
+                    raw_stderr="",
+                    error_message=f"Engine stdout exceeded maximum allowed limit of {limit} bytes.",
+                    duration_seconds=duration,
+                    command_executed=cmd,
+                )
+
+            stdout_text = raw_out.decode("utf-8", errors="replace").strip()
+            stderr_text = raw_err.decode("utf-8", errors="replace").strip()
 
             if proc.returncode != 0:
                 err_msg = stderr_text if stderr_text else (
@@ -205,8 +229,8 @@ class EngineAdapter:
 
         except subprocess.TimeoutExpired as exc:
             duration = time.perf_counter() - start_time
-            stdout_text = (exc.stdout or b"").decode("utf-8", errors="replace").strip()
-            stderr_text = (exc.stderr or b"").decode("utf-8", errors="replace").strip()
+            stdout_text = (exc.stdout or b"").decode("utf-8", errors="replace").strip() if isinstance(exc.stdout, bytes) else str(exc.stdout or "").strip()
+            stderr_text = (exc.stderr or b"").decode("utf-8", errors="replace").strip() if isinstance(exc.stderr, bytes) else str(exc.stderr or "").strip()
             return EngineResult(
                 success=False,
                 workload=workload,
@@ -242,10 +266,17 @@ class EngineAdapter:
         *,
         timeout: int = 300,
         env: dict[str, str] | None = None,
+        max_output_bytes: int | None = None,
     ) -> threading.Thread:
         """Run analysis in a background daemon thread to maintain UI responsiveness."""
         def worker() -> None:
-            result = self.run_analysis(workload, target_path, timeout=timeout, env=env)
+            result = self.run_analysis(
+                workload,
+                target_path,
+                timeout=timeout,
+                env=env,
+                max_output_bytes=max_output_bytes,
+            )
             on_complete(result)
 
         t = threading.Thread(target=worker, daemon=True)
@@ -253,8 +284,26 @@ class EngineAdapter:
         return t
 
     @staticmethod
-    def _validate_schema(workload: str, data: dict[str, Any]) -> str | None:
-        """Verify output adheres to established Phase 3 / T007 JSON schemas."""
+    def _is_strict_int(val: Any, min_val: int = 0) -> bool:
+        """Verify val is a strict integer (not bool) satisfying min_val."""
+        if not isinstance(val, int) or isinstance(val, bool):
+            return False
+        return val >= min_val
+
+    @staticmethod
+    def _is_valid_sha256(digest: Any) -> bool:
+        """Verify digest is exactly 64 lowercase hexadecimal characters."""
+        if not isinstance(digest, str) or len(digest) != 64:
+            return False
+        return all(c in "0123456789abcdef" for c in digest)
+
+    @classmethod
+    def _validate_schema(cls, workload: str, data: dict[str, Any]) -> str | None:
+        """Verify output adheres strictly to established Phase 3 / T007 JSON schemas.
+
+        Validates both structural shape and scalar types/constraints to prevent
+        untrusted or malformed engine output from crashing presenter view models.
+        """
         if not isinstance(data, dict):
             return "Output must be a JSON object"
 
@@ -263,34 +312,74 @@ class EngineAdapter:
             missing = required_keys - set(data.keys())
             if missing:
                 return f"Missing required duplicate keys: {sorted(missing)}"
+
+            if not cls._is_strict_int(data["files_scanned"]):
+                return "'files_scanned' must be a non-negative integer"
+            if not cls._is_strict_int(data["hash_candidates"]):
+                return "'hash_candidates' must be a non-negative integer"
+            if not cls._is_strict_int(data["reclaimable_bytes"]):
+                return "'reclaimable_bytes' must be a non-negative integer"
+
             if not isinstance(data["duplicate_groups"], list):
                 return "'duplicate_groups' must be a list"
+
             for idx, g in enumerate(data["duplicate_groups"]):
                 if not isinstance(g, dict):
                     return f"Duplicate group {idx} is not an object"
                 g_missing = {"hash", "size", "files", "reclaimable_bytes"} - set(g.keys())
                 if g_missing:
                     return f"Duplicate group {idx} missing keys: {sorted(g_missing)}"
+
+                if not cls._is_valid_sha256(g["hash"]):
+                    return f"Duplicate group {idx} 'hash' must be a 64-character lowercase hexadecimal SHA-256 digest"
+                if not cls._is_strict_int(g["size"]):
+                    return f"Duplicate group {idx} 'size' must be a non-negative integer"
+                if not cls._is_strict_int(g["reclaimable_bytes"]):
+                    return f"Duplicate group {idx} 'reclaimable_bytes' must be a non-negative integer"
                 if not isinstance(g["files"], list):
                     return f"Duplicate group {idx} 'files' must be a list"
+                if len(g["files"]) < 1:
+                    return f"Duplicate group {idx} 'files' must not be empty"
+                for f_idx, f in enumerate(g["files"]):
+                    if not isinstance(f, str):
+                        return f"Duplicate group {idx} file {f_idx} is not a string"
 
         elif workload == "checksum":
             required_keys = {"schema_version", "workload", "root", "summary", "entries"}
             missing = required_keys - set(data.keys())
             if missing:
                 return f"Missing required checksum keys: {sorted(missing)}"
+
+            if not cls._is_strict_int(data["schema_version"], min_val=1):
+                return "'schema_version' must be a positive integer"
             if data.get("workload") != "checksum_inventory":
                 return f"Expected workload 'checksum_inventory', got '{data.get('workload')}'"
+            if not isinstance(data.get("root"), str):
+                return "'root' must be a string"
+
             summary = data.get("summary")
             if not isinstance(summary, dict) or "total_files" not in summary or "total_bytes" not in summary:
                 return "'summary' must be an object with 'total_files' and 'total_bytes'"
+            if not cls._is_strict_int(summary["total_files"]):
+                return "'summary.total_files' must be a non-negative integer"
+            if not cls._is_strict_int(summary["total_bytes"]):
+                return "'summary.total_bytes' must be a non-negative integer"
+
             if not isinstance(data.get("entries"), list):
                 return "'entries' must be a list"
+
             for idx, e in enumerate(data["entries"]):
                 if not isinstance(e, dict):
                     return f"Checksum entry {idx} is not an object"
                 e_missing = {"path", "size", "sha256"} - set(e.keys())
                 if e_missing:
                     return f"Checksum entry {idx} missing keys: {sorted(e_missing)}"
+
+                if not isinstance(e["path"], str):
+                    return f"Checksum entry {idx} 'path' must be a string"
+                if not cls._is_strict_int(e["size"]):
+                    return f"Checksum entry {idx} 'size' must be a non-negative integer"
+                if not cls._is_valid_sha256(e["sha256"]):
+                    return f"Checksum entry {idx} 'sha256' must be a 64-character lowercase hexadecimal SHA-256 digest"
 
         return None

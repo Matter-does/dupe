@@ -98,4 +98,23 @@ The lightweight GUI shell (`gui/app.py`) wraps the engine without reimplementing
 - `ViewModels` (`gui/view_models.py`) transform engine output into presentation models for both duplicate and checksum workloads.
 - The user interface is built using standard library `tkinter`/`ttk` for zero external dependencies.
 
+## Security Architecture & Defenses (T012 Hardening)
+Post-release security hardening milestone T012 establishes defensive boundaries across the presenter and filesystem integration layers:
+
+1. **Presenter / Engine Boundary Validation (SEC-001):**
+   The presentation adapter (`gui/adapter.py`) treats engine output as untrusted input. `_validate_schema()` enforces structural shape as well as strict scalar types and domain constraints (non-negative strict integer counts and sizes, 64-character lowercase hexadecimal SHA-256 digests). View-model instantiation in `gui/app.py` is defensively isolated so that malformed or out-of-spec payloads trigger controlled UI error states rather than uncaught event-loop exceptions.
+
+2. **Accurate Engine Capability Introspection (SEC-002):**
+   `resolve_engine_mode()` verifies genuine on-disk binary existence and executable permissions before reporting execution capability. The UI dynamically presents `J2 Native (build/dupe)`, `J2 Interpreter (j2)`, or `Engine: Unavailable`, preventing deceptive status reporting in non-compiled environments.
+
+3. **Bounded Algorithmic Scalability (SEC-003):**
+   The frozen Phase 3 core performs pairwise size candidate reduction and duplicate group clustering with $O(N^2)$ worst-case characteristics on corpora with many identical file sizes. In accordance with T012 non-negotiable boundaries, the frozen J2 core is preserved without speculative modification. Scalability limits are bounded through progressive empirical testing up to safe host limits.
+
+4. **Non-Destructive Symlink Cleanup Guard (SEC-004):**
+   `tests/demo_corpus.py` inspects target directory paths before resolving them. If the target path is a symlink or Windows reparse point, `--clean` immediately aborts with an explicit security refusal, guaranteeing that cleanup cannot delete through links or affect unintended files.
+
+5. **Bounded Engine Stdout Buffering (SEC-005):**
+   Engine process execution enforces a configurable maximum stdout buffer cap (default 16 MiB, overridable via `DUPE_MAX_OUTPUT_BYTES`). Excess output triggers immediate fail-closed termination and an explicit error message, preventing memory exhaustion attacks from untrusted or runaway workloads.
+
+
 

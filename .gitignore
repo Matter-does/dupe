@@ -11,3 +11,4 @@ tests/regressions/failures/
 benchmarks/corpora/
 corpora/
 demo_corpus/
+artifacts/

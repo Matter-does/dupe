@@ -49,9 +49,9 @@ class DupeApp:
             if isinstance(mode_tuple, (tuple, list)) and len(mode_tuple) >= 1:
                 self.engine_mode = str(mode_tuple[0])
             else:
-                self.engine_mode = "interpreter"
+                self.engine_mode = "unavailable"
         except Exception:
-            self.engine_mode = "interpreter"
+            self.engine_mode = "unavailable"
 
         # Metrics display variables
         self.metric_1_title = tk.StringVar(value="Files Scanned")
@@ -113,7 +113,12 @@ class DupeApp:
         title_lbl = ttk.Label(title_row, text="dupe — Filesystem Intelligence Engine", style="Header.TLabel")
         title_lbl.pack(side=tk.LEFT)
 
-        engine_desc = "J2 Native (build/dupe)" if self.engine_mode == "native" else "J2 Interpreter (j2)"
+        if self.engine_mode == "native":
+            engine_desc = "J2 Native (build/dupe)"
+        elif self.engine_mode == "interpreter":
+            engine_desc = "J2 Interpreter (j2)"
+        else:
+            engine_desc = "Unavailable"
         self.engine_badge = ttk.Label(
             title_row,
             text=f"Engine: {engine_desc}",
@@ -398,22 +403,32 @@ class DupeApp:
 
         # Render successful results
         data = result.data or {}
-        if result.workload == "duplicate":
-            vm = DuplicateViewModel.from_engine_data(data)
-            self.last_duplicate_vm = vm
-            self._render_duplicate_results(vm)
-            self.status_var.set(
-                f"Duplicate scan complete in {result.duration_seconds:.2f}s. "
-                f"Scanned {vm.files_scanned} files, found {vm.duplicate_groups_count} duplicate groups."
-            )
-        elif result.workload == "checksum":
-            vm = ChecksumViewModel.from_engine_data(data)
-            self.last_checksum_vm = vm
-            self._render_checksum_results(vm)
-            self.status_var.set(
-                f"Checksum inventory complete in {result.duration_seconds:.2f}s. "
-                f"Enumerated {vm.total_files} files ({vm.total_bytes_formatted})."
-            )
+        try:
+            if result.workload == "duplicate":
+                vm = DuplicateViewModel.from_engine_data(data)
+                self.last_duplicate_vm = vm
+                self._render_duplicate_results(vm)
+                self.status_var.set(
+                    f"Duplicate scan complete in {result.duration_seconds:.2f}s. "
+                    f"Scanned {vm.files_scanned} files, found {vm.duplicate_groups_count} duplicate groups."
+                )
+            elif result.workload == "checksum":
+                vm = ChecksumViewModel.from_engine_data(data)
+                self.last_checksum_vm = vm
+                self._render_checksum_results(vm)
+                self.status_var.set(
+                    f"Checksum inventory complete in {result.duration_seconds:.2f}s. "
+                    f"Enumerated {vm.total_files} files ({vm.total_bytes_formatted})."
+                )
+        except Exception as exc:
+            self._set_running_state(False)
+            self.last_duplicate_vm = None
+            self.last_checksum_vm = None
+            self.status_var.set(f"UI presentation error: {exc}")
+            self._show_error(f"UI Presentation Error:\nFailed to render engine output: {exc}")
+            self._reset_metrics()
+            self.tree.delete(*self.tree.get_children())
+            return
 
     def _render_duplicate_results(self, vm: DuplicateViewModel) -> None:
         """Populate UI widgets with DuplicateViewModel data."""

@@ -71,6 +71,24 @@ def get_expected_sha256(payload: bytes) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
+def is_symlink_or_reparse(path: Path | str) -> bool:
+    """Inspect whether path is a symbolic link or Windows reparse point without following it."""
+    p = Path(path)
+    if os.path.islink(p):
+        return True
+    if p.is_symlink():
+        return True
+    try:
+        st = os.lstat(p)
+        import stat
+        if hasattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT"):
+            if getattr(st, "st_file_attributes", 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT:
+                return True
+    except Exception:
+        pass
+    return False
+
+
 def create_demo_corpus(target_dir: Path | str, *, clean: bool = False) -> Path:
     """Create the deterministic demonstration corpus at the specified target directory.
 
@@ -80,14 +98,32 @@ def create_demo_corpus(target_dir: Path | str, *, clean: bool = False) -> Path:
 
     Returns:
         Path to the generated demo corpus directory.
+
+    Raises:
+        RuntimeError: If clean is True and target_dir is a symlink or reparse point.
     """
-    out = Path(target_dir).resolve()
-    if out.exists():
-        if clean:
-            shutil.rmtree(out)
-            out.mkdir(parents=True, exist_ok=True)
-    else:
-        out.mkdir(parents=True, exist_ok=True)
+    raw_path = Path(target_dir)
+
+    # SEC-004: Inspect raw path before resolution to prevent deletion through links
+    if clean:
+        if is_symlink_or_reparse(raw_path):
+            raise RuntimeError(
+                f"Refusing cleanup: target path '{target_dir}' is a symlink or reparse point. "
+                "Cannot delete through links."
+            )
+        if raw_path.exists():
+            if is_symlink_or_reparse(raw_path):
+                raise RuntimeError(
+                    f"Refusing cleanup: target path '{target_dir}' is a symlink or reparse point. "
+                    "Cannot delete through links."
+                )
+            shutil.rmtree(raw_path)
+            raw_path.mkdir(parents=True, exist_ok=True)
+    elif not raw_path.exists():
+        raw_path.mkdir(parents=True, exist_ok=True)
+
+    out = raw_path.resolve()
+    out.mkdir(parents=True, exist_ok=True)
 
     # 1. Create empty directory
     (out / "empty_dir").mkdir(exist_ok=True)
@@ -153,8 +189,12 @@ def main() -> int:
     args = parser.parse_args()
 
     out_path = Path(args.output)
-    created = create_demo_corpus(out_path, clean=args.clean)
-    verified = verify_demo_corpus(created)
+    try:
+        created = create_demo_corpus(out_path, clean=args.clean)
+        verified = verify_demo_corpus(created)
+    except Exception as exc:
+        print(f"Error generating demo corpus: {exc}", file=sys.stderr)
+        return 1
 
     print(f"Demo corpus successfully created at: {created}")
     print(f"Total regular files: {verified['files_count']}")

@@ -12,7 +12,8 @@
 - [x] T008 — CLI/product surface polish (COMPLETED / FROZEN / RELEASE READY)
 - [x] T009 — Lightweight GUI shell over the engine (COMPLETED / FROZEN / RELEASE READY)
 - [x] T010 — Demo workload and benchmark presentation (COMPLETED / FROZEN / RELEASE READY)
-- [ ] T011 — Final CI/documentation/submission package (Implementation Complete — Awaiting Adversarial Review)
+- [x] T011 — Final CI/documentation/submission package (COMPLETED / FROZEN / RELEASED at bd2f8c9c27822dbde1133a6ab93256c09e7be677)
+- [x] T012 — Post-release security hardening (COMPLETED / VERIFIED)
 
 ## Ordering rule
 Do not start a later task while a prerequisite task is incomplete unless the task is explicitly independent. Performance work begins only after correctness is locked.

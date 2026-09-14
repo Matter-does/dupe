@@ -81,7 +81,7 @@ class TestT009EngineAdapter(unittest.TestCase):
             "hash_candidates": 4,
             "duplicate_groups": [
                 {
-                    "hash": "abc123hash",
+                    "hash": "a" * 64,
                     "size": 1024,
                     "files": ["/a/f1.txt", "/a/f2.txt"],
                     "reclaimable_bytes": 1024,
@@ -110,8 +110,8 @@ class TestT009EngineAdapter(unittest.TestCase):
             "root": "/valid/dir",
             "summary": {"total_files": 2, "total_bytes": 2048},
             "entries": [
-                {"path": "/valid/dir/a.txt", "size": 1024, "sha256": "1111"},
-                {"path": "/valid/dir/b.txt", "size": 1024, "sha256": "2222"},
+                {"path": "/valid/dir/a.txt", "size": 1024, "sha256": "1" * 64},
+                {"path": "/valid/dir/b.txt", "size": 1024, "sha256": "2" * 64},
             ],
         }
         mock_proc = MagicMock()

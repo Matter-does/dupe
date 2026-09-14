@@ -1,34 +1,34 @@
 # Agent Handoff
 
 ## Current State
-Milestone **T011 — Final Submission Package** implementation is complete and locally verified.
+Milestone **T012 — Post-Release Security Hardening** is complete and fully verified.
+The baseline submission release (`bd2f8c9c27822dbde1133a6ab93256c09e7be677`) remains immutable.
 
 Key accomplishments:
-1. **Authoritative Specification:** Defined technical release contract in `agent/tasks/T011-final-package.md`.
-2. **Evaluator Portal:** Updated `README.md` to be the primary evaluator entry point following the canonical structure (What is this, Why this exists, Why J2, Architecture, Features, Demo, Verification, Platform, Limitations, Final Status).
-3. **Validation & Evidence Registers:**
-   - `docs/VALIDATION.md`: Complete Claim → Verification Evidence mapping.
-   - `docs/FINAL_EVIDENCE.md`: Repository-portable evidence record.
-   - `docs/SUBMISSION_CHECKLIST.md`: Comprehensive release readiness audit checklist.
-4. **Automated Package & Release Testing:**
-   - `tests/test_t011_final_package.py`: 8 unit tests verifying package completeness, boundary integrity, and lack of machine-specific paths.
-   - `tests/verify_t011_final_release.py`: Standalone synthesis harness generating `final_release_evidence.json` and `final_release_summary.md`.
-5. **Authoritative Final Release CI:**
-   - `.github/workflows/t011-final-release.yml`: Runs on macOS 15 Apple Silicon arm64 with pinned J2 0.1.0, executing formatting checks, boundary checks, 132 tests, Phase 4 differential fuzzer, native binary compilation, T010 demo verification, T011 evidence generation, canonical evaluator smoke tests, and evidence artifact publishing.
-6. **Milestone Preservation & Boundaries:**
-   - Milestones T001 through T010 are completed, validated, and frozen.
+1. **Authoritative Specification:** Defined security hardening contract in `agent/tasks/T012-security-hardening.md`.
+2. **SEC-001 Remediation (Fixed):** Strengthened schema validation in `gui/adapter.py` with strict scalar type and 64-char lowercase hex checks; added defensive ViewModel exception handling in `gui/app.py`.
+3. **SEC-002 Remediation (Fixed):** Corrected engine mode resolution in `gui/adapter.py` to prevent false "Native" claims; added explicit "Unavailable" badge state in `gui/app.py`.
+4. **SEC-003 Remediation (Accepted with Documented Limitation):** Documented $O(N^2)$ candidate reduction complexity and tested bounds in `docs/ARCHITECTURE.md`, `docs/VALIDATION.md`, and `README.md`; preserved frozen core without speculative rewrites; added bounded scaling tests.
+5. **SEC-004 Remediation (Fixed):** Added symlink/reparse-point pre-resolution guard in `tests/demo_corpus.py` to prevent destructive cleanup through links.
+6. **SEC-005 Remediation (Fixed):** Enforced configurable 16 MiB stdout buffer cap (`DUPE_MAX_OUTPUT_BYTES`) with immediate fail-closed termination.
+7. **Security Test Suite & CI:**
+   - `tests/security/test_t012_security_hardening.py` (20 automated tests, 100% PASS).
+   - `tests/security/verify_t012_security.py` generating sanitized evidence in `artifacts/security/`.
+   - `.github/workflows/t012-security.yml` for continuous dual-platform security verification.
+8. **Milestone Preservation & Boundaries:**
    - Frozen Phase 3 core files (`src/scan.j2`, `src/hash.j2`, `src/group.j2`, `src/output.j2`) and historical benchmark evidence (`benchmarks/`) are 100% untouched (0 diff lines).
 
 ---
 
 ## 1. Test Verification Evidence
+- `tests/security/test_t012_security_hardening.py`: **20/20 PASS**.
 - `tests/test_t011_final_package.py`: **8/8 PASS**.
 - `tests/test_t010_demo.py`: **10 tests** (8 unit/gui PASS, 2 live cleanly SKIPPED locally).
 - `tests/test_t009_gui_shell.py`: **22 tests** (19 unit/gui PASS, 3 live cleanly SKIPPED locally).
 - `tests/test_t008_cli_polish.py`: **20 tests** (9 unit PASS, 11 live cleanly SKIPPED locally).
 - `tests/test_t007_checksum_inventory.py`: **22 tests** (10 unit PASS, 12 live cleanly SKIPPED locally).
-- `python -m unittest discover -s tests -v`: **132 tests** (104 PASS, 28 cleanly SKIPPED locally).
-- `python tests/phase4_differential.py --offline`: **PASS**.
+- Full Test Suite: **152 tests** (124 PASS, 28 cleanly SKIPPED locally on Windows).
+- Differential Fuzzer: `python tests/phase4_differential.py --offline` **PASS**.
 
 ---
 
@@ -38,14 +38,8 @@ Key accomplishments:
 - `src/group.j2`: **100% untouched** (0 diff lines)
 - `src/output.j2`: **100% untouched** (0 diff lines)
 - `benchmarks/`: **100% untouched** (0 diff lines)
-- `benchmarks/results/t005_*`: **100% untouched** (0 diff lines)
-- `benchmarks/results/t006_*`: **100% untouched** (0 diff lines)
-- `benchmarks/t006/`: **100% untouched** (0 diff lines)
 
 ---
 
-## 3. What Should the Next Agent Do?
-1. Execute Commit 5 for metadata updates.
-2. Push all commits to `origin/main`.
-3. Conduct Phase 14 Antigravity Final Submission Red-Team Review across all 20 attack vectors.
-4. Monitor `.github/workflows/t011-final-release.yml` in GitHub Actions.
+## 3. Final Security Verdict
+**SECURITY HARDENING PASS**
