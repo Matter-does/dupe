@@ -2,6 +2,8 @@
 
 **J2-native filesystem intelligence engine**
 
+![DUPE Showcase Hero](docs/assets/dupe-hero.png)
+
 `dupe` is a read-only filesystem analysis project written primarily in J2. It implements exact duplicate file detection and cryptographic checksum inventory workloads to study how a real-world, I/O- and compute-bound filesystem analysis pipeline behaves under J2's native compilation and execution model.
 
 ---
@@ -26,6 +28,8 @@ Based on direct, reproducible evidence from this repository:
 ---
 
 ## Architecture
+
+![DUPE System Architecture](docs/assets/dupe-architecture.png)
 
 The project maintains a strict, one-way dependency architecture:
 
@@ -101,13 +105,21 @@ python -m gui --target demo_corpus
 # 5. Run automated demonstration verification
 python tests/verify_t010_demo.py --native-bin build/dupe --output-dir artifacts/t010
 
-# 6. Run full test suite (132 tests)
+# 6. Run full test suite (152 tests)
 python -m unittest discover -s tests -v
 ```
+
+### Visual Demonstration
+
+| Exact Duplicate Detection | Cryptographic Checksum Inventory |
+| :---: | :---: |
+| ![DUPE Duplicate Demo](docs/assets/dupe-duplicate-demo.png) | ![DUPE Checksum Demo](docs/assets/dupe-checksum-demo.png) |
 
 ---
 
 ## Verification
+
+![DUPE Security Verification](docs/assets/dupe-security-proof.png)
 
 The repository enforces objective correctness across multiple independent gates:
 
