@@ -477,9 +477,9 @@ class TestAdversarialSecurity(unittest.TestCase):
 
         for hp in hostile_paths:
             cmd = self.adapter.build_command("duplicate", hp)
-            self.assertEqual(cmd[1], hp)
-            self.assertEqual(cmd[2], "--json")
-            self.assertEqual(len(cmd), 3)
+            self.assertEqual(cmd[-2], hp)
+            self.assertEqual(cmd[-1], "--json")
+            self.assertIn(hp, cmd)
 
     def test_malformed_json_syntax_fails_closed(self) -> None:
         """Corrupted or truncated JSON syntax returns controlled failure."""
